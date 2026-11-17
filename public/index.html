@@ -119,7 +119,76 @@
       padding: clamp(36px, 6vw, 80px) clamp(16px, 4vw, 48px) 72px;
     }
 
-    .hero { max-width: 680px; margin-bottom: clamp(32px, 5vw, 52px); }
+    /* ---------- luxury hero ---------- */
+
+    .hero-lux {
+      position: relative;
+      isolation: isolate;
+      display: flex;
+      align-items: center;
+      min-height: clamp(470px, 68vh, 640px);
+      padding: clamp(60px, 9vw, 112px) clamp(16px, 4vw, 48px) clamp(52px, 7vw, 88px);
+      border-bottom: 1px solid var(--line);
+      background-color: #060606;
+      background-image: url("https://images.pexels.com/photos/1467591/pexels-photo-1467591.jpeg?auto=compress&cs=tinysrgb&w=1800");
+      background-size: cover;
+      background-position: center 58%;
+      background-repeat: no-repeat;
+    }
+
+    .hero-lux::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background:
+        linear-gradient(96deg, rgba(6, 6, 6, 0.95) 0%, rgba(6, 6, 6, 0.86) 34%, rgba(6, 6, 6, 0.5) 62%, rgba(6, 6, 6, 0.72) 100%),
+        linear-gradient(180deg, rgba(6, 6, 6, 0.72) 0%, rgba(6, 6, 6, 0.08) 40%, rgba(6, 6, 6, 0.86) 100%);
+    }
+
+    .hero-lux__inner { width: 100%; max-width: 1140px; margin: 0 auto; }
+
+    .hero-lux h1 {
+      margin: 0 0 18px;
+      max-width: 22ch;
+      font-size: clamp(40px, 6.4vw, 68px);
+      font-weight: 500;
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+      text-wrap: balance;
+    }
+
+    .hero-lux .lead { margin: 0; max-width: 52ch; font-size: 17px; color: #d3cdc1; }
+
+    .hero-lux__actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 32px; }
+
+    .hero-lux__facts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: clamp(20px, 4vw, 52px);
+      margin: clamp(28px, 4vw, 44px) 0 0;
+      padding: clamp(20px, 3vw, 28px) 0 0;
+      list-style: none;
+      border-top: 1px solid rgba(244, 241, 234, 0.14);
+    }
+
+    .hero-lux__facts li {
+      display: grid;
+      gap: 3px;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #a29c90;
+    }
+
+    .hero-lux__facts strong {
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      text-transform: none;
+      color: var(--text);
+    }
 
     .eyebrow {
       display: inline-flex;
@@ -139,16 +208,6 @@
       height: 1px;
       background: var(--accent);
     }
-
-    .hero h1 {
-      margin: 0 0 16px;
-      font-size: clamp(32px, 4.6vw, 50px);
-      font-weight: 500;
-      line-height: 1.08;
-      letter-spacing: -0.025em;
-    }
-
-    .hero p { margin: 0; color: var(--muted); font-size: 16px; max-width: 56ch; }
 
     /* ---------- navigation cards ---------- */
 
@@ -369,9 +428,151 @@
       color: var(--muted);
     }
 
+    /* ---------- fleet ---------- */
+
+    .fleet-showcase { margin-bottom: 44px; scroll-margin-top: 24px; }
+
+    .fleet-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 28px;
+    }
+
+    .fleet-head .link { margin-top: 6px; white-space: nowrap; }
+
+    .fleet-head h2 {
+      margin: 0 0 10px;
+      font-size: clamp(24px, 3vw, 34px);
+      font-weight: 500;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .fleet-head p { margin: 0; max-width: 62ch; font-size: 14.5px; color: var(--muted); }
+
+    .fleet-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .fleet-card {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .fleet-card:hover {
+      border-color: rgba(197, 160, 89, 0.5);
+      transform: translateY(-3px);
+      box-shadow: 0 20px 44px rgba(0, 0, 0, 0.5);
+    }
+
+    .fleet-card.is-selected { border-color: var(--accent); }
+
+    .fleet-card__media {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      background: #101010;
+    }
+
+    .fleet-card__media img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      filter: saturate(0.88) contrast(1.04) brightness(0.94);
+      transition: transform 0.6s ease, filter 0.4s ease;
+    }
+
+    .fleet-card:hover .fleet-card__media img {
+      transform: scale(1.05);
+      filter: saturate(1) contrast(1.04) brightness(1);
+    }
+
+    .fleet-card__media::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(10, 10, 10, 0) 46%, rgba(10, 10, 10, 0.62) 100%);
+      pointer-events: none;
+    }
+
+    .fleet-card__body {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      flex: 1;
+      padding: 20px 20px 22px;
+    }
+
+    .fleet-card__cap {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .fleet-card h3 { margin: 0; font-size: 16px; font-weight: 500; letter-spacing: 0.015em; }
+
+    .fleet-card p { margin: 0; font-size: 13px; color: var(--muted); }
+
+    .fleet-select {
+      margin-top: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border: 1px solid var(--line-strong);
+      border-radius: 2px;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+    }
+
+    .fleet-select:hover,
+    .fleet-select:focus-visible {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-ink);
+      outline: none;
+    }
+
+    .fleet-select:focus-visible { box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.35); }
+
+    @media (max-width: 1080px) {
+      .fleet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
     @media (max-width: 760px) {
       .nav-grid { grid-template-columns: minmax(0, 1fr); }
       .panel-head { flex-direction: column; }
+    }
+
+    @media (max-width: 640px) {
+      .topbar { flex-direction: column; align-items: flex-start; }
+      .topbar-actions { width: 100%; justify-content: space-between; }
+      .hero-lux { min-height: 0; }
+      .hero-lux__facts { gap: 18px 28px; }
+      .fleet-grid { grid-template-columns: minmax(0, 1fr); }
+      .fleet-head .link { margin-top: 0; }
     }  </style>
 </head>
 <body>
@@ -389,16 +590,28 @@
     </div>
   </header>
 
-  <main>
-    <section class="hero">
-      <span class="eyebrow">Dispatch operations</span>
-      <h1>Where timing is everything</h1>
-      <p>
-        VeloFox Dispatch coordinates luxury vehicle reservations from the client request
-        through pickup, vehicle assignment, and completion.
+  <section class="hero-lux" aria-labelledby="hero-heading">
+    <div class="hero-lux__inner">
+      <span class="eyebrow">Luxury chauffeur service · New York &amp; New Jersey</span>
+      <h1 id="hero-heading">Where timing is everything</h1>
+      <p class="lead">
+        Airport transfers, executive travel, and special occasions handled by professional
+        chauffeurs. Request your ride in under a minute and dispatch confirms every detail.
       </p>
-    </section>
+      <div class="hero-lux__actions">
+        <a class="btn btn-primary" href="/booking.html">Reserve a ride</a>
+        <a class="btn" href="#our-fleet">View the fleet</a>
+      </div>
+      <ul class="hero-lux__facts">
+        <li><strong>24/7</strong> Dispatch desk</li>
+        <li><strong>EWR · JFK · LGA · TEB</strong> Airport coverage</li>
+        <li><strong>1 – 14</strong> Passengers</li>
+        <li><strong>Chauffeur-driven</strong> Sedan to Sprinter</li>
+      </ul>
+    </div>
+  </section>
 
+  <main>
     <nav class="nav-grid" aria-label="Main navigation">
       <a class="nav-card" href="/booking.html">
         <span class="nav-icon" aria-hidden="true">
@@ -425,6 +638,82 @@
         <span class="nav-cta">Open dashboard →</span>
       </a>
     </nav>
+
+    <section class="fleet-showcase" id="our-fleet" aria-labelledby="fleet-heading">
+      <div class="fleet-head">
+        <div>
+          <span class="eyebrow">Our fleet</span>
+          <h2 id="fleet-heading">A vehicle for every arrival</h2>
+          <p>
+            Every class is chauffeur-driven, detailed before pickup, and matched to your party and
+            luggage. Choose a vehicle to carry it straight into the reservation form.
+          </p>
+        </div>
+        <a class="link" href="/booking.html">Reserve a ride →</a>
+      </div>
+
+      <div class="fleet-grid">
+        <article class="fleet-card" data-vehicle="sedan">
+          <div class="fleet-card__media">
+            <img
+              src="https://images.pexels.com/photos/15774577/pexels-photo-15774577.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=800"
+              alt="Chauffeur holding the rear door of an executive sedan"
+              width="800" height="533" loading="lazy" decoding="async">
+          </div>
+          <div class="fleet-card__body">
+            <span class="fleet-card__cap">Up to 3 passengers</span>
+            <h3>Executive Sedan</h3>
+            <p>Quiet, leather-trimmed comfort for airport transfers and executive meetings.</p>
+            <a class="fleet-select" href="/booking.html?vehicle=sedan#booking-form">Select</a>
+          </div>
+        </article>
+
+        <article class="fleet-card" data-vehicle="suv">
+          <div class="fleet-card__media">
+            <img
+              src="https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&amp;fit=crop&amp;w=800&amp;q=70"
+              alt="Black luxury SUV parked in front of a garage"
+              width="800" height="533" loading="lazy" decoding="async">
+          </div>
+          <div class="fleet-card__body">
+            <span class="fleet-card__cap">Up to 6 passengers</span>
+            <h3>Luxury SUV</h3>
+            <p>Raised seating and generous cargo room for families, ski bags, and extra luggage.</p>
+            <a class="fleet-select" href="/booking.html?vehicle=suv#booking-form">Select</a>
+          </div>
+        </article>
+
+        <article class="fleet-card" data-vehicle="sprinter">
+          <div class="fleet-card__media">
+            <img
+              src="https://images.unsplash.com/photo-1765461734605-34657fa04db2?auto=format&amp;fit=crop&amp;w=800&amp;q=70"
+              alt="Black Mercedes Sprinter van with headlights on"
+              width="800" height="533" loading="lazy" decoding="async">
+          </div>
+          <div class="fleet-card__body">
+            <span class="fleet-card__cap">Up to 14 passengers</span>
+            <h3>Mercedes Sprinter</h3>
+            <p>Captain chairs and a roomy cabin built for group travel and corporate shuttles.</p>
+            <a class="fleet-select" href="/booking.html?vehicle=sprinter#booking-form">Select</a>
+          </div>
+        </article>
+
+        <article class="fleet-card" data-vehicle="limousine">
+          <div class="fleet-card__media">
+            <img
+              src="https://images.pexels.com/photos/13467183/pexels-photo-13467183.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=800"
+              alt="Black stretch limousine parked on a paved drive"
+              width="800" height="533" loading="lazy" decoding="async">
+          </div>
+          <div class="fleet-card__body">
+            <span class="fleet-card__cap">Up to 8 passengers</span>
+            <h3>Stretch Limousine</h3>
+            <p>Formal arrivals, weddings, and evenings out with a dedicated chauffeur.</p>
+            <a class="fleet-select" href="/booking.html?vehicle=limousine#booking-form">Select</a>
+          </div>
+        </article>
+      </div>
+    </section>
 
     <section class="panel" aria-labelledby="demo-heading">
       <div class="panel-head">

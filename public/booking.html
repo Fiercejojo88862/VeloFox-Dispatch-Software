@@ -490,6 +490,187 @@
       border: 0;
     }
 
+    /* ---------- luxury hero ---------- */
+
+    .hero-lux {
+      position: relative;
+      isolation: isolate;
+      display: flex;
+      align-items: center;
+      min-height: clamp(430px, 58vh, 560px);
+      padding: clamp(56px, 8vw, 100px) clamp(16px, 4vw, 48px) clamp(48px, 6vw, 76px);
+      border-bottom: 1px solid var(--line);
+      background-color: #060606;
+      background-image: url("https://images.pexels.com/photos/1467591/pexels-photo-1467591.jpeg?auto=compress&cs=tinysrgb&w=1800");
+      background-size: cover;
+      background-position: center 58%;
+      background-repeat: no-repeat;
+    }
+
+    .hero-lux::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background:
+        linear-gradient(96deg, rgba(6, 6, 6, 0.95) 0%, rgba(6, 6, 6, 0.86) 34%, rgba(6, 6, 6, 0.5) 62%, rgba(6, 6, 6, 0.72) 100%),
+        linear-gradient(180deg, rgba(6, 6, 6, 0.72) 0%, rgba(6, 6, 6, 0.08) 40%, rgba(6, 6, 6, 0.86) 100%);
+    }
+
+    .hero-lux__inner { width: 100%; max-width: 1040px; margin: 0 auto; }
+
+    .hero-lux h1 {
+      margin: 0 0 16px;
+      max-width: 24ch;
+      font-size: clamp(36px, 5.4vw, 58px);
+      font-weight: 500;
+      line-height: 1.04;
+      letter-spacing: -0.028em;
+      text-wrap: balance;
+    }
+
+    .hero-lux .lead { margin: 0; max-width: 54ch; font-size: 16.5px; color: #d3cdc1; }
+
+    .hero-lux__actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 30px; }
+
+    .hero-lux + main { padding-top: clamp(32px, 4vw, 56px); }
+
+    /* ---------- fleet showcase ---------- */
+
+    .fleet-showcase { margin-top: 52px; scroll-margin-top: 24px; }
+
+    .fleet-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 26px;
+    }
+
+    .fleet-head .link { margin-top: 6px; white-space: nowrap; }
+
+    .fleet-head h2 {
+      margin: 0 0 10px;
+      font-size: clamp(22px, 2.8vw, 30px);
+      font-weight: 500;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+    }
+
+    .fleet-head p { margin: 0; max-width: 62ch; font-size: 14px; color: var(--muted); }
+
+    .fleet-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 20px;
+    }
+
+    .fleet-card {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .fleet-card:hover {
+      border-color: rgba(197, 160, 89, 0.5);
+      transform: translateY(-3px);
+      box-shadow: 0 20px 44px rgba(0, 0, 0, 0.5);
+    }
+
+    .fleet-card.is-selected {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(197, 160, 89, 0.35);
+    }
+
+    .fleet-card__media {
+      position: relative;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+      background: #101010;
+    }
+
+    .fleet-card__media img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: cover;
+      filter: saturate(0.88) contrast(1.04) brightness(0.94);
+      transition: transform 0.6s ease, filter 0.4s ease;
+    }
+
+    .fleet-card:hover .fleet-card__media img {
+      transform: scale(1.05);
+      filter: saturate(1) contrast(1.04) brightness(1);
+    }
+
+    .fleet-card__media::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(10, 10, 10, 0) 46%, rgba(10, 10, 10, 0.62) 100%);
+      pointer-events: none;
+    }
+
+    .fleet-card__body {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      flex: 1;
+      padding: 18px 18px 20px;
+    }
+
+    .fleet-card__cap {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    .fleet-card h3 { margin: 0; font-size: 15px; font-weight: 500; letter-spacing: 0.015em; }
+
+    .fleet-card p { margin: 0; font-size: 12.5px; color: var(--muted); }
+
+    .fleet-select {
+      margin-top: auto;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 16px;
+      border: 1px solid var(--line-strong);
+      border-radius: 2px;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+    }
+
+    .fleet-select:hover,
+    .fleet-select:focus-visible {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-ink);
+      outline: none;
+    }
+
+    .fleet-select:focus-visible { box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.35); }
+
+    @media (max-width: 1080px) {
+      .fleet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
     @media (max-width: 900px) {
       .layout { grid-template-columns: minmax(0, 1fr); }
       .aside { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -498,6 +679,9 @@
     @media (max-width: 640px) {
       .topbar { align-items: flex-start; flex-direction: column; }
       .topnav { gap: 18px; }
+      .hero-lux { min-height: 0; }
+      .fleet-grid { grid-template-columns: minmax(0, 1fr); }
+      .fleet-head .link { margin-top: 0; }
       .form-grid { grid-template-columns: minmax(0, 1fr); }
       .panel { padding: 22px; }
       .aside { grid-template-columns: minmax(0, 1fr); }
@@ -521,14 +705,22 @@
     </nav>
   </header>
 
-  <main>
-    <span class="eyebrow">Client portal</span>
-    <h1>Reserve your chauffeur <span class="tag">Booking open</span></h1>
-    <p class="lead">
-      Tell us where you need to be and when. A dispatcher reviews every request and confirms
-      your vehicle and chauffeur before pickup.
-    </p>
+  <section class="hero-lux" aria-labelledby="portal-heading">
+    <div class="hero-lux__inner">
+      <span class="eyebrow">Client portal</span>
+      <h1 id="portal-heading">Reserve your chauffeur <span class="tag">Booking open</span></h1>
+      <p class="lead">
+        Tell us where you need to be and when. A dispatcher reviews every request and confirms
+        your vehicle and chauffeur before pickup.
+      </p>
+      <div class="hero-lux__actions">
+        <a class="btn btn-primary" href="#booking-form">Start a reservation</a>
+        <a class="btn" href="#our-fleet">Compare the fleet</a>
+      </div>
+    </div>
+  </section>
 
+  <main>
     <div class="layout">
       <section class="panel" aria-labelledby="form-heading">
         <h2 id="form-heading">Reservation details</h2>
@@ -657,6 +849,82 @@
         </section>
       </aside>
     </div>
+
+    <section class="fleet-showcase" id="our-fleet" aria-labelledby="our-fleet-heading">
+      <div class="fleet-head">
+        <div>
+          <span class="eyebrow">Our fleet</span>
+          <h2 id="our-fleet-heading">Choose your vehicle</h2>
+          <p>
+            Selecting a class fills in the reservation form above — you can still change it before
+            submitting.
+          </p>
+        </div>
+        <a class="link" href="#booking-form">Back to the form →</a>
+      </div>
+
+      <div class="fleet-grid">
+        <article class="fleet-card" data-vehicle="sedan">
+          <div class="fleet-card__media">
+            <img
+              src="https://images.pexels.com/photos/15774577/pexels-photo-15774577.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=800"
+              alt="Chauffeur holding the rear door of an executive sedan"
+              width="800" height="533" loading="lazy" decoding="async">
+          </div>
+          <div class="fleet-card__body">
+            <span class="fleet-card__cap">Up to 3 passengers</span>
+            <h3>Executive Sedan</h3>
+            <p>Quiet, leather-trimmed comfort for airport transfers and executive meetings.</p>
+            <button class="fleet-select" type="button" data-select-vehicle="sedan">Select</button>
+          </div>
+        </article>
+
+        <article class="fleet-card" data-vehicle="suv">
+          <div class="fleet-card__media">
+            <img
+              src="https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&amp;fit=crop&amp;w=800&amp;q=70"
+              alt="Black luxury SUV parked in front of a garage"
+              width="800" height="533" loading="lazy" decoding="async">
+          </div>
+          <div class="fleet-card__body">
+            <span class="fleet-card__cap">Up to 6 passengers</span>
+            <h3>Luxury SUV</h3>
+            <p>Raised seating and generous cargo room for families, ski bags, and extra luggage.</p>
+            <button class="fleet-select" type="button" data-select-vehicle="suv">Select</button>
+          </div>
+        </article>
+
+        <article class="fleet-card" data-vehicle="sprinter">
+          <div class="fleet-card__media">
+            <img
+              src="https://images.unsplash.com/photo-1765461734605-34657fa04db2?auto=format&amp;fit=crop&amp;w=800&amp;q=70"
+              alt="Black Mercedes Sprinter van with headlights on"
+              width="800" height="533" loading="lazy" decoding="async">
+          </div>
+          <div class="fleet-card__body">
+            <span class="fleet-card__cap">Up to 14 passengers</span>
+            <h3>Mercedes Sprinter</h3>
+            <p>Captain chairs and a roomy cabin built for group travel and corporate shuttles.</p>
+            <button class="fleet-select" type="button" data-select-vehicle="sprinter">Select</button>
+          </div>
+        </article>
+
+        <article class="fleet-card" data-vehicle="limousine">
+          <div class="fleet-card__media">
+            <img
+              src="https://images.pexels.com/photos/13467183/pexels-photo-13467183.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=800"
+              alt="Black stretch limousine parked on a paved drive"
+              width="800" height="533" loading="lazy" decoding="async">
+          </div>
+          <div class="fleet-card__body">
+            <span class="fleet-card__cap">Up to 8 passengers</span>
+            <h3>Stretch Limousine</h3>
+            <p>Formal arrivals, weddings, and evenings out with a dedicated chauffeur.</p>
+            <button class="fleet-select" type="button" data-select-vehicle="limousine">Select</button>
+          </div>
+        </article>
+      </div>
+    </section>
 
     <footer>
       <span><a class="slogan" href="/" style="text-decoration: none;">Where timing is everything</a></span>
@@ -921,6 +1189,55 @@
       input.addEventListener('change', () => clearFieldError(input));
     });
     form.addEventListener('submit', submitBooking);
+  </script>
+
+  <script>
+    /*
+     * Fleet quick-select. Kept in its own block so the booking logic above stays untouched:
+     * it only sets #vehicleType to a valid option, clears its inline error, and scrolls to the form.
+     */
+    (function () {
+      'use strict';
+
+      const VEHICLE_TYPES = ['sedan', 'suv', 'sprinter', 'limousine'];
+      const select = document.getElementById('vehicleType');
+      const form = document.getElementById('booking-form');
+
+      if (!select || !form) return;
+
+      const cards = document.querySelectorAll('.fleet-card');
+
+      function highlight(value) {
+        cards.forEach((card) => {
+          card.classList.toggle('is-selected', card.dataset.vehicle === value);
+        });
+      }
+
+      function selectVehicle(value) {
+        if (!VEHICLE_TYPES.includes(value)) return;
+
+        select.value = value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        highlight(value);
+
+        document.getElementById('form-heading').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        window.setTimeout(() => select.focus({ preventScroll: true }), 320);
+      }
+
+      document.querySelectorAll('[data-select-vehicle]').forEach((button) => {
+        button.addEventListener('click', () => selectVehicle(button.dataset.selectVehicle));
+      });
+
+      // "Select" on the landing page arrives as ?vehicle=<class>
+      const requested = new URLSearchParams(window.location.search).get('vehicle');
+      if (requested && VEHICLE_TYPES.includes(requested)) {
+        select.value = requested;
+        highlight(requested);
+      }
+
+      // Nick's success handler calls form.reset(); drop the card highlight with it.
+      form.addEventListener('reset', () => window.setTimeout(() => highlight(null), 0));
+    })();
   </script>
 </body>
 </html>
