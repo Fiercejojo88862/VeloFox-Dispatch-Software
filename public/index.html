@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VeloFox Dispatch</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0f14;
+      --bg-soft: #0f151d;
+      --panel: #121821;
+      --line: #1f2a37;
+      --line-strong: #2a3849;
+      --text: #e6edf5;
+      --muted: #8fa1b3;
+      --accent: #f5a524;
+      --accent-ink: #201502;
+      --green: #34d399;
+      --red: #f87171;
+      --radius: 16px;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(1100px 520px at 12% -10%, rgba(245, 165, 36, 0.10), transparent 60%),
+        radial-gradient(900px 480px at 100% 0%, rgba(96, 165, 250, 0.08), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    a { color: inherit; }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 18px clamp(16px, 4vw, 40px);
+      border-bottom: 1px solid var(--line);
+      background: rgba(11, 15, 20, 0.75);
+      backdrop-filter: blur(10px);
+    }
+
+    .brand { display: flex; align-items: center; gap: 14px; }
+
+    .mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(160deg, #fbbf24, #d97706);
+      color: var(--accent-ink);
+      font-weight: 800;
+      font-size: 17px;
+      box-shadow: 0 8px 20px rgba(245, 165, 36, 0.25);
+    }
+
+    .brand-name { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+    .brand-sub { font-size: 12.5px; color: var(--muted); }
+
+    .topbar-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 12px;
+    }
+
+    .status-pill::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .status-pill[data-state="ok"]::before { background: var(--green); box-shadow: 0 0 8px rgba(52, 211, 153, 0.7); }
+    .status-pill[data-state="down"]::before { background: var(--red); box-shadow: 0 0 8px rgba(248, 113, 113, 0.7); }
+
+    main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: clamp(28px, 6vw, 64px) clamp(16px, 4vw, 40px) 64px;
+    }
+
+    .hero { max-width: 640px; margin-bottom: clamp(28px, 5vw, 44px); }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+    }
+
+    .hero h1 {
+      margin: 0 0 12px;
+      font-size: clamp(30px, 5vw, 44px);
+      line-height: 1.1;
+      letter-spacing: -0.025em;
+    }
+
+    .hero p { margin: 0; color: var(--muted); font-size: 16px; }
+
+    /* ---------- navigation cards ---------- */
+
+    .nav-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 22px;
+    }
+
+    .nav-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 24px;
+      border-radius: var(--radius);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0));
+      text-decoration: none;
+      transition: border-color 0.16s ease, transform 0.16s ease, background 0.16s ease;
+    }
+
+    .nav-card:hover {
+      border-color: var(--line-strong);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.01));
+      transform: translateY(-2px);
+    }
+
+    .nav-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+    .nav-icon {
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      background: rgba(245, 165, 36, 0.12);
+      color: var(--accent);
+      margin-bottom: 2px;
+    }
+
+    .nav-card h2 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .nav-card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    .nav-cta {
+      margin-top: 8px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tag {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(52, 211, 153, 0.12);
+      color: var(--green);
+      box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.35);
+    }
+
+    .tag.pending {
+      background: rgba(245, 165, 36, 0.12);
+      color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(245, 165, 36, 0.35);
+    }
+
+    /* ---------- demo panel ---------- */
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .panel h2 { margin: 0 0 6px; font-size: 16px; }
+    .panel p { margin: 0; color: var(--muted); font-size: 13.5px; max-width: 58ch; }
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--line-strong);
+      background: var(--bg-soft);
+      color: var(--text);
+      font: inherit;
+      font-size: 13.5px;
+      font-weight: 600;
+      padding: 10px 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+    }
+
+    .btn:hover { background: #17202b; border-color: #36475c; }
+    .btn:active { transform: translateY(1px); }
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: transparent;
+      color: var(--accent-ink);
+    }
+
+    .btn-primary:hover { background: #ffb63c; border-color: transparent; }
+
+    .seed-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .seed-result { margin-top: 16px; font-size: 13.5px; }
+    .seed-result[hidden] { display: none; }
+
+    .seed-result .ok { color: var(--green); font-weight: 600; }
+    .seed-result .fail { color: var(--red); font-weight: 600; }
+
+    .seeded-list {
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .seeded-list li {
+      display: flex;
+      gap: 10px;
+      align-items: baseline;
+      flex-wrap: wrap;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--bg-soft);
+      font-size: 13px;
+    }
+
+    .seeded-id {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--muted);
+    }
+
+    .link {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 13.5px;
+    }
+
+    .link:hover { text-decoration: underline; }
+
+    footer {
+      margin-top: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 760px) {
+      .nav-grid { grid-template-columns: minmax(0, 1fr); }
+      .panel-head { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">VF</div>
+      <div>
+        <div class="brand-name">VeloFox Dispatch</div>
+        <div class="brand-sub">Luxury transport logistics</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span id="api-status" class="status-pill" data-state="checking">Checking API…</span>
+      <a class="btn" href="/dashboard.html">Dispatcher Dashboard</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <span class="eyebrow">Dispatch operations</span>
+      <h1>Reserve the ride. Run the fleet.</h1>
+      <p>
+        VeloFox Dispatch coordinates luxury vehicle reservations from the client request
+        through pickup, vehicle assignment, and completion.
+      </p>
+    </section>
+
+    <nav class="nav-grid" aria-label="Main navigation">
+      <a class="nav-card" href="/booking.html">
+        <span class="nav-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 17h14M6 17l1.2-4.5A2 2 0 0 1 9.1 11h5.8a2 2 0 0 1 1.9 1.5L18 17"/>
+            <circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/>
+          </svg>
+        </span>
+        <h2>Client Booking Portal <span class="tag pending">In progress</span></h2>
+        <p>Request a ride: pickup and drop-off, date and time, vehicle class, and passenger count.</p>
+        <span class="nav-cta">Open portal →</span>
+      </a>
+
+      <a class="nav-card" href="/dashboard.html">
+        <span class="nav-icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="6" rx="1.5"/>
+            <rect x="3" y="14" width="8" height="6" rx="1.5"/>
+            <rect x="15" y="14" width="6" height="6" rx="1.5"/>
+          </svg>
+        </span>
+        <h2>Dispatcher Dashboard <span class="tag">Live</span></h2>
+        <p>Review every reservation, update trip status, and assign fleet vehicles to rides.</p>
+        <span class="nav-cta">Open dashboard →</span>
+      </a>
+    </nav>
+
+    <section class="panel" aria-labelledby="demo-heading">
+      <div class="panel-head">
+        <div>
+          <h2 id="demo-heading">Demo data</h2>
+          <p>
+            Adds three future reservations to the in-memory store so the dashboard has rows to
+            work with. Bookings reset whenever the server restarts.
+          </p>
+        </div>
+        <button id="seed" class="btn btn-primary" type="button">Seed demo bookings</button>
+      </div>
+      <div id="seed-result" class="seed-result" role="status" aria-live="polite" hidden></div>
+    </section>
+
+    <footer>
+      <span>VeloFox Dispatch Software · SDET 101</span>
+      <a class="link" href="/api/health">API health</a>
+    </footer>
+  </main>
+
+  <script>
+    'use strict';
+
+    const API_BOOKINGS = '/api/bookings';
+    const API_HEALTH = '/api/health';
+
+    const seedBtn = document.getElementById('seed');
+    const seedResult = document.getElementById('seed-result');
+    const apiStatus = document.getElementById('api-status');
+
+    const shortId = (id) => String(id || '').slice(0, 8);
+
+    function demoBookings() {
+      const at = (daysFromNow, hour, minute) => {
+        const date = new Date();
+        date.setDate(date.getDate() + daysFromNow);
+        date.setHours(hour, minute, 0, 0);
+        return date.toISOString();
+      };
+
+      return [
+        {
+          pickupLocation: 'Newark Liberty International (EWR)',
+          dropoffLocation: 'Hudson Yards, Manhattan',
+          pickupDateTime: at(1, 19, 30),
+          vehicleType: 'suv',
+          passengerCount: 4,
+        },
+        {
+          pickupLocation: 'The Peninsula, Midtown',
+          dropoffLocation: 'Teterboro Airport (TEB)',
+          pickupDateTime: at(2, 11, 0),
+          vehicleType: 'sedan',
+          passengerCount: 2,
+        },
+        {
+          pickupLocation: 'Princeton, NJ',
+          dropoffLocation: 'MetLife Stadium',
+          pickupDateTime: at(3, 17, 45),
+          vehicleType: 'sprinter',
+          passengerCount: 11,
+        },
+      ];
+    }
+
+    async function readJson(response) {
+      const text = await response.text();
+      if (!text) return null;
+      try {
+        return JSON.parse(text);
+      } catch {
+        return null;
+      }
+    }
+
+    function showSeedResult(created, error) {
+      seedResult.hidden = false;
+      seedResult.replaceChildren();
+
+      if (error) {
+        const fail = document.createElement('div');
+        fail.className = 'fail';
+        fail.textContent = `Could not seed demo bookings: ${error}`;
+        seedResult.append(fail);
+      }
+
+      if (created.length > 0) {
+        const ok = document.createElement('div');
+        ok.className = 'ok';
+        ok.textContent = `Added ${created.length} demo ${created.length === 1 ? 'booking' : 'bookings'}.`;
+
+        const list = document.createElement('ul');
+        list.className = 'seeded-list';
+
+        created.forEach((booking) => {
+          const item = document.createElement('li');
+
+          const id = document.createElement('span');
+          id.className = 'seeded-id';
+          id.textContent = `#${shortId(booking.id)}`;
+
+          const route = document.createElement('span');
+          route.textContent = `${booking.pickupLocation} → ${booking.dropoffLocation}`;
+
+          item.append(id, route);
+          list.append(item);
+        });
+
+        const actions = document.createElement('div');
+        actions.className = 'seed-row';
+
+        const link = document.createElement('a');
+        link.className = 'link';
+        link.href = '/dashboard.html';
+        link.textContent = 'View them on the dispatcher dashboard →';
+
+        actions.append(link);
+        seedResult.append(ok, list, actions);
+      }
+    }
+
+    async function seedDemoBookings() {
+      seedBtn.disabled = true;
+      seedBtn.textContent = 'Seeding…';
+      seedResult.hidden = false;
+      seedResult.replaceChildren();
+
+      const created = [];
+      let failure = null;
+
+      for (const demo of demoBookings()) {
+        try {
+          const response = await fetch(API_BOOKINGS, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(demo),
+          });
+
+          const data = await readJson(response);
+
+          if (!response.ok) {
+            const detail = data && Array.isArray(data.details) ? ` ${data.details.join(' ')}` : '';
+            throw new Error(`${(data && data.error) || `Request failed (${response.status})`}${detail}`);
+          }
+
+          created.push(data);
+        } catch (error) {
+          failure = error.message;
+          break;
+        }
+      }
+
+      showSeedResult(created, failure);
+
+      seedBtn.disabled = false;
+      seedBtn.textContent = created.length > 0 ? 'Seed again' : 'Seed demo bookings';
+    }
+
+    async function checkApiHealth() {
+      try {
+        const response = await fetch(API_HEALTH);
+        const data = await readJson(response);
+
+        if (response.ok && data && data.status === 'ok') {
+          apiStatus.dataset.state = 'ok';
+          apiStatus.textContent = 'API online';
+        } else {
+          throw new Error('unhealthy');
+        }
+      } catch {
+        apiStatus.dataset.state = 'down';
+        apiStatus.textContent = 'API offline';
+      }
+    }
+
+    seedBtn.addEventListener('click', seedDemoBookings);
+    checkApiHealth();
+  </script>
+</body>
+</html>
