@@ -532,6 +532,7 @@
     </a>
     <div class="topbar-actions">
       <a class="nav-link" href="/">Home</a>
+      <a class="nav-link" href="/login.html">Enterprise Login</a>
       <span id="last-updated" class="muted small">Loading…</span>
       <button id="refresh" class="btn" type="button">Refresh</button>
     </div>
@@ -573,6 +574,13 @@
     <option value="Luxury SUV 02"></option>
     <option value="Sprinter Van 01"></option>
     <option value="Limousine 01"></option>
+  </datalist>
+
+  <datalist id="drivers">
+    <option value="VF-1001">Marcus Vance</option>
+    <option value="VF-1002">David Sterling</option>
+    <option value="VF-1003">Elena Marquez</option>
+    <option value="VF-2004">Naomi Laurent</option>
   </datalist>
 
   <script>
@@ -834,6 +842,7 @@
       driverInput.placeholder = 'Driver ID';
       driverInput.value = booking.driverId || '';
       driverInput.autocapitalize = 'characters';
+      driverInput.setAttribute('list', 'drivers');
       driverInput.setAttribute('aria-label', `Assign a driver to ride ${booking.id.slice(0, 8)}`);
 
       const submit = document.createElement('button');

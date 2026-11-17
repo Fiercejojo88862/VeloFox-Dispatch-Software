@@ -531,6 +531,7 @@
     const toast = document.getElementById('toast');
 
     let activeDriverId = '';
+    let activeDriverName = '';
     let trips = [];
     let manifestTimer = null;
     let geolocationWatchId = null;
@@ -724,6 +725,11 @@
       if (!quiet) manifestEl.setAttribute('aria-busy', 'true');
       try {
         const data = await request(`/api/drivers/${encodeURIComponent(activeDriverId)}/manifest`);
+        activeDriverName = data && data.driver && data.driver.name
+          ? data.driver.name
+          : (sessionStorage.getItem('velofoxDriverName') || activeDriverId);
+        sessionStorage.setItem('velofoxDriverName', activeDriverName);
+        driverName.textContent = activeDriverName.split(/\s+/)[0];
         trips = Array.isArray(data.trips) ? data.trips : [];
         setConnection('api', 'online', 'Connected');
         lastRefresh.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
@@ -804,7 +810,6 @@
       try {
         await loadManifest();
         sessionStorage.setItem('velofoxDriverId', activeDriverId);
-        driverName.textContent = activeDriverId;
         loginView.classList.add('is-hidden');
         portalView.classList.add('is-active');
         logoutButton.hidden = false;
@@ -822,12 +827,14 @@
 
     function logout() {
       sessionStorage.removeItem('velofoxDriverId');
+      sessionStorage.removeItem('velofoxDriverName');
       window.clearInterval(manifestTimer);
       if (geolocationWatchId !== null) navigator.geolocation.clearWatch(geolocationWatchId);
       manifestTimer = null;
       geolocationWatchId = null;
       latestPosition = null;
       activeDriverId = '';
+      activeDriverName = '';
       trips = [];
       portalView.classList.remove('is-active');
       loginView.classList.remove('is-hidden');

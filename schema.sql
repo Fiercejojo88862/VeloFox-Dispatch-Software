@@ -59,6 +59,15 @@ CREATE TABLE IF NOT EXISTS drivers (
 
 COMMENT ON TABLE drivers IS 'Chauffeur identities used to retrieve assigned trip manifests.';
 
+INSERT INTO drivers (id, display_name)
+VALUES
+    ('VF-1001', 'Marcus Vance'),
+    ('VF-1002', 'David Sterling'),
+    ('VF-1003', 'Elena Marquez'),
+    ('VF-2004', 'Naomi Laurent')
+ON CONFLICT (id) DO UPDATE
+SET display_name = EXCLUDED.display_name;
+
 -- -----------------------------------------------------------------------------
 -- Reservations
 -- -----------------------------------------------------------------------------

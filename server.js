@@ -34,6 +34,12 @@ const STATUS_TRANSITIONS = {
   completed: new Set(),
   cancelled: new Set(),
 };
+const DRIVER_REGISTRY = new Map([
+  ['VF-1001', { id: 'VF-1001', name: 'Marcus Vance' }],
+  ['VF-1002', { id: 'VF-1002', name: 'David Sterling' }],
+  ['VF-1003', { id: 'VF-1003', name: 'Elena Marquez' }],
+  ['VF-2004', { id: 'VF-2004', name: 'Naomi Laurent' }],
+]);
 
 // Temporary storage until PostgreSQL is wired up. Lives only as long as the process.
 const bookings = [];
@@ -55,6 +61,10 @@ function isPlainObject(value) {
 
 function normalizeDriverId(value) {
   return typeof value === 'string' ? value.trim().toUpperCase() : value;
+}
+
+function getDriver(driverId) {
+  return DRIVER_REGISTRY.get(normalizeDriverId(driverId)) || null;
 }
 
 function validateDriverLocation(value) {
@@ -156,6 +166,8 @@ function validateBooking(body) {
   const driverId = normalizeDriverId(body.driverId);
   if (driverId != null && !isNonEmptyString(driverId, MAX_DRIVER_ID_LENGTH)) {
     errors.push(`driverId must be a non-empty string (max ${MAX_DRIVER_ID_LENGTH} characters) or null.`);
+  } else if (driverId != null && !getDriver(driverId)) {
+    errors.push(`driverId "${driverId}" is not registered.`);
   }
 
   const luggageNotes = body.luggageNotes;
@@ -225,6 +237,21 @@ app.get('/api/bookings', (req, res) => {
   res.json(bookings);
 });
 
+app.get('/api/drivers/:driverId', (req, res) => {
+  const driverId = normalizeDriverId(req.params.driverId);
+
+  if (!isNonEmptyString(driverId, MAX_DRIVER_ID_LENGTH)) {
+    return res.status(400).json({ error: 'A valid Driver ID is required.' });
+  }
+
+  const driver = getDriver(driverId);
+  if (!driver) {
+    return res.status(404).json({ error: `Driver ID "${driverId}" was not recognized.` });
+  }
+
+  res.json(driver);
+});
+
 app.get('/api/drivers/:driverId/manifest', (req, res) => {
   const driverId = normalizeDriverId(req.params.driverId);
 
@@ -232,9 +259,14 @@ app.get('/api/drivers/:driverId/manifest', (req, res) => {
     return res.status(400).json({ error: 'A valid Driver ID is required.' });
   }
 
+  const driver = getDriver(driverId);
+  if (!driver) {
+    return res.status(404).json({ error: `Driver ID "${driverId}" was not recognized.` });
+  }
+
   const manifest = getDriverManifest(driverId);
 
-  res.json({ driverId, trips: manifest, updatedAt: new Date().toISOString() });
+  res.json({ driver, driverId, trips: manifest, updatedAt: new Date().toISOString() });
 });
 
 app.post('/api/bookings', (req, res) => {
@@ -305,6 +337,8 @@ app.patch('/api/bookings/:id', (req, res) => {
     const driverId = normalizeDriverId(req.body.driverId);
     if (driverId !== null && !isNonEmptyString(driverId, MAX_DRIVER_ID_LENGTH)) {
       errors.push(`driverId must be a non-empty string (max ${MAX_DRIVER_ID_LENGTH} characters) or null.`);
+    } else if (driverId !== null && !getDriver(driverId)) {
+      errors.push(`driverId "${driverId}" is not registered.`);
     } else {
       changes.driverId = driverId;
     }
@@ -396,6 +430,7 @@ module.exports = {
     bookings,
     canTransitionStatus,
     driverTelemetry,
+    getDriver,
     getDriverManifest,
     normalizeDriverId,
     recordDriverTelemetry,

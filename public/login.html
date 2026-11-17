@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0b">
+  <title>Enterprise Access — VeloFox Dispatch</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0b0b;
+      --surface: #141414;
+      --surface-raised: #191919;
+      --line: #2a2a2a;
+      --line-strong: #3a3428;
+      --text: #f3efe7;
+      --muted: #98958e;
+      --gold: #c5a059;
+      --gold-bright: #dfc17d;
+      --gold-wash: rgba(197, 160, 89, 0.1);
+      --danger: #d77f77;
+      --radius: 20px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { min-width: 320px; min-height: 100%; background: var(--bg); }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 50% -20%, rgba(197, 160, 89, 0.14), transparent 34rem),
+        radial-gradient(circle at 100% 100%, rgba(197, 160, 89, 0.05), transparent 28rem),
+        var(--bg);
+    }
+
+    button, input { font: inherit; }
+    a { color: inherit; }
+
+    .shell {
+      width: min(100%, 1160px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: max(20px, env(safe-area-inset-top)) 18px max(36px, env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 58px;
+      gap: 18px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border: 1px solid var(--gold);
+      border-radius: 50%;
+      color: var(--gold);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .brand-copy { display: grid; gap: 1px; }
+    .brand-name { font-family: Georgia, "Times New Roman", serif; font-size: 19px; letter-spacing: 0.04em; }
+    .brand-sub { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; }
+
+    .home-link {
+      padding: 10px 2px 8px;
+      border-bottom: 1px solid transparent;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.13em;
+      text-decoration: none;
+      text-transform: uppercase;
+    }
+
+    .home-link:hover { border-bottom-color: var(--gold); color: var(--gold-bright); }
+
+    .access {
+      display: grid;
+      min-height: calc(100vh - 116px);
+      align-content: center;
+      padding: 58px 0 80px;
+    }
+
+    .intro { max-width: 760px; margin: 0 auto 38px; text-align: center; }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: var(--gold);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, p { margin-top: 0; }
+
+    h1 {
+      margin-bottom: 15px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(38px, 9vw, 66px);
+      font-weight: 400;
+      line-height: 1.02;
+      letter-spacing: -0.03em;
+    }
+
+    .intro-copy {
+      max-width: 570px;
+      margin: 0 auto;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .roles { display: grid; gap: 14px; }
+
+    .role-card {
+      position: relative;
+      display: grid;
+      min-height: 212px;
+      padding: 24px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--text);
+      background: linear-gradient(145deg, #171717, #111);
+      text-align: left;
+      text-decoration: none;
+      cursor: pointer;
+      transition: border-color 180ms ease, transform 180ms ease, background 180ms ease;
+    }
+
+    button.role-card { width: 100%; appearance: none; }
+    .role-card:hover, .role-card:focus-visible { border-color: var(--gold); transform: translateY(-2px); outline: none; }
+
+    .role-card::after {
+      position: absolute;
+      right: -45px;
+      bottom: -70px;
+      width: 180px;
+      height: 180px;
+      border: 1px solid rgba(197, 160, 89, 0.12);
+      border-radius: 50%;
+      content: "";
+    }
+
+    .role-icon {
+      display: grid;
+      width: 44px;
+      height: 44px;
+      margin-bottom: 28px;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 50%;
+      color: var(--gold);
+      background: var(--gold-wash);
+    }
+
+    .role-card h2 { margin-bottom: 8px; font-family: Georgia, "Times New Roman", serif; font-size: 25px; font-weight: 400; }
+    .role-card p { max-width: 280px; margin-bottom: 22px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+
+    .role-action {
+      display: flex;
+      align-self: end;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      color: var(--gold-bright);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+
+    .role-action span:last-child { font-size: 18px; line-height: 1; }
+
+    .driver-access {
+      max-height: 0;
+      margin-top: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 280ms ease, margin-top 280ms ease, opacity 220ms ease;
+    }
+
+    .driver-access.is-open { max-height: 470px; margin-top: 18px; opacity: 1; }
+
+    .driver-panel {
+      display: grid;
+      gap: 22px;
+      padding: 25px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: var(--surface);
+      box-shadow: 0 28px 80px rgba(0, 0, 0, 0.34);
+    }
+
+    .driver-panel h2 { margin-bottom: 7px; font-family: Georgia, "Times New Roman", serif; font-size: 25px; font-weight: 400; }
+    .driver-panel p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .driver-panel .eyebrow { margin-bottom: 10px; color: var(--gold); }
+
+    .driver-form { display: grid; gap: 11px; }
+    label { color: #c9c4ba; font-size: 10px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; }
+
+    .input-row { display: grid; gap: 10px; }
+
+    input {
+      width: 100%;
+      min-height: 56px;
+      padding: 0 16px;
+      border: 1px solid #373737;
+      border-radius: 11px;
+      outline: none;
+      color: var(--text);
+      background: #0d0d0d;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-wash); }
+
+    .continue-button {
+      min-height: 56px;
+      padding: 0 18px;
+      border: 1px solid var(--gold);
+      border-radius: 11px;
+      color: #110e08;
+      background: var(--gold);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .continue-button:hover { background: var(--gold-bright); }
+    .continue-button:disabled { cursor: wait; opacity: 0.65; }
+    .form-error { min-height: 20px; margin: 0; color: var(--danger); font-size: 12px; }
+
+    .security-note {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin: 27px 0 0;
+      color: #6f6d68;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    @media (min-width: 720px) {
+      .shell { padding-right: 32px; padding-left: 32px; }
+      .roles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .role-card { min-height: 280px; padding: 28px; }
+      .driver-panel { grid-template-columns: minmax(0, 0.85fr) minmax(360px, 1.15fr); align-items: center; padding: 30px; }
+      .input-row { grid-template-columns: minmax(0, 1fr) auto; }
+      .continue-button { min-width: 176px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="VeloFox Dispatch home">
+        <span class="brand-mark" aria-hidden="true">V</span>
+        <span class="brand-copy">
+          <span class="brand-name">VeloFox</span>
+          <span class="brand-sub">Executive dispatch</span>
+        </span>
+      </a>
+      <a class="home-link" href="/">Return home</a>
+    </header>
+
+    <section class="access" aria-labelledby="access-heading">
+      <div class="intro">
+        <p class="eyebrow">Private operations gateway</p>
+        <h1 id="access-heading">VeloFox Enterprise Access</h1>
+        <p class="intro-copy">Choose your workspace to continue. Each experience is tailored to the people moving every journey forward.</p>
+      </div>
+
+      <div class="roles" aria-label="Choose your role">
+        <a id="driver-role" class="role-card" href="#driver-access" aria-expanded="false" aria-controls="driver-access">
+          <span class="role-icon" aria-hidden="true">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="3.3"/><path d="M5.5 20c.7-4 2.9-6 6.5-6s5.8 2 6.5 6"/><path d="M9 4.5h6"/>
+            </svg>
+          </span>
+          <span>
+            <h2>Driver</h2>
+            <p>Open your active manifest, update trip progress, and share live location.</p>
+          </span>
+          <span class="role-action"><span>Enter driver portal</span><span aria-hidden="true">→</span></span>
+        </a>
+
+        <a class="role-card" href="/booking.html">
+          <span class="role-icon" aria-hidden="true">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 18h14M6 18l1.3-5A2 2 0 0 1 9.2 11h5.6a2 2 0 0 1 1.9 1.5L18 18"/><circle cx="8" cy="18" r="1.5"/><circle cx="16" cy="18" r="1.5"/>
+            </svg>
+          </span>
+          <span>
+            <h2>Client</h2>
+            <p>Reserve executive transportation and share the details of your journey.</p>
+          </span>
+          <span class="role-action"><span>Book transportation</span><span aria-hidden="true">→</span></span>
+        </a>
+
+        <a class="role-card" href="/dashboard.html">
+          <span class="role-icon" aria-hidden="true">
+            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3.5" y="4" width="17" height="6" rx="1.5"/><rect x="3.5" y="14" width="7" height="6" rx="1.5"/><rect x="14.5" y="14" width="6" height="6" rx="1.5"/>
+            </svg>
+          </span>
+          <span>
+            <h2>Dispatcher</h2>
+            <p>Coordinate reservations, fleet assignments, drivers, and live trip status.</p>
+          </span>
+          <span class="role-action"><span>Open dispatch desk</span><span aria-hidden="true">→</span></span>
+        </a>
+      </div>
+
+      <div id="driver-access" class="driver-access" aria-hidden="true">
+        <div class="driver-panel">
+          <div>
+            <p class="eyebrow">Driver verification</p>
+            <h2>Identify your assignment</h2>
+            <p>Use the Driver ID issued by dispatch. Your active manifest will open automatically.</p>
+          </div>
+          <form id="driver-form" class="driver-form" novalidate>
+            <label for="driver-id">Driver ID</label>
+            <div class="input-row">
+              <input id="driver-id" name="driverId" type="text" maxlength="50" placeholder="VF-1001"
+                autocomplete="username" autocapitalize="characters" required>
+              <button id="continue-button" class="continue-button" type="submit">Continue securely</button>
+            </div>
+            <p id="driver-error" class="form-error" role="alert" aria-live="polite"></p>
+          </form>
+        </div>
+      </div>
+
+      <p class="security-note">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+        Authorized VeloFox access only
+      </p>
+    </section>
+  </main>
+
+  <script>
+    'use strict';
+
+    const driverRole = document.getElementById('driver-role');
+    const driverAccess = document.getElementById('driver-access');
+    const driverForm = document.getElementById('driver-form');
+    const driverIdInput = document.getElementById('driver-id');
+    const continueButton = document.getElementById('continue-button');
+    const driverError = document.getElementById('driver-error');
+
+    function openDriverAccess() {
+      const isOpen = driverAccess.classList.toggle('is-open');
+      driverAccess.setAttribute('aria-hidden', String(!isOpen));
+      driverRole.setAttribute('aria-expanded', String(isOpen));
+      if (isOpen) {
+        window.setTimeout(() => {
+          driverAccess.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          driverIdInput.focus();
+        }, 120);
+      }
+    }
+
+    async function readJson(response) {
+      return response.json().catch(() => null);
+    }
+
+    async function verifyDriver(driverId) {
+      const response = await fetch(`/api/drivers/${encodeURIComponent(driverId)}`);
+      const data = await readJson(response);
+      if (!response.ok) {
+        throw new Error((data && data.error) || 'Unable to verify this Driver ID.');
+      }
+      return data;
+    }
+
+    driverRole.addEventListener('click', (event) => {
+      event.preventDefault();
+      openDriverAccess();
+    });
+
+    driverForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const driverId = driverIdInput.value.trim().toUpperCase();
+      driverError.textContent = '';
+
+      if (!driverId) {
+        driverError.textContent = 'Enter your Driver ID to continue.';
+        driverIdInput.focus();
+        return;
+      }
+
+      continueButton.disabled = true;
+      continueButton.textContent = 'Verifying…';
+      try {
+        const driver = await verifyDriver(driverId);
+        sessionStorage.setItem('velofoxDriverId', driver.id);
+        sessionStorage.setItem('velofoxDriverName', driver.name);
+        window.location.assign('/driver.html');
+      } catch (error) {
+        driverError.textContent = error.message;
+        driverIdInput.select();
+        continueButton.disabled = false;
+        continueButton.textContent = 'Continue securely';
+      }
+    });
+  </script>
+</body>
+</html>
