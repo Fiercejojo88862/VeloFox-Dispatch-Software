@@ -731,7 +731,7 @@
 
     <footer>
       <span>VeloFox Dispatch Software</span>
-      <a class="link" href="/api/health">API health</a>
+      <span><a class="link" href="/driver.html">Driver portal</a> · <a class="link" href="/api/health">API health</a></span>
     </footer>
   </main>
 
@@ -762,6 +762,9 @@
           pickupDateTime: at(1, 19, 30),
           vehicleType: 'suv',
           passengerCount: 4,
+          driverId: 'VF-1001',
+          assignedVehicle: 'Luxury SUV 01 · VF-701',
+          luggageNotes: '4 large cases and 2 carry-ons',
         },
         {
           pickupLocation: 'The Peninsula, Midtown',
@@ -769,6 +772,9 @@
           pickupDateTime: at(2, 11, 0),
           vehicleType: 'sedan',
           passengerCount: 2,
+          driverId: 'VF-1001',
+          assignedVehicle: 'Executive Sedan 02 · VF-214',
+          luggageNotes: '2 carry-ons',
         },
         {
           pickupLocation: 'Princeton, NJ',
@@ -776,6 +782,9 @@
           pickupDateTime: at(3, 17, 45),
           vehicleType: 'sprinter',
           passengerCount: 11,
+          driverId: 'VF-2004',
+          assignedVehicle: 'Sprinter Van 01 · VF-810',
+          luggageNotes: 'Team equipment and 8 garment bags',
         },
       ];
     }
@@ -860,7 +869,22 @@
             throw new Error(`${(data && data.error) || `Request failed (${response.status})`}${detail}`);
           }
 
-          created.push(data);
+          let assignedBooking = data;
+          for (const status of ['confirmed', 'assigned']) {
+            const statusResponse = await fetch(`${API_BOOKINGS}/${encodeURIComponent(assignedBooking.id)}`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status }),
+            });
+            const statusData = await readJson(statusResponse);
+            if (!statusResponse.ok) {
+              const detail = statusData && Array.isArray(statusData.details) ? ` ${statusData.details.join(' ')}` : '';
+              throw new Error(`${(statusData && statusData.error) || `Assignment failed (${statusResponse.status})`}${detail}`);
+            }
+            assignedBooking = statusData;
+          }
+
+          created.push(assignedBooking);
         } catch (error) {
           failure = error.message;
           break;

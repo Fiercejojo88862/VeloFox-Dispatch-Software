@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0b">
+  <title>Driver Portal — VeloFox Dispatch</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f3efe7;
+      --muted: #9c9a95;
+      --quiet: #696863;
+      --gold: #c5a059;
+      --gold-bright: #ddbd78;
+      --gold-wash: rgba(197, 160, 89, 0.12);
+      --black: #0b0b0b;
+      --card: #141414;
+      --raised: #1a1a1a;
+      --line: #292929;
+      --success: #76b78b;
+      --danger: #d37979;
+      --radius: 20px;
+      --shadow: 0 24px 70px rgba(0, 0, 0, 0.36);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { background: var(--black); }
+
+    body {
+      min-width: 320px;
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 85% -10%, rgba(197, 160, 89, 0.12), transparent 34rem),
+        var(--black);
+    }
+
+    button, input { font: inherit; }
+
+    button, a { -webkit-tap-highlight-color: transparent; }
+
+    .shell {
+      width: min(100%, 1180px);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: max(20px, env(safe-area-inset-top)) 18px max(36px, env(safe-area-inset-bottom));
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 56px;
+      margin-bottom: 28px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 34px;
+      height: 34px;
+      place-items: center;
+      border: 1px solid var(--gold);
+      border-radius: 50%;
+      color: var(--gold);
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .brand-copy { display: grid; gap: 1px; }
+    .brand-name { font-family: Georgia, "Times New Roman", serif; font-size: 18px; letter-spacing: 0.04em; }
+    .brand-section { color: var(--muted); font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; }
+
+    .top-action {
+      min-height: 42px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(20, 20, 20, 0.8);
+      cursor: pointer;
+    }
+
+    .top-action:hover { border-color: var(--gold); color: var(--ink); }
+
+    .login-wrap {
+      display: grid;
+      min-height: calc(100vh - 150px);
+      align-items: center;
+      padding-bottom: 8vh;
+    }
+
+    .login-card {
+      position: relative;
+      overflow: hidden;
+      width: min(100%, 510px);
+      margin: 0 auto;
+      padding: 34px 24px 26px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: linear-gradient(145deg, #171717, #111);
+      box-shadow: var(--shadow);
+    }
+
+    .login-card::before {
+      position: absolute;
+      top: 0;
+      right: 32px;
+      left: 32px;
+      height: 1px;
+      content: "";
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--gold);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+
+    .login-card h1 {
+      max-width: 380px;
+      margin-bottom: 14px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(34px, 10vw, 52px);
+      font-weight: 400;
+      line-height: 1.02;
+      letter-spacing: -0.025em;
+    }
+
+    .login-card > p:not(.eyebrow) {
+      max-width: 410px;
+      margin-bottom: 28px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 9px;
+      color: #c8c4bb;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .input {
+      width: 100%;
+      min-height: 58px;
+      padding: 0 17px;
+      border: 1px solid #343434;
+      border-radius: 12px;
+      outline: none;
+      color: var(--ink);
+      background: #0d0d0d;
+      font-size: 17px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: border-color 160ms, box-shadow 160ms;
+    }
+
+    .input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-wash); }
+
+    .primary-button {
+      width: 100%;
+      min-height: 58px;
+      margin-top: 14px;
+      border: 1px solid var(--gold);
+      border-radius: 12px;
+      color: #100d08;
+      background: var(--gold);
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 160ms, transform 160ms;
+    }
+
+    .primary-button:hover { background: var(--gold-bright); }
+    .primary-button:active { transform: translateY(1px); }
+    .primary-button:disabled { cursor: wait; opacity: 0.65; }
+
+    .form-note { min-height: 22px; margin: 12px 0 0; color: var(--danger); font-size: 13px; }
+
+    .portal { display: none; }
+    .portal.is-active { display: block; }
+    .login-wrap.is-hidden { display: none; }
+
+    .portal-head {
+      display: grid;
+      gap: 18px;
+      margin: 8px 0 24px;
+    }
+
+    .portal-title h1 {
+      margin-bottom: 8px;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(34px, 9vw, 54px);
+      font-weight: 400;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+    }
+
+    .portal-title p { margin-bottom: 0; color: var(--muted); }
+
+    .connection-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .connection-card {
+      min-height: 72px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--card);
+    }
+
+    .connection-label {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--quiet);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .connection-value {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: #d7d3ca;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--quiet); }
+    .dot.online { background: var(--success); box-shadow: 0 0 0 4px rgba(118, 183, 139, 0.1); }
+    .dot.warning { background: var(--gold); }
+    .dot.error { background: var(--danger); }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin: 28px 0 14px;
+    }
+
+    .section-head h2 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-size: 24px; font-weight: 400; }
+    .section-head span { color: var(--muted); font-size: 12px; }
+
+    .manifest { display: grid; gap: 16px; }
+
+    .trip-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--card);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+    }
+
+    .trip-card__head {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 20px 18px 17px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .trip-time { margin-bottom: 5px; color: var(--gold-bright); font-size: 14px; font-weight: 800; }
+    .trip-reference { color: var(--quiet); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
+
+    .status-pill {
+      flex: 0 0 auto;
+      padding: 7px 10px;
+      border: 1px solid rgba(197, 160, 89, 0.34);
+      border-radius: 999px;
+      color: var(--gold-bright);
+      background: var(--gold-wash);
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .route {
+      position: relative;
+      display: grid;
+      gap: 22px;
+      padding: 22px 18px 22px 49px;
+    }
+
+    .route::before {
+      position: absolute;
+      top: 33px;
+      bottom: 33px;
+      left: 25px;
+      width: 1px;
+      content: "";
+      background: #3b3b3b;
+    }
+
+    .stop { position: relative; }
+    .stop::before {
+      position: absolute;
+      top: 4px;
+      left: -29px;
+      width: 9px;
+      height: 9px;
+      border: 2px solid var(--card);
+      border-radius: 50%;
+      content: "";
+      background: var(--gold);
+      box-shadow: 0 0 0 1px var(--gold);
+    }
+
+    .stop:last-child::before { background: #777; box-shadow: 0 0 0 1px #777; }
+    .stop-label { margin-bottom: 4px; color: var(--quiet); font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+    .stop-address { color: var(--ink); font-size: 15px; font-weight: 650; line-height: 1.45; }
+
+    .details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      border-top: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      background: var(--line);
+    }
+
+    .detail { min-height: 82px; padding: 15px 18px; background: var(--card); }
+    .detail--wide { grid-column: 1 / -1; }
+    .detail-label { margin-bottom: 6px; color: var(--quiet); font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+    .detail-value { color: #d8d4cc; font-size: 14px; font-weight: 650; line-height: 1.4; }
+
+    .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 18px; }
+
+    .status-button {
+      min-height: 52px;
+      padding: 9px;
+      border: 1px solid #373737;
+      border-radius: 11px;
+      color: #d4d0c7;
+      background: var(--raised);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.2;
+      cursor: pointer;
+    }
+
+    .status-button:hover:not(:disabled) { border-color: var(--gold); color: var(--gold-bright); }
+    .status-button.is-next { border-color: var(--gold); color: #100d08; background: var(--gold); }
+    .status-button.is-done { border-color: rgba(118, 183, 139, 0.25); color: var(--success); background: rgba(118, 183, 139, 0.08); }
+    .status-button:disabled { cursor: not-allowed; opacity: 0.45; }
+    .status-button.is-done:disabled { opacity: 1; }
+
+    .card-message { padding: 0 18px 18px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+    .empty-state {
+      padding: 48px 24px;
+      border: 1px dashed #333;
+      border-radius: var(--radius);
+      text-align: center;
+      background: rgba(20, 20, 20, 0.6);
+    }
+
+    .empty-icon { display: grid; width: 52px; height: 52px; margin: 0 auto 18px; place-items: center; border: 1px solid #393939; border-radius: 50%; color: var(--gold); font-family: Georgia, serif; font-size: 24px; }
+    .empty-state h3 { margin-bottom: 8px; font-family: Georgia, serif; font-size: 23px; font-weight: 400; }
+    .empty-state p { max-width: 430px; margin: 0 auto; color: var(--muted); line-height: 1.6; }
+
+    .toast {
+      position: fixed;
+      right: 16px;
+      bottom: max(16px, env(safe-area-inset-bottom));
+      left: 16px;
+      z-index: 10;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 14px 16px;
+      border: 1px solid #3a3a3a;
+      border-radius: 12px;
+      color: var(--ink);
+      background: #1b1b1b;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      line-height: 1.45;
+      transform: translateY(130%);
+      opacity: 0;
+      transition: transform 220ms, opacity 220ms;
+    }
+
+    .toast.is-visible { transform: translateY(0); opacity: 1; }
+    .toast.is-error { border-color: rgba(211, 121, 121, 0.5); }
+
+    @media (min-width: 720px) {
+      .shell { padding-right: 32px; padding-left: 32px; }
+      .login-card { padding: 48px; }
+      .portal-head { grid-template-columns: 1fr auto; align-items: end; }
+      .connection-grid { width: 360px; }
+      .manifest { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .trip-card__head, .route { padding-right: 22px; }
+      .route { padding-left: 53px; }
+      .route::before { left: 29px; }
+    }
+
+    @media (min-width: 1080px) {
+      .manifest { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="VeloFox Dispatch home">
+        <span class="brand-mark" aria-hidden="true">V</span>
+        <span class="brand-copy">
+          <span class="brand-name">VeloFox</span>
+          <span class="brand-section">Driver operations</span>
+        </span>
+      </a>
+      <button id="logout" class="top-action" type="button" hidden>Sign out</button>
+    </header>
+
+    <section id="login-view" class="login-wrap" aria-labelledby="login-heading">
+      <div class="login-card">
+        <p class="eyebrow">Secure driver access</p>
+        <h1 id="login-heading">Your manifest, ready when you are.</h1>
+        <p>Enter your assigned Driver ID to review today’s trips and share live journey progress with dispatch.</p>
+
+        <form id="login-form" novalidate>
+          <label for="driver-id">Driver ID</label>
+          <input id="driver-id" class="input" name="driverId" type="text" maxlength="50"
+            placeholder="VF-1001" autocomplete="username" autocapitalize="characters" required>
+          <button id="login-button" class="primary-button" type="submit">Open my manifest</button>
+          <p id="login-error" class="form-note" role="alert" aria-live="polite"></p>
+        </form>
+      </div>
+    </section>
+
+    <section id="portal-view" class="portal" aria-labelledby="portal-heading">
+      <div class="portal-head">
+        <div class="portal-title">
+          <p class="eyebrow">Active duty</p>
+          <h1 id="portal-heading">Good day, <span id="driver-name">Driver</span>.</h1>
+          <p id="manifest-summary">Your active manifest is loading.</p>
+        </div>
+        <div class="connection-grid" aria-label="Connection status">
+          <div class="connection-card">
+            <span class="connection-label">Dispatch</span>
+            <span class="connection-value"><span id="api-dot" class="dot"></span><span id="api-state">Connecting</span></span>
+          </div>
+          <div class="connection-card">
+            <span class="connection-label">Live location</span>
+            <span class="connection-value"><span id="gps-dot" class="dot"></span><span id="gps-state">Starting</span></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-head">
+        <h2>Trip manifest</h2>
+        <span id="last-refresh">Not yet updated</span>
+      </div>
+      <div id="manifest" class="manifest" aria-live="polite" aria-busy="true"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    'use strict';
+
+    const API_BOOKINGS = '/api/bookings';
+    const MANIFEST_REFRESH_MS = 15000;
+    const TELEMETRY_MIN_INTERVAL_MS = 8000;
+    const ACTIVE_TELEMETRY_STATUSES = new Set(['assigned', 'en_route', 'arrived', 'passenger_aboard']);
+    const DRIVER_STAGES = [
+      { status: 'en_route', label: 'En Route' },
+      { status: 'arrived', label: 'On Location / Arrived' },
+      { status: 'passenger_aboard', label: 'Passenger Aboard' },
+      { status: 'completed', label: 'Completed' },
+    ];
+    const STATUS_LABELS = {
+      pending: 'Pending',
+      confirmed: 'Confirmed',
+      assigned: 'Assigned',
+      en_route: 'En Route',
+      arrived: 'On Location',
+      passenger_aboard: 'Passenger Aboard',
+      completed: 'Completed',
+      cancelled: 'Cancelled',
+    };
+
+    const loginView = document.getElementById('login-view');
+    const portalView = document.getElementById('portal-view');
+    const loginForm = document.getElementById('login-form');
+    const driverIdInput = document.getElementById('driver-id');
+    const loginButton = document.getElementById('login-button');
+    const loginError = document.getElementById('login-error');
+    const logoutButton = document.getElementById('logout');
+    const driverName = document.getElementById('driver-name');
+    const manifestSummary = document.getElementById('manifest-summary');
+    const manifestEl = document.getElementById('manifest');
+    const lastRefresh = document.getElementById('last-refresh');
+    const apiDot = document.getElementById('api-dot');
+    const apiState = document.getElementById('api-state');
+    const gpsDot = document.getElementById('gps-dot');
+    const gpsState = document.getElementById('gps-state');
+    const toast = document.getElementById('toast');
+
+    let activeDriverId = '';
+    let trips = [];
+    let manifestTimer = null;
+    let geolocationWatchId = null;
+    let latestPosition = null;
+    let lastTelemetrySentAt = 0;
+    let telemetryInFlight = false;
+    let toastTimer = null;
+
+    const dateFormatter = new Intl.DateTimeFormat(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+
+    function setConnection(kind, state, label) {
+      const dot = kind === 'gps' ? gpsDot : apiDot;
+      const text = kind === 'gps' ? gpsState : apiState;
+      dot.className = `dot ${state}`;
+      text.textContent = label;
+    }
+
+    function showToast(message, isError = false) {
+      window.clearTimeout(toastTimer);
+      toast.textContent = message;
+      toast.className = `toast is-visible${isError ? ' is-error' : ''}`;
+      toastTimer = window.setTimeout(() => { toast.className = 'toast'; }, 4200);
+    }
+
+    async function request(url, options = {}) {
+      const response = await fetch(url, {
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        ...options,
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        const details = data && Array.isArray(data.details) ? ` ${data.details.join(' ')}` : '';
+        throw new Error(`${(data && data.error) || `Request failed (${response.status}).`}${details}`);
+      }
+      return data;
+    }
+
+    function formatDate(value) {
+      const timestamp = Date.parse(value);
+      return Number.isNaN(timestamp) ? 'Time to be confirmed' : dateFormatter.format(timestamp);
+    }
+
+    function detail(label, value, wide = false) {
+      const wrapper = document.createElement('div');
+      wrapper.className = `detail${wide ? ' detail--wide' : ''}`;
+      const heading = document.createElement('div');
+      heading.className = 'detail-label';
+      heading.textContent = label;
+      const content = document.createElement('div');
+      content.className = 'detail-value';
+      content.textContent = value || 'Not provided';
+      wrapper.append(heading, content);
+      return wrapper;
+    }
+
+    function stop(kind, address) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'stop';
+      const label = document.createElement('div');
+      label.className = 'stop-label';
+      label.textContent = kind;
+      const value = document.createElement('div');
+      value.className = 'stop-address';
+      value.textContent = address;
+      wrapper.append(label, value);
+      return wrapper;
+    }
+
+    function nextStageIndex(status) {
+      if (status === 'assigned') return 0;
+      const currentIndex = DRIVER_STAGES.findIndex((stage) => stage.status === status);
+      return currentIndex < 0 ? -1 : currentIndex + 1;
+    }
+
+    async function updateTripStatus(bookingId, status, button) {
+      button.disabled = true;
+      try {
+        const updated = await request(`${API_BOOKINGS}/${encodeURIComponent(bookingId)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status }),
+        });
+        const index = trips.findIndex((trip) => trip.id === bookingId);
+        if (index >= 0) trips[index] = updated;
+        showToast(`Trip updated: ${STATUS_LABELS[status]}.`);
+        if (status === 'completed') {
+          await loadManifest({ quiet: true });
+        } else {
+          renderManifest();
+        }
+      } catch (error) {
+        showToast(error.message, true);
+        button.disabled = false;
+      }
+    }
+
+    function tripCard(trip) {
+      const article = document.createElement('article');
+      article.className = 'trip-card';
+
+      const head = document.createElement('div');
+      head.className = 'trip-card__head';
+      const schedule = document.createElement('div');
+      const time = document.createElement('div');
+      time.className = 'trip-time';
+      time.textContent = formatDate(trip.pickupDateTime);
+      const reference = document.createElement('div');
+      reference.className = 'trip-reference';
+      reference.textContent = `Ride ${String(trip.id).slice(0, 8)}`;
+      schedule.append(time, reference);
+      const status = document.createElement('span');
+      status.className = 'status-pill';
+      status.textContent = STATUS_LABELS[trip.status] || trip.status;
+      head.append(schedule, status);
+
+      const route = document.createElement('div');
+      route.className = 'route';
+      route.append(stop('Pickup', trip.pickupLocation), stop('Drop-off', trip.dropoffLocation));
+
+      const details = document.createElement('div');
+      details.className = 'details';
+      const passengerLabel = `${trip.passengerCount} ${trip.passengerCount === 1 ? 'passenger' : 'passengers'}`;
+      details.append(
+        detail('Guests', passengerLabel),
+        detail('Vehicle', trip.assignedVehicle || trip.vehicleType),
+        detail('Luggage notes', trip.luggageNotes || 'No luggage notes', true)
+      );
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+      const currentStage = DRIVER_STAGES.findIndex((stage) => stage.status === trip.status);
+      const allowedStage = nextStageIndex(trip.status);
+
+      DRIVER_STAGES.forEach((stage, index) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'status-button';
+        button.textContent = stage.label;
+        const isDone = currentStage >= index;
+        const isNext = allowedStage === index;
+        if (isDone) button.classList.add('is-done');
+        if (isNext) button.classList.add('is-next');
+        button.disabled = !isNext;
+        button.setAttribute('aria-label', `${stage.label} for ride ${String(trip.id).slice(0, 8)}`);
+        if (isNext) button.addEventListener('click', () => updateTripStatus(trip.id, stage.status, button));
+        actions.append(button);
+      });
+
+      article.append(head, route, details, actions);
+      if (allowedStage < 0) {
+        const message = document.createElement('div');
+        message.className = 'card-message';
+        message.textContent = 'Dispatch must assign this trip before the driver lifecycle can begin.';
+        article.append(message);
+      }
+      return article;
+    }
+
+    function renderManifest() {
+      manifestEl.replaceChildren();
+      manifestEl.setAttribute('aria-busy', 'false');
+      manifestSummary.textContent = trips.length === 0
+        ? 'You have no active trips assigned.'
+        : `${trips.length} active ${trips.length === 1 ? 'trip' : 'trips'} assigned to ${activeDriverId}.`;
+
+      if (trips.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-state';
+        const icon = document.createElement('div');
+        icon.className = 'empty-icon';
+        icon.textContent = 'V';
+        const heading = document.createElement('h3');
+        heading.textContent = 'You’re all clear.';
+        const copy = document.createElement('p');
+        copy.textContent = 'There are no active trips on your manifest. This page will refresh automatically when dispatch assigns one.';
+        empty.append(icon, heading, copy);
+        manifestEl.append(empty);
+        return;
+      }
+
+      trips.forEach((trip) => manifestEl.append(tripCard(trip)));
+    }
+
+    async function loadManifest({ quiet = false } = {}) {
+      if (!activeDriverId) return;
+      if (!quiet) manifestEl.setAttribute('aria-busy', 'true');
+      try {
+        const data = await request(`/api/drivers/${encodeURIComponent(activeDriverId)}/manifest`);
+        trips = Array.isArray(data.trips) ? data.trips : [];
+        setConnection('api', 'online', 'Connected');
+        lastRefresh.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
+        renderManifest();
+        if (latestPosition) void streamTelemetry(latestPosition, true);
+      } catch (error) {
+        setConnection('api', 'error', 'Offline');
+        manifestEl.setAttribute('aria-busy', 'false');
+        if (!quiet) throw error;
+      }
+    }
+
+    async function streamTelemetry(position, force = false) {
+      const now = Date.now();
+      if (telemetryInFlight || (!force && now - lastTelemetrySentAt < TELEMETRY_MIN_INTERVAL_MS)) return;
+      const activeTrips = trips.filter((trip) => ACTIVE_TELEMETRY_STATUSES.has(trip.status));
+      if (activeTrips.length === 0) {
+        setConnection('gps', 'warning', 'GPS ready');
+        return;
+      }
+
+      telemetryInFlight = true;
+      const payload = {
+        driverLocation: {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          heading: position.coords.heading,
+          speed: position.coords.speed,
+          recordedAt: new Date(position.timestamp).toISOString(),
+        },
+      };
+
+      try {
+        const updatedTrips = await Promise.all(activeTrips.map((trip) =>
+          request(`${API_BOOKINGS}/${encodeURIComponent(trip.id)}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload),
+          })
+        ));
+        updatedTrips.forEach((updated) => {
+          const index = trips.findIndex((trip) => trip.id === updated.id);
+          if (index >= 0) trips[index] = updated;
+        });
+        lastTelemetrySentAt = Date.now();
+        setConnection('gps', 'online', 'Sharing live');
+      } catch {
+        setConnection('gps', 'error', 'Share failed');
+      } finally {
+        telemetryInFlight = false;
+      }
+    }
+
+    function startLocationSharing() {
+      if (!('geolocation' in navigator)) {
+        setConnection('gps', 'error', 'Unavailable');
+        return;
+      }
+      if (geolocationWatchId !== null) navigator.geolocation.clearWatch(geolocationWatchId);
+      setConnection('gps', 'warning', 'Requesting GPS');
+      geolocationWatchId = navigator.geolocation.watchPosition(
+        (position) => {
+          latestPosition = position;
+          void streamTelemetry(position);
+        },
+        (error) => {
+          const label = error.code === error.PERMISSION_DENIED ? 'Permission denied' : 'Signal unavailable';
+          setConnection('gps', 'error', label);
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+      );
+    }
+
+    async function login(driverId) {
+      activeDriverId = driverId.trim().toUpperCase();
+      loginButton.disabled = true;
+      loginError.textContent = '';
+      try {
+        await loadManifest();
+        sessionStorage.setItem('velofoxDriverId', activeDriverId);
+        driverName.textContent = activeDriverId;
+        loginView.classList.add('is-hidden');
+        portalView.classList.add('is-active');
+        logoutButton.hidden = false;
+        startLocationSharing();
+        window.clearInterval(manifestTimer);
+        manifestTimer = window.setInterval(() => loadManifest({ quiet: true }), MANIFEST_REFRESH_MS);
+      } catch (error) {
+        activeDriverId = '';
+        loginError.textContent = error.message;
+        driverIdInput.focus();
+      } finally {
+        loginButton.disabled = false;
+      }
+    }
+
+    function logout() {
+      sessionStorage.removeItem('velofoxDriverId');
+      window.clearInterval(manifestTimer);
+      if (geolocationWatchId !== null) navigator.geolocation.clearWatch(geolocationWatchId);
+      manifestTimer = null;
+      geolocationWatchId = null;
+      latestPosition = null;
+      activeDriverId = '';
+      trips = [];
+      portalView.classList.remove('is-active');
+      loginView.classList.remove('is-hidden');
+      logoutButton.hidden = true;
+      driverIdInput.value = '';
+      setConnection('gps', '', 'Starting');
+      driverIdInput.focus();
+    }
+
+    loginForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const driverId = driverIdInput.value.trim();
+      if (!driverId) {
+        loginError.textContent = 'Enter your Driver ID to continue.';
+        driverIdInput.focus();
+        return;
+      }
+      void login(driverId);
+    });
+
+    logoutButton.addEventListener('click', logout);
+
+    const savedDriverId = sessionStorage.getItem('velofoxDriverId');
+    if (savedDriverId) {
+      driverIdInput.value = savedDriverId;
+      void login(savedDriverId);
+    }
+  </script>
+</body>
+</html>

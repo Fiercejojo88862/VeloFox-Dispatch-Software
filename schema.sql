@@ -41,6 +41,25 @@ CREATE INDEX IF NOT EXISTS vehicles_status_idx ON vehicles (status);
 CREATE INDEX IF NOT EXISTS vehicles_category_idx ON vehicles (category);
 
 -- -----------------------------------------------------------------------------
+-- Chauffeurs
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS drivers (
+    id            varchar(50) PRIMARY KEY,
+    display_name  varchar(120) NOT NULL,
+    phone         varchar(30),
+    status        text NOT NULL DEFAULT 'available',
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    updated_at    timestamptz NOT NULL DEFAULT now(),
+
+    CONSTRAINT drivers_id_check CHECK (btrim(id) <> ''),
+    CONSTRAINT drivers_display_name_check CHECK (btrim(display_name) <> ''),
+    CONSTRAINT drivers_status_check
+        CHECK (status IN ('available', 'assigned', 'off_duty'))
+);
+
+COMMENT ON TABLE drivers IS 'Chauffeur identities used to retrieve assigned trip manifests.';
+
+-- -----------------------------------------------------------------------------
 -- Reservations
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bookings (
@@ -52,6 +71,9 @@ CREATE TABLE IF NOT EXISTS bookings (
     passenger_count  smallint NOT NULL,
     status           text NOT NULL DEFAULT 'pending',
     vehicle_id       uuid,
+    driver_id        varchar(50),
+    assigned_vehicle varchar(100),
+    luggage_notes    varchar(500),
     created_at       timestamptz NOT NULL DEFAULT now(),
     updated_at       timestamptz NOT NULL DEFAULT now(),
 
@@ -64,23 +86,82 @@ CREATE TABLE IF NOT EXISTS bookings (
     CONSTRAINT bookings_passenger_count_check
         CHECK (passenger_count BETWEEN 1 AND 14),
     CONSTRAINT bookings_status_check
-        CHECK (status IN ('pending', 'confirmed', 'assigned', 'completed', 'cancelled')),
+        CHECK (status IN (
+            'pending', 'confirmed', 'assigned', 'en_route', 'arrived',
+            'passenger_aboard', 'completed', 'cancelled'
+        )),
     CONSTRAINT bookings_vehicle_id_fkey
         FOREIGN KEY (vehicle_id) REFERENCES vehicles (id)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE,
+    CONSTRAINT bookings_driver_id_fkey
+        FOREIGN KEY (driver_id) REFERENCES drivers (id)
         ON DELETE SET NULL
         ON UPDATE CASCADE
 );
 
+-- Bring installations created from an earlier schema revision forward safely.
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS driver_id varchar(50);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS assigned_vehicle varchar(100);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS luggage_notes varchar(500);
+
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_status_check
+    CHECK (status IN (
+        'pending', 'confirmed', 'assigned', 'en_route', 'arrived',
+        'passenger_aboard', 'completed', 'cancelled'
+    ));
+
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_driver_id_fkey;
+ALTER TABLE bookings ADD CONSTRAINT bookings_driver_id_fkey
+    FOREIGN KEY (driver_id) REFERENCES drivers (id)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE;
+
 COMMENT ON TABLE bookings IS 'Client ride reservations managed from the dispatcher dashboard.';
 COMMENT ON COLUMN bookings.pickup_datetime IS 'Scheduled pickup time; stored with time zone.';
 COMMENT ON COLUMN bookings.vehicle_type IS 'Requested class; vehicles.category must match once assigned.';
-COMMENT ON COLUMN bookings.status IS 'pending | confirmed | assigned | completed | cancelled.';
+COMMENT ON COLUMN bookings.status IS 'pending | confirmed | assigned | en_route | arrived | passenger_aboard | completed | cancelled.';
 COMMENT ON COLUMN bookings.vehicle_id IS 'Fleet vehicle assigned to the ride, or NULL while unassigned.';
+COMMENT ON COLUMN bookings.driver_id IS 'Driver ID assigned to the ride and used by the mobile manifest.';
+COMMENT ON COLUMN bookings.assigned_vehicle IS 'Human-readable fleet label displayed to the driver.';
 
 CREATE INDEX IF NOT EXISTS bookings_status_idx ON bookings (status);
 CREATE INDEX IF NOT EXISTS bookings_pickup_datetime_idx ON bookings (pickup_datetime);
 CREATE INDEX IF NOT EXISTS bookings_vehicle_id_idx ON bookings (vehicle_id);
+CREATE INDEX IF NOT EXISTS bookings_driver_id_idx ON bookings (driver_id);
 CREATE INDEX IF NOT EXISTS bookings_created_at_idx ON bookings (created_at DESC);
+
+-- -----------------------------------------------------------------------------
+-- Driver telemetry history
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS driver_telemetry (
+    id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    driver_id    varchar(50) NOT NULL,
+    booking_id   uuid NOT NULL,
+    latitude     double precision NOT NULL,
+    longitude    double precision NOT NULL,
+    accuracy     double precision,
+    heading      double precision,
+    speed        double precision,
+    recorded_at  timestamptz NOT NULL,
+    created_at   timestamptz NOT NULL DEFAULT now(),
+
+    CONSTRAINT driver_telemetry_driver_fkey
+        FOREIGN KEY (driver_id) REFERENCES drivers (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT driver_telemetry_booking_fkey
+        FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT driver_telemetry_latitude_check CHECK (latitude BETWEEN -90 AND 90),
+    CONSTRAINT driver_telemetry_longitude_check CHECK (longitude BETWEEN -180 AND 180),
+    CONSTRAINT driver_telemetry_accuracy_check CHECK (accuracy IS NULL OR accuracy >= 0),
+    CONSTRAINT driver_telemetry_heading_check CHECK (heading IS NULL OR heading BETWEEN 0 AND 360),
+    CONSTRAINT driver_telemetry_speed_check CHECK (speed IS NULL OR speed >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS driver_telemetry_driver_recorded_idx
+    ON driver_telemetry (driver_id, recorded_at DESC);
+CREATE INDEX IF NOT EXISTS driver_telemetry_booking_recorded_idx
+    ON driver_telemetry (booking_id, recorded_at DESC);
 
 -- -----------------------------------------------------------------------------
 -- Keep updated_at current on every row change
@@ -98,6 +179,12 @@ $$;
 DROP TRIGGER IF EXISTS vehicles_set_updated_at ON vehicles;
 CREATE TRIGGER vehicles_set_updated_at
     BEFORE UPDATE ON vehicles
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS drivers_set_updated_at ON drivers;
+CREATE TRIGGER drivers_set_updated_at
+    BEFORE UPDATE ON drivers
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
 

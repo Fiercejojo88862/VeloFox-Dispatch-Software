@@ -23,6 +23,9 @@
       --pending: #c5a059;
       --confirmed: #8fb0cf;
       --assigned: #b3a1d0;
+      --en-route: #d4a15b;
+      --arrived: #73b6b0;
+      --aboard: #7fa6d9;
       --completed: #93b39a;
       --cancelled: #cc8a7d;
     }
@@ -223,6 +226,9 @@
     .stat[data-status="pending"] { --dot: var(--pending); }
     .stat[data-status="confirmed"] { --dot: var(--confirmed); }
     .stat[data-status="assigned"] { --dot: var(--assigned); }
+    .stat[data-status="en_route"] { --dot: var(--en-route); }
+    .stat[data-status="arrived"] { --dot: var(--arrived); }
+    .stat[data-status="passenger_aboard"] { --dot: var(--aboard); }
     .stat[data-status="completed"] { --dot: var(--completed); }
     .stat[data-status="cancelled"] { --dot: var(--cancelled); }
     .stat[data-status="total"] { --dot: var(--accent); }
@@ -342,6 +348,9 @@
     .badge[data-status="pending"] { --badge: var(--pending); }
     .badge[data-status="confirmed"] { --badge: var(--confirmed); }
     .badge[data-status="assigned"] { --badge: var(--assigned); }
+    .badge[data-status="en_route"] { --badge: var(--en-route); }
+    .badge[data-status="arrived"] { --badge: var(--arrived); }
+    .badge[data-status="passenger_aboard"] { --badge: var(--aboard); }
     .badge[data-status="completed"] { --badge: var(--completed); }
     .badge[data-status="cancelled"] { --badge: var(--cancelled); }
 
@@ -388,7 +397,7 @@
       cursor: not-allowed;
     }
 
-    .assign { display: flex; gap: 6px; }
+    .assign { display: grid; gap: 6px; }
     .assign input { flex: 1; min-width: 0; }
     .assign .btn { flex: none; }
     .assign input::placeholder { color: var(--muted); }
@@ -570,7 +579,30 @@
     'use strict';
 
     const API_URL = '/api/bookings';
-    const STATUSES = ['pending', 'confirmed', 'assigned', 'completed', 'cancelled'];
+    const STATUSES = [
+      'pending', 'confirmed', 'assigned', 'en_route', 'arrived',
+      'passenger_aboard', 'completed', 'cancelled',
+    ];
+    const STATUS_TRANSITIONS = {
+      pending: ['confirmed', 'cancelled'],
+      confirmed: ['assigned', 'cancelled'],
+      assigned: ['en_route', 'cancelled'],
+      en_route: ['arrived', 'cancelled'],
+      arrived: ['passenger_aboard', 'cancelled'],
+      passenger_aboard: ['completed', 'cancelled'],
+      completed: [],
+      cancelled: [],
+    };
+    const STATUS_LABELS = {
+      pending: 'Pending',
+      confirmed: 'Confirmed',
+      assigned: 'Assigned',
+      en_route: 'En Route',
+      arrived: 'On Location',
+      passenger_aboard: 'Passenger Aboard',
+      completed: 'Completed',
+      cancelled: 'Cancelled',
+    };
     const VEHICLE_LABELS = {
       sedan: 'Sedan',
       suv: 'SUV',
@@ -597,6 +629,7 @@
     });
 
     const capitalize = (value) => value.charAt(0).toUpperCase() + value.slice(1);
+    const formatStatus = (value) => STATUS_LABELS[value] || capitalize(value);
 
     function formatVehicleType(value) {
       const key = typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -714,7 +747,7 @@
 
       statsEl.replaceChildren(
         makeStatCard('total', 'Total rides', counts.total),
-        ...STATUSES.map((status) => makeStatCard(status, capitalize(status), counts[status]))
+        ...STATUSES.map((status) => makeStatCard(status, formatStatus(status), counts[status]))
       );
     }
 
@@ -729,7 +762,7 @@
       const badge = document.createElement('span');
       badge.className = 'badge';
       badge.dataset.status = status;
-      badge.textContent = capitalize(status);
+      badge.textContent = formatStatus(status);
       return badge;
     }
 
@@ -754,10 +787,11 @@
       select.className = 'status-select';
       select.setAttribute('aria-label', `Update status for ride ${booking.id.slice(0, 8)}`);
 
-      STATUSES.forEach((status) => {
+      const availableStatuses = [booking.status, ...(STATUS_TRANSITIONS[booking.status] || [])];
+      availableStatuses.forEach((status) => {
         const option = document.createElement('option');
         option.value = status;
-        option.textContent = capitalize(status);
+        option.textContent = formatStatus(status);
         select.append(option);
       });
 
@@ -786,21 +820,30 @@
       const form = document.createElement('form');
       form.className = 'assign';
 
-      const input = document.createElement('input');
-      input.type = 'text';
-      input.maxLength = 100;
-      input.placeholder = 'Vehicle / driver';
-      input.setAttribute('list', 'fleet');
-      input.setAttribute('aria-label', `Assign a vehicle to ride ${booking.id.slice(0, 8)}`);
+      const vehicleInput = document.createElement('input');
+      vehicleInput.type = 'text';
+      vehicleInput.maxLength = 100;
+      vehicleInput.placeholder = 'Vehicle';
+      vehicleInput.value = booking.assignedVehicle || '';
+      vehicleInput.setAttribute('list', 'fleet');
+      vehicleInput.setAttribute('aria-label', `Assign a vehicle to ride ${booking.id.slice(0, 8)}`);
+
+      const driverInput = document.createElement('input');
+      driverInput.type = 'text';
+      driverInput.maxLength = 50;
+      driverInput.placeholder = 'Driver ID';
+      driverInput.value = booking.driverId || '';
+      driverInput.autocapitalize = 'characters';
+      driverInput.setAttribute('aria-label', `Assign a driver to ride ${booking.id.slice(0, 8)}`);
 
       const submit = document.createElement('button');
       submit.type = 'submit';
       submit.className = 'btn btn-primary btn-sm';
       submit.textContent = 'Assign';
 
-      form.append(input, submit);
+      form.append(vehicleInput, driverInput, submit);
 
-      if (booking.assignedVehicle) {
+      if (booking.assignedVehicle || booking.driverId) {
         const clearBtn = document.createElement('button');
         clearBtn.type = 'button';
         clearBtn.className = 'btn btn-ghost btn-sm';
@@ -809,8 +852,8 @@
         clearBtn.addEventListener('click', async () => {
           clearBtn.disabled = true;
           try {
-            await patchBooking(booking.id, { assignedVehicle: null });
-            showToast(`Vehicle removed from ride ${booking.id.slice(0, 8)}.`, 'success');
+            await patchBooking(booking.id, { assignedVehicle: null, driverId: null });
+            showToast(`Assignment removed from ride ${booking.id.slice(0, 8)}.`, 'success');
           } catch (error) {
             clearBtn.disabled = false;
             showToast(error.message, 'error', error.details);
@@ -821,22 +864,25 @@
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const value = input.value.trim();
+        const vehicle = vehicleInput.value.trim();
+        const driverId = driverInput.value.trim();
 
-        if (!value) {
-          showToast('Enter a vehicle name before assigning.', 'error');
-          input.focus();
+        if (!vehicle || !driverId) {
+          showToast('Enter both a vehicle and Driver ID before assigning.', 'error');
+          (vehicle ? driverInput : vehicleInput).focus();
           return;
         }
 
         submit.disabled = true;
-        input.disabled = true;
+        vehicleInput.disabled = true;
+        driverInput.disabled = true;
         try {
-          await patchBooking(booking.id, { assignedVehicle: value });
-          showToast(`Vehicle assigned to ride ${booking.id.slice(0, 8)}.`, 'success');
+          await patchBooking(booking.id, { assignedVehicle: vehicle, driverId });
+          showToast(`Vehicle and driver assigned to ride ${booking.id.slice(0, 8)}.`, 'success');
         } catch (error) {
           submit.disabled = false;
-          input.disabled = false;
+          vehicleInput.disabled = false;
+          driverInput.disabled = false;
           showToast(error.message, 'error', error.details);
         }
       });
@@ -887,7 +933,9 @@
       const assigned = document.createElement('div');
       if (booking.assignedVehicle) {
         assigned.className = 'assigned-name';
-        assigned.textContent = booking.assignedVehicle;
+        assigned.textContent = booking.driverId
+          ? `${booking.assignedVehicle} · ${booking.driverId}`
+          : booking.assignedVehicle;
       } else {
         assigned.className = 'unassigned';
         assigned.textContent = 'Unassigned';
