@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>VeloFox Dispatch — Dashboard</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0f14;
+      --bg-soft: #0f151d;
+      --panel: #121821;
+      --line: #1f2a37;
+      --line-strong: #2a3849;
+      --text: #e6edf5;
+      --muted: #8fa1b3;
+      --accent: #f5a524;
+      --accent-ink: #201502;
+      --radius: 14px;
+      --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+      --pending: #fbbf24;
+      --confirmed: #60a5fa;
+      --assigned: #a78bfa;
+      --completed: #34d399;
+      --cancelled: #f87171;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(1100px 520px at 12% -10%, rgba(245, 165, 36, 0.10), transparent 60%),
+        radial-gradient(900px 480px at 100% 0%, rgba(96, 165, 250, 0.08), transparent 55%),
+        var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-size: 15px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 18px clamp(16px, 4vw, 40px);
+      border-bottom: 1px solid var(--line);
+      background: rgba(11, 15, 20, 0.75);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .brand { display: flex; align-items: center; gap: 14px; }
+
+    .mark {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 12px;
+      background: linear-gradient(160deg, #fbbf24, #d97706);
+      color: var(--accent-ink);
+      font-weight: 800;
+      font-size: 17px;
+      letter-spacing: 0.02em;
+      box-shadow: 0 8px 20px rgba(245, 165, 36, 0.25);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .brand p {
+      margin: 2px 0 0;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .muted { color: var(--muted); }
+    .small { font-size: 12.5px; }
+
+    main {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: clamp(16px, 3vw, 32px) clamp(16px, 4vw, 40px) 72px;
+    }
+
+    /* ---------- buttons ---------- */
+
+    .btn {
+      appearance: none;
+      border: 1px solid var(--line-strong);
+      background: var(--panel);
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
+      font-size: 13.5px;
+      padding: 9px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+      white-space: nowrap;
+    }
+
+    .btn:hover { background: #17202b; border-color: #36475c; }
+    .btn:active { transform: translateY(1px); }
+    .btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: transparent;
+      color: var(--accent-ink);
+    }
+
+    .btn-primary:hover { background: #ffb63c; border-color: transparent; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border-color: transparent;
+      padding: 6px 8px;
+      font-size: 12.5px;
+    }
+
+    .btn-ghost:hover { background: rgba(255, 255, 255, 0.05); color: var(--text); }
+    .btn-sm { padding: 7px 12px; font-size: 12.5px; border-radius: 8px; }
+
+    /* ---------- summary ---------- */
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .stat {
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+    }
+
+    .stat-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--muted);
+    }
+
+    .stat-label::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--dot, var(--muted));
+    }
+
+    .stat-value {
+      margin-top: 8px;
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat[data-status="pending"] { --dot: var(--pending); }
+    .stat[data-status="confirmed"] { --dot: var(--confirmed); }
+    .stat[data-status="assigned"] { --dot: var(--assigned); }
+    .stat[data-status="completed"] { --dot: var(--completed); }
+    .stat[data-status="cancelled"] { --dot: var(--cancelled); }
+    .stat[data-status="total"] { --dot: var(--accent); }
+
+    /* ---------- panel / table ---------- */
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 22px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-head h2 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1000px;
+    }
+
+    thead th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      text-align: left;
+      padding: 12px 16px;
+      background: var(--bg-soft);
+      border-bottom: 1px solid var(--line);
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    tbody tr { border-bottom: 1px solid rgba(31, 42, 55, 0.7); }
+    tbody tr:last-child { border-bottom: 0; }
+    tbody tr:hover { background: rgba(255, 255, 255, 0.022); }
+
+    td {
+      padding: 14px 16px;
+      vertical-align: top;
+    }
+
+    .ride-id {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .route { display: grid; gap: 4px; min-width: 190px; }
+    .route-line { display: flex; align-items: center; gap: 8px; }
+    .route-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex: none;
+      background: var(--dot);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--dot) 18%, transparent);
+    }
+    .route-dot.pickup { --dot: var(--accent); }
+    .route-dot.dropoff { --dot: var(--confirmed); }
+    .route-place { overflow-wrap: anywhere; }
+
+    .when { white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .when.overdue { color: var(--cancelled); }
+    .when .sub { display: block; font-size: 12px; color: var(--muted); }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: capitalize;
+      white-space: nowrap;
+      color: var(--badge);
+      background: color-mix(in srgb, var(--badge) 14%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--badge) 38%, transparent);
+    }
+
+    .badge::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--badge);
+      box-shadow: 0 0 8px color-mix(in srgb, var(--badge) 70%, transparent);
+    }
+
+    .badge[data-status="pending"] { --badge: var(--pending); }
+    .badge[data-status="confirmed"] { --badge: var(--confirmed); }
+    .badge[data-status="assigned"] { --badge: var(--assigned); }
+    .badge[data-status="completed"] { --badge: var(--completed); }
+    .badge[data-status="cancelled"] { --badge: var(--cancelled); }
+
+    .assigned-name { font-weight: 600; overflow-wrap: anywhere; }
+    .unassigned { color: var(--muted); font-style: italic; }
+
+    /* ---------- row actions ---------- */
+
+    .actions { display: grid; gap: 8px; min-width: 210px; }
+    .actions-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    select.status-select,
+    .assign input {
+      width: 100%;
+      font: inherit;
+      font-size: 13px;
+      color: var(--text);
+      background: var(--bg-soft);
+      border: 1px solid var(--line-strong);
+      border-radius: 9px;
+      padding: 8px 10px;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    select.status-select { cursor: pointer; }
+
+    select.status-select:focus,
+    .assign input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(245, 165, 36, 0.18);
+    }
+
+    select.status-select:disabled,
+    .assign input:disabled,
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .assign { display: flex; gap: 6px; }
+    .assign input { flex: 1; min-width: 0; }
+    .assign .btn { flex: none; }
+
+    /* ---------- states ---------- */
+
+    .table-state {
+      padding: 56px 24px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .table-state strong { display: block; color: var(--text); font-size: 15px; margin-bottom: 6px; }
+
+    /* ---------- toasts ---------- */
+
+    .toasts {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 50;
+      display: grid;
+      gap: 10px;
+      max-width: min(380px, calc(100vw - 40px));
+    }
+
+    .toast {
+      background: #141c26;
+      border: 1px solid var(--line-strong);
+      border-left: 3px solid var(--muted);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13.5px;
+      box-shadow: var(--shadow);
+      animation: toast-in 0.16s ease-out;
+    }
+
+    .toast.success { border-left-color: var(--completed); }
+    .toast.error { border-left-color: var(--cancelled); }
+    .toast ul { margin: 6px 0 0; padding-left: 18px; color: var(--muted); }
+
+    @keyframes toast-in {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* ---------- responsive ---------- */
+
+    @media (max-width: 1180px) {
+      .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 960px) {
+      table { min-width: 0; }
+      thead { display: none; }
+      tbody, tr, td { display: block; width: 100%; }
+      tbody tr {
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        margin: 14px;
+        padding: 6px 14px;
+        background: var(--bg-soft);
+      }
+      tbody tr:hover { background: var(--bg-soft); }
+      td {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 10px 0;
+        border-bottom: 1px dashed rgba(31, 42, 55, 0.9);
+      }
+      td:last-child { border-bottom: 0; }
+      td::before {
+        content: attr(data-label);
+        flex: none;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--muted);
+        padding-top: 3px;
+      }
+      td > * { text-align: right; }
+      td[data-label="Actions"] { flex-direction: column; align-items: stretch; }
+      td[data-label="Actions"]::before { padding-top: 0; }
+      td[data-label="Actions"] > * { text-align: left; }
+      .actions { min-width: 0; }
+      .route { justify-items: end; }
+      .route-line { justify-content: flex-end; }
+      .table-state { margin: 14px; }
+    }
+
+    @media (max-width: 560px) {
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .topbar-actions { justify-content: flex-start; }
+      td { flex-direction: column; gap: 6px; }
+      td > * { text-align: left; }
+      .route { justify-items: start; }
+      .route-line { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark" aria-hidden="true">VF</div>
+      <div>
+        <h1>VeloFox Dispatch</h1>
+        <p>Fleet reservations &amp; ride coordination</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <span id="last-updated" class="muted small">Loading…</span>
+      <button id="refresh" class="btn" type="button">Refresh</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="stats" class="stats" aria-label="Booking summary"></section>
+
+    <section class="panel" aria-labelledby="bookings-heading">
+      <div class="panel-head">
+        <h2 id="bookings-heading">Bookings</h2>
+        <span id="booking-count" class="muted small"></span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Ride</th>
+              <th scope="col">Route</th>
+              <th scope="col">Pickup</th>
+              <th scope="col">Vehicle</th>
+              <th scope="col">Status</th>
+              <th scope="col">Assigned vehicle</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bookings-body"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <div id="toasts" class="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
+
+  <datalist id="fleet">
+    <option value="Executive Sedan 01"></option>
+    <option value="Executive Sedan 02"></option>
+    <option value="Luxury SUV 01"></option>
+    <option value="Luxury SUV 02"></option>
+    <option value="Sprinter Van 01"></option>
+    <option value="Limousine 01"></option>
+  </datalist>
+
+  <script>
+    'use strict';
+
+    const API_URL = '/api/bookings';
+    const STATUSES = ['pending', 'confirmed', 'assigned', 'completed', 'cancelled'];
+    const VEHICLE_LABELS = {
+      sedan: 'Sedan',
+      suv: 'SUV',
+      sprinter: 'Sprinter',
+      limousine: 'Limousine',
+    };
+    const REFRESH_INTERVAL_MS = 30000;
+
+    const tbody = document.getElementById('bookings-body');
+    const statsEl = document.getElementById('stats');
+    const countEl = document.getElementById('booking-count');
+    const lastUpdatedEl = document.getElementById('last-updated');
+    const refreshBtn = document.getElementById('refresh');
+    const toastsEl = document.getElementById('toasts');
+
+    /** @type {Array<object>} */
+    let bookings = [];
+    let isLoading = false;
+    let hasLoadedOnce = false;
+
+    const dateFormatter = new Intl.DateTimeFormat(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+
+    const capitalize = (value) => value.charAt(0).toUpperCase() + value.slice(1);
+
+    function formatVehicleType(value) {
+      const key = typeof value === 'string' ? value.trim().toLowerCase() : '';
+      return VEHICLE_LABELS[key] || (key ? capitalize(key) : '—');
+    }
+
+    function formatDateTime(value) {
+      const timestamp = Date.parse(value);
+      return Number.isNaN(timestamp) ? String(value ?? '—') : dateFormatter.format(timestamp);
+    }
+
+    function isOverdue(booking) {
+      const timestamp = Date.parse(booking.pickupDateTime);
+      if (Number.isNaN(timestamp) || timestamp >= Date.now()) return false;
+      return booking.status !== 'completed' && booking.status !== 'cancelled';
+    }
+
+    /* ------------------------------ API ------------------------------ */
+
+    class ApiError extends Error {
+      constructor(message, details) {
+        super(message);
+        this.name = 'ApiError';
+        this.details = details;
+      }
+    }
+
+    async function request(url, options = {}) {
+      const response = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      });
+
+      const text = await response.text();
+      let data = null;
+      if (text) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          data = null;
+        }
+      }
+
+      if (!response.ok) {
+        throw new ApiError(
+          (data && data.error) || `Request failed with status ${response.status}.`,
+          (data && Array.isArray(data.details)) ? data.details : []
+        );
+      }
+
+      return data;
+    }
+
+    async function loadBookings({ quiet = false } = {}) {
+      if (isLoading) return;
+      isLoading = true;
+      refreshBtn.disabled = true;
+
+      try {
+        const data = await request(API_URL);
+        bookings = Array.isArray(data) ? data : [];
+        hasLoadedOnce = true;
+        render();
+        lastUpdatedEl.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      } catch (error) {
+        if (!quiet) {
+          if (!hasLoadedOnce) {
+            renderLoadError(error);
+          }
+          showToast(error.message, 'error', error.details);
+        }
+        lastUpdatedEl.textContent = 'Update failed';
+      } finally {
+        isLoading = false;
+        refreshBtn.disabled = false;
+      }
+    }
+
+    async function patchBooking(id, payload) {
+      const updated = await request(`${API_URL}/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+
+      const index = bookings.findIndex((booking) => booking.id === id);
+      if (index >= 0 && updated) bookings[index] = updated;
+      render();
+      return updated;
+    }
+
+    /* --------------------------- rendering --------------------------- */
+
+    function makeStatCard(key, label, value) {
+      const card = document.createElement('div');
+      card.className = 'stat';
+      card.dataset.status = key;
+
+      const labelEl = document.createElement('div');
+      labelEl.className = 'stat-label';
+      labelEl.textContent = label;
+
+      const valueEl = document.createElement('div');
+      valueEl.className = 'stat-value';
+      valueEl.textContent = String(value);
+
+      card.append(labelEl, valueEl);
+      return card;
+    }
+
+    function renderStats() {
+      const counts = { total: bookings.length };
+      STATUSES.forEach((status) => {
+        counts[status] = bookings.filter((booking) => booking.status === status).length;
+      });
+
+      statsEl.replaceChildren(
+        makeStatCard('total', 'Total rides', counts.total),
+        ...STATUSES.map((status) => makeStatCard(status, capitalize(status), counts[status]))
+      );
+    }
+
+    function makeCell(label, ...children) {
+      const cell = document.createElement('td');
+      cell.dataset.label = label;
+      cell.append(...children);
+      return cell;
+    }
+
+    function makeBadge(status) {
+      const badge = document.createElement('span');
+      badge.className = 'badge';
+      badge.dataset.status = status;
+      badge.textContent = capitalize(status);
+      return badge;
+    }
+
+    function makeRouteLine(kind, place) {
+      const line = document.createElement('div');
+      line.className = 'route-line';
+
+      const dot = document.createElement('span');
+      dot.className = `route-dot ${kind}`;
+      dot.setAttribute('aria-hidden', 'true');
+
+      const text = document.createElement('span');
+      text.className = 'route-place';
+      text.textContent = place;
+
+      line.append(dot, text);
+      return line;
+    }
+
+    function makeStatusSelect(booking) {
+      const select = document.createElement('select');
+      select.className = 'status-select';
+      select.setAttribute('aria-label', `Update status for ride ${booking.id.slice(0, 8)}`);
+
+      STATUSES.forEach((status) => {
+        const option = document.createElement('option');
+        option.value = status;
+        option.textContent = capitalize(status);
+        select.append(option);
+      });
+
+      select.value = booking.status;
+
+      select.addEventListener('change', async () => {
+        const nextStatus = select.value;
+        if (nextStatus === booking.status) return;
+
+        select.disabled = true;
+        try {
+          const updated = await patchBooking(booking.id, { status: nextStatus });
+          showToast(`Ride ${updated.id.slice(0, 8)} marked as ${nextStatus}.`, 'success');
+        } catch (error) {
+          select.value = booking.status;
+          showToast(error.message, 'error', error.details);
+        } finally {
+          select.disabled = false;
+        }
+      });
+
+      return select;
+    }
+
+    function makeAssignForm(booking) {
+      const form = document.createElement('form');
+      form.className = 'assign';
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = 100;
+      input.placeholder = 'Vehicle / driver';
+      input.setAttribute('list', 'fleet');
+      input.setAttribute('aria-label', `Assign a vehicle to ride ${booking.id.slice(0, 8)}`);
+
+      const submit = document.createElement('button');
+      submit.type = 'submit';
+      submit.className = 'btn btn-primary btn-sm';
+      submit.textContent = 'Assign';
+
+      form.append(input, submit);
+
+      if (booking.assignedVehicle) {
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'btn btn-ghost btn-sm';
+        clearBtn.textContent = 'Clear';
+        clearBtn.title = 'Remove the assigned vehicle';
+        clearBtn.addEventListener('click', async () => {
+          clearBtn.disabled = true;
+          try {
+            await patchBooking(booking.id, { assignedVehicle: null });
+            showToast(`Vehicle removed from ride ${booking.id.slice(0, 8)}.`, 'success');
+          } catch (error) {
+            clearBtn.disabled = false;
+            showToast(error.message, 'error', error.details);
+          }
+        });
+        form.append(clearBtn);
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const value = input.value.trim();
+
+        if (!value) {
+          showToast('Enter a vehicle name before assigning.', 'error');
+          input.focus();
+          return;
+        }
+
+        submit.disabled = true;
+        input.disabled = true;
+        try {
+          await patchBooking(booking.id, { assignedVehicle: value });
+          showToast(`Vehicle assigned to ride ${booking.id.slice(0, 8)}.`, 'success');
+        } catch (error) {
+          submit.disabled = false;
+          input.disabled = false;
+          showToast(error.message, 'error', error.details);
+        }
+      });
+
+      return form;
+    }
+
+    function makeRow(booking) {
+      const row = document.createElement('tr');
+
+      const idEl = document.createElement('div');
+      idEl.className = 'ride-id';
+      idEl.textContent = `#${booking.id.slice(0, 8)}`;
+      idEl.title = booking.id;
+
+      const createdEl = document.createElement('div');
+      createdEl.className = 'muted small';
+      createdEl.textContent = booking.createdAt ? `Created ${formatDateTime(booking.createdAt)}` : '';
+
+      const rideCell = makeCell('Ride', idEl, createdEl);
+
+      const route = document.createElement('div');
+      route.className = 'route';
+      route.append(
+        makeRouteLine('pickup', booking.pickupLocation),
+        makeRouteLine('dropoff', booking.dropoffLocation)
+      );
+
+      const when = document.createElement('div');
+      when.className = isOverdue(booking) ? 'when overdue' : 'when';
+      when.textContent = formatDateTime(booking.pickupDateTime);
+
+      if (isOverdue(booking)) {
+        const note = document.createElement('span');
+        note.className = 'sub';
+        note.textContent = 'Past pickup time';
+        when.append(note);
+      }
+
+      const vehicleType = document.createElement('div');
+      vehicleType.textContent = formatVehicleType(booking.vehicleType);
+
+      const passengers = document.createElement('div');
+      passengers.className = 'muted small';
+      const count = Number(booking.passengerCount);
+      passengers.textContent = `${count} ${count === 1 ? 'passenger' : 'passengers'}`;
+
+      const assigned = document.createElement('div');
+      if (booking.assignedVehicle) {
+        assigned.className = 'assigned-name';
+        assigned.textContent = booking.assignedVehicle;
+      } else {
+        assigned.className = 'unassigned';
+        assigned.textContent = 'Unassigned';
+      }
+
+      const actions = document.createElement('div');
+      actions.className = 'actions';
+
+      const statusLabel = document.createElement('span');
+      statusLabel.className = 'actions-label';
+      statusLabel.textContent = 'Set status';
+
+      actions.append(statusLabel, makeStatusSelect(booking), makeAssignForm(booking));
+
+      row.append(
+        rideCell,
+        makeCell('Route', route),
+        makeCell('Pickup', when),
+        makeCell('Vehicle', vehicleType, passengers),
+        makeCell('Status', makeBadge(booking.status)),
+        makeCell('Assigned', assigned),
+        makeCell('Actions', actions)
+      );
+
+      return row;
+    }
+
+    function renderState(title, message, actionLabel, onAction) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'table-state';
+
+      const heading = document.createElement('strong');
+      heading.textContent = title;
+
+      const text = document.createElement('div');
+      text.textContent = message;
+
+      wrapper.append(heading, text);
+
+      if (actionLabel && onAction) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-sm';
+        button.style.marginTop = '14px';
+        button.textContent = actionLabel;
+        button.addEventListener('click', onAction);
+        wrapper.append(button);
+      }
+
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = 7;
+      cell.style.padding = '0';
+      cell.append(wrapper);
+      row.append(cell);
+
+      tbody.replaceChildren(row);
+    }
+
+    function renderLoadError(error) {
+      renderState('Could not load bookings', error.message, 'Try again', () => {
+        tbody.replaceChildren();
+        loadBookings();
+      });
+    }
+
+    function render() {
+      renderStats();
+      countEl.textContent = `${bookings.length} ${bookings.length === 1 ? 'ride' : 'rides'}`;
+
+      if (bookings.length === 0) {
+        renderState(
+          'No bookings yet',
+          'New reservations from the client app will appear here automatically.'
+        );
+        return;
+      }
+
+      const fragment = document.createDocumentFragment();
+      bookings
+        .slice()
+        .sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0))
+        .forEach((booking) => fragment.append(makeRow(booking)));
+
+      tbody.replaceChildren(fragment);
+    }
+
+    /* ----------------------------- toasts ----------------------------- */
+
+    function showToast(message, type = 'info', details = []) {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+
+      const text = document.createElement('div');
+      text.textContent = message;
+      toast.append(text);
+
+      if (Array.isArray(details) && details.length > 0) {
+        const list = document.createElement('ul');
+        details.forEach((detail) => {
+          const item = document.createElement('li');
+          item.textContent = detail;
+          list.append(item);
+        });
+        toast.append(list);
+      }
+
+      toastsEl.append(toast);
+      setTimeout(() => toast.remove(), 6000);
+    }
+
+    /* ------------------------------ boot ------------------------------ */
+
+    refreshBtn.addEventListener('click', () => loadBookings());
+
+    renderStats();
+    renderState('Loading bookings', 'Fetching the latest reservations…');
+
+    setInterval(() => {
+      if (document.hidden) return;
+      const active = document.activeElement;
+      if (active && active.closest('#bookings-body')) return;
+      loadBookings({ quiet: true });
+    }, REFRESH_INTERVAL_MS);
+
+    loadBookings();
+  </script>
+</body>
+</html>
