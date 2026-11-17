@@ -52,7 +52,11 @@
       backdrop-filter: blur(12px);
     }
 
-    .brand { display: flex; align-items: center; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 16px; color: inherit; text-decoration: none; }
+
+    .brand:hover .mark { border-color: var(--accent-bright); color: var(--accent-bright); }
+
+    .brand:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
 
     .mark {
       width: 44px;
@@ -372,13 +376,13 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">
+    <a class="brand" href="/" title="Back to home">
       <div class="mark" aria-hidden="true">VF</div>
       <div>
         <div class="brand-name">VeloFox Dispatch</div>
         <div class="brand-sub">Luxury transport logistics</div>
       </div>
-    </div>
+    </a>
     <div class="topbar-actions">
       <span id="api-status" class="status-pill" data-state="checking">Checking API…</span>
       <a class="btn" href="/dashboard.html">Dispatcher Dashboard</a>
