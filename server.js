@@ -11,6 +11,11 @@ const MAX_PASSENGERS = 14;
 const MAX_TEXT_LENGTH = 200;
 const MAX_DRIVER_ID_LENGTH = 50;
 const MAX_LUGGAGE_NOTES_LENGTH = 500;
+const SESSION_COOKIE = 'velofox_session';
+const SESSION_TTL_MS = Math.max(1, Number(process.env.SESSION_TTL_HOURS) || 12) * 60 * 60 * 1000;
+const DISPATCHER_INVITE_CODE = process.env.DISPATCHER_INVITE_CODE || '';
+const AUTH_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_MAX_ATTEMPTS = 8;
 
 const VEHICLE_TYPES = ['sedan', 'suv', 'sprinter', 'limousine'];
 const BOOKING_STATUSES = [
@@ -44,9 +49,20 @@ const DRIVER_REGISTRY = new Map([
 // Temporary storage until PostgreSQL is wired up. Lives only as long as the process.
 const bookings = [];
 const driverTelemetry = [];
+const users = new Map();
+const sessions = new Map();
+const tripReviews = new Map();
+const appFeedback = [];
+const authAttempts = new Map();
 
 app.disable('x-powered-by');
 app.use(express.json());
+app.get('/dashboard.html', requirePageRole('dispatcher', '/dispatcher-login.html'), (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+app.get('/client.html', requirePageRole('client', '/client-login.html'), (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'client.html'));
+});
 app.use(express.static(path.join(__dirname, 'public')));
 
 /* ------------------------------- helpers ------------------------------- */
@@ -57,6 +73,139 @@ function isNonEmptyString(value, maxLength = MAX_TEXT_LENGTH) {
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function normalizeEmail(value) {
+  return typeof value === 'string' ? value.trim().toLowerCase() : value;
+}
+
+function userKey(role, email) {
+  return `${role}:${email}`;
+}
+
+function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return { salt, hash };
+}
+
+function verifyPassword(password, user) {
+  const candidate = crypto.scryptSync(password, user.passwordSalt, 64);
+  const expected = Buffer.from(user.passwordHash, 'hex');
+  return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
+}
+
+function safeStringEqual(left, right) {
+  const leftBuffer = Buffer.from(String(left));
+  const rightBuffer = Buffer.from(String(right));
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function parseCookies(header = '') {
+  return header.split(';').reduce((cookies, part) => {
+    const separator = part.indexOf('=');
+    if (separator < 0) return cookies;
+    const key = part.slice(0, separator).trim();
+    const value = part.slice(separator + 1).trim();
+    if (key) cookies[key] = decodeURIComponent(value);
+    return cookies;
+  }, {});
+}
+
+function getAuthenticatedUser(req) {
+  const token = parseCookies(req.headers.cookie)[SESSION_COOKIE];
+  if (!token) return null;
+  const session = sessions.get(token);
+  if (!session) return null;
+  if (session.expiresAt <= Date.now()) {
+    sessions.delete(token);
+    return null;
+  }
+  return users.get(session.userKey) || null;
+}
+
+function publicUser(user) {
+  return { id: user.id, name: user.name, email: user.email, role: user.role };
+}
+
+function createSession(res, user) {
+  const token = crypto.randomBytes(32).toString('base64url');
+  sessions.set(token, {
+    userKey: userKey(user.role, user.email),
+    expiresAt: Date.now() + SESSION_TTL_MS,
+  });
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader(
+    'Set-Cookie',
+    `${SESSION_COOKIE}=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}${secure}`
+  );
+}
+
+function clearSession(req, res) {
+  const token = parseCookies(req.headers.cookie)[SESSION_COOKIE];
+  if (token) sessions.delete(token);
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`);
+}
+
+function requireApiRole(role) {
+  return (req, res, next) => {
+    const user = getAuthenticatedUser(req);
+    if (!user) return res.status(401).json({ error: 'Sign in is required.' });
+    if (user.role !== role) return res.status(403).json({ error: 'This account cannot access that resource.' });
+    req.authUser = user;
+    next();
+  };
+}
+
+function requirePageRole(role, loginPath) {
+  return (req, res, next) => {
+    const user = getAuthenticatedUser(req);
+    if (!user || user.role !== role) {
+      return res.redirect(303, `${loginPath}?next=${encodeURIComponent(req.originalUrl)}`);
+    }
+    req.authUser = user;
+    next();
+  };
+}
+
+function authAttemptKey(req, role, email) {
+  return `${req.ip || 'local'}:${role}:${email}`;
+}
+
+function isAuthRateLimited(key) {
+  const state = authAttempts.get(key);
+  if (!state || state.resetAt <= Date.now()) {
+    authAttempts.delete(key);
+    return false;
+  }
+  return state.count >= AUTH_MAX_ATTEMPTS;
+}
+
+function recordAuthFailure(key) {
+  const current = authAttempts.get(key);
+  if (!current || current.resetAt <= Date.now()) {
+    authAttempts.set(key, { count: 1, resetAt: Date.now() + AUTH_WINDOW_MS });
+  } else {
+    current.count += 1;
+  }
+}
+
+function validateAccountPayload(body, { requireInviteCode = false } = {}) {
+  const errors = [];
+  if (!isPlainObject(body)) return ['Request body must be a JSON object.'];
+  const name = typeof body.name === 'string' ? body.name.trim() : '';
+  const email = normalizeEmail(body.email);
+  const password = body.password;
+  if (!isNonEmptyString(name, 120)) errors.push('Name is required and must not exceed 120 characters.');
+  if (!isNonEmptyString(email, 254) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    errors.push('A valid email address is required.');
+  }
+  if (typeof password !== 'string' || password.length < 10 || password.length > 128) {
+    errors.push('Password must be between 10 and 128 characters.');
+  }
+  if (requireInviteCode && !isNonEmptyString(body.inviteCode, 200)) {
+    errors.push('A dispatcher access code is required.');
+  }
+  return errors;
 }
 
 function normalizeDriverId(value) {
@@ -233,8 +382,144 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'VeloFox Dispatch API is running' });
 });
 
-app.get('/api/bookings', (req, res) => {
+app.post('/api/auth/register', (req, res) => {
+  const role = req.body && req.body.role;
+  if (!['client', 'dispatcher'].includes(role)) {
+    return res.status(400).json({ error: 'role must be client or dispatcher.' });
+  }
+
+  if (role === 'dispatcher' && !DISPATCHER_INVITE_CODE) {
+    return res.status(503).json({
+      error: 'Dispatcher registration is not configured. An administrator must set DISPATCHER_INVITE_CODE.',
+    });
+  }
+
+  const inviteAttemptKey = authAttemptKey(req, 'dispatcher-registration', 'invite-code');
+  if (role === 'dispatcher' && isAuthRateLimited(inviteAttemptKey)) {
+    return res.status(429).json({ error: 'Too many access-code attempts. Try again in 15 minutes.' });
+  }
+
+  const errors = validateAccountPayload(req.body, { requireInviteCode: role === 'dispatcher' });
+  if (role === 'dispatcher' && errors.length === 0 && !safeStringEqual(req.body.inviteCode, DISPATCHER_INVITE_CODE)) {
+    recordAuthFailure(inviteAttemptKey);
+    errors.push('The dispatcher access code is invalid.');
+  }
+  if (errors.length > 0) return res.status(400).json({ error: 'Registration failed.', details: errors });
+
+  const email = normalizeEmail(req.body.email);
+  const key = userKey(role, email);
+  if (users.has(key)) return res.status(409).json({ error: 'An account already exists for this email and role.' });
+
+  const password = hashPassword(req.body.password);
+  const user = {
+    id: crypto.randomUUID(),
+    role,
+    name: req.body.name.trim(),
+    email,
+    passwordSalt: password.salt,
+    passwordHash: password.hash,
+    createdAt: new Date().toISOString(),
+  };
+  users.set(key, user);
+  if (role === 'dispatcher') authAttempts.delete(inviteAttemptKey);
+  createSession(res, user);
+  res.status(201).json({ user: publicUser(user) });
+});
+
+app.post('/api/auth/login', (req, res) => {
+  if (!isPlainObject(req.body)) return res.status(400).json({ error: 'Request body must be a JSON object.' });
+  const role = req.body.role;
+  const email = normalizeEmail(req.body.email);
+  const password = req.body.password;
+  if (!['client', 'dispatcher'].includes(role) || !isNonEmptyString(email, 254) || typeof password !== 'string') {
+    return res.status(400).json({ error: 'Role, email, and password are required.' });
+  }
+
+  const attemptKey = authAttemptKey(req, role, email);
+  if (isAuthRateLimited(attemptKey)) {
+    return res.status(429).json({ error: 'Too many login attempts. Try again in 15 minutes.' });
+  }
+
+  const user = users.get(userKey(role, email));
+  if (!user || !verifyPassword(password, user)) {
+    recordAuthFailure(attemptKey);
+    return res.status(401).json({ error: 'Email or password is incorrect.' });
+  }
+
+  authAttempts.delete(attemptKey);
+  createSession(res, user);
+  res.json({ user: publicUser(user) });
+});
+
+app.get('/api/auth/session', (req, res) => {
+  const user = getAuthenticatedUser(req);
+  if (!user) return res.status(401).json({ error: 'No active session.' });
+  res.json({ user: publicUser(user) });
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  clearSession(req, res);
+  res.status(204).end();
+});
+
+app.get('/api/bookings', requireApiRole('dispatcher'), (req, res) => {
   res.json(bookings);
+});
+
+app.get('/api/client/trips', requireApiRole('client'), (req, res) => {
+  const trips = bookings
+    .filter((booking) => booking.clientEmail === req.authUser.email)
+    .sort((a, b) => Date.parse(b.pickupDateTime) - Date.parse(a.pickupDateTime))
+    .map((booking) => ({
+      ...booking,
+      driverName: booking.driverId ? getDriver(booking.driverId)?.name || null : null,
+      review: tripReviews.get(booking.id) || null,
+    }));
+  res.json({ user: publicUser(req.authUser), trips });
+});
+
+app.post('/api/client/trips/:id/review', requireApiRole('client'), (req, res) => {
+  const booking = bookings.find((item) => item.id === req.params.id && item.clientEmail === req.authUser.email);
+  if (!booking) return res.status(404).json({ error: 'Trip was not found.' });
+  if (booking.status !== 'completed') return res.status(409).json({ error: 'A trip can be rated after it is completed.' });
+
+  const rating = Number(req.body && req.body.rating);
+  const feedback = req.body && typeof req.body.feedback === 'string' ? req.body.feedback.trim() : '';
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    return res.status(400).json({ error: 'rating must be an integer between 1 and 5.' });
+  }
+  if (feedback.length > 1000) return res.status(400).json({ error: 'feedback must not exceed 1000 characters.' });
+
+  const review = {
+    bookingId: booking.id,
+    clientEmail: req.authUser.email,
+    driverId: booking.driverId,
+    rating,
+    feedback: feedback || null,
+    updatedAt: new Date().toISOString(),
+  };
+  tripReviews.set(booking.id, review);
+  res.json(review);
+});
+
+app.post('/api/client/feedback', requireApiRole('client'), (req, res) => {
+  const category = req.body && typeof req.body.category === 'string' ? req.body.category.trim() : '';
+  const message = req.body && typeof req.body.message === 'string' ? req.body.message.trim() : '';
+  if (!['experience', 'booking', 'portal', 'other'].includes(category)) {
+    return res.status(400).json({ error: 'Choose a valid feedback category.' });
+  }
+  if (!message || message.length > 2000) {
+    return res.status(400).json({ error: 'Feedback is required and must not exceed 2000 characters.' });
+  }
+  const entry = {
+    id: crypto.randomUUID(),
+    clientEmail: req.authUser.email,
+    category,
+    message,
+    createdAt: new Date().toISOString(),
+  };
+  appFeedback.push(entry);
+  res.status(201).json({ id: entry.id, createdAt: entry.createdAt });
 });
 
 app.get('/api/drivers/:driverId', (req, res) => {
@@ -277,10 +562,16 @@ app.post('/api/bookings', (req, res) => {
   }
 
   const now = new Date().toISOString();
+  const authenticatedUser = getAuthenticatedUser(req);
+  const clientUser = authenticatedUser?.role === 'client' ? authenticatedUser : null;
   const booking = {
     id: crypto.randomUUID(),
     ...value,
     status: 'pending',
+    driverId: null,
+    assignedVehicle: null,
+    clientEmail: clientUser?.email || null,
+    clientName: clientUser?.name || null,
     driverLocation: null,
     createdAt: now,
     updatedAt: now,
@@ -317,6 +608,17 @@ app.patch('/api/bookings/:id', (req, res) => {
       error: 'Nothing to update.',
       details: [`Provide at least one of: ${allowedFields.join(', ')}.`],
     });
+  }
+
+  const requestedStatus = typeof req.body.status === 'string' ? req.body.status.trim().toLowerCase() : null;
+  const dispatcherOnlyUpdate = receivedFields.some((field) => ['assignedVehicle', 'driverId', 'luggageNotes'].includes(field))
+    || (requestedStatus !== null && !['en_route', 'arrived', 'passenger_aboard', 'completed'].includes(requestedStatus));
+  if (dispatcherOnlyUpdate) {
+    const authenticatedUser = getAuthenticatedUser(req);
+    if (!authenticatedUser) return res.status(401).json({ error: 'Dispatcher sign in is required for this update.' });
+    if (authenticatedUser.role !== 'dispatcher') {
+      return res.status(403).json({ error: 'Only dispatcher accounts can make this update.' });
+    }
   }
 
   const changes = {};
@@ -419,6 +721,9 @@ app.use((err, req, res, next) => {
 /* -------------------------------- start --------------------------------- */
 
 if (require.main === module) {
+  if (!DISPATCHER_INVITE_CODE) {
+    console.warn('Dispatcher registration is disabled: set DISPATCHER_INVITE_CODE in .env.');
+  }
   app.listen(PORT, () => {
     console.log(`VeloFox Dispatch API listening on http://localhost:${PORT}`);
   });
@@ -428,12 +733,20 @@ module.exports = {
   app,
   testables: {
     bookings,
+    appFeedback,
     canTransitionStatus,
     driverTelemetry,
     getDriver,
     getDriverManifest,
+    hashPassword,
     normalizeDriverId,
     recordDriverTelemetry,
+    safeStringEqual,
+    sessions,
+    tripReviews,
+    users,
+    validateAccountPayload,
+    verifyPassword,
     validateBooking,
     validateDriverLocation,
   },

@@ -532,8 +532,8 @@
     </a>
     <div class="topbar-actions">
       <a class="nav-link" href="/">Home</a>
-      <a class="nav-link" href="/login.html">Enterprise Login</a>
       <span id="last-updated" class="muted small">Loading…</span>
+      <button id="logout" class="btn" type="button">Sign out</button>
       <button id="refresh" class="btn" type="button">Refresh</button>
     </div>
   </header>
@@ -1059,6 +1059,10 @@
     /* ------------------------------ boot ------------------------------ */
 
     refreshBtn.addEventListener('click', () => loadBookings());
+    document.getElementById('logout').addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.replace('/dispatcher-login.html');
+    });
 
     renderStats();
     renderState('Loading bookings', 'Fetching the latest reservations…');

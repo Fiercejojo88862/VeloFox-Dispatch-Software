@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0b0b">
+  <title>Dispatcher Access — VeloFox Dispatch</title>
+  <link rel="stylesheet" href="/access.css">
+</head>
+<body data-role="dispatcher">
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">V</span>
+        <span class="brand-copy"><span class="brand-name">VeloFox</span><span class="brand-sub">Dispatch operations</span></span>
+      </a>
+      <a class="back-link" href="/login.html">All access options</a>
+    </header>
+
+    <section class="access-layout" aria-labelledby="page-heading">
+      <div class="intro">
+        <p class="eyebrow">Restricted operations access</p>
+        <h1 id="page-heading">The dispatch desk starts here.</h1>
+        <p class="intro-copy">Sign in to coordinate reservations, fleet assignments, drivers, and live journey status.</p>
+        <ul class="trust-list"><li>Role-restricted dashboard</li><li>HTTP-only secured sessions</li><li>Invite-only account creation</li></ul>
+      </div>
+
+      <div class="auth-card">
+        <div class="tabs" role="tablist" aria-label="Dispatcher account">
+          <button class="tab is-active" type="button" data-tab="login" role="tab" aria-selected="true">Sign in</button>
+          <button class="tab" type="button" data-tab="register" role="tab" aria-selected="false">Create login</button>
+        </div>
+
+        <section class="form-view" data-view="login">
+          <h2>Dispatcher sign in</h2>
+          <p class="form-intro">Enter your approved operations account credentials.</p>
+          <form class="form" novalidate>
+            <div class="field"><label for="login-email">Work email</label><input id="login-email" name="email" type="email" autocomplete="email" required></div>
+            <div class="field"><label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>
+            <button class="submit" type="submit">Open dispatch dashboard</button>
+            <p class="form-message" role="alert" aria-live="polite"></p>
+          </form>
+        </section>
+
+        <section class="form-view" data-view="register" hidden>
+          <h2>Create dispatcher login</h2>
+          <p class="form-intro">New dispatcher accounts require the private access code issued by a VeloFox administrator.</p>
+          <p class="security-callout">For security, the code is checked only by the server and is never stored in this page. Contact your administrator if you were not issued one.</p>
+          <form class="form" novalidate>
+            <div class="field"><label for="register-name">Full name</label><input id="register-name" name="name" type="text" maxlength="120" autocomplete="name" required></div>
+            <div class="field"><label for="register-email">Work email</label><input id="register-email" name="email" type="email" maxlength="254" autocomplete="email" required></div>
+            <div class="field"><label for="register-password">Password</label><input id="register-password" name="password" type="password" minlength="10" maxlength="128" autocomplete="new-password" required><p class="hint">Use at least 10 characters.</p></div>
+            <div class="field"><label for="invite-code">Dispatcher access code</label><input id="invite-code" name="inviteCode" type="password" maxlength="200" autocomplete="one-time-code" required></div>
+            <button class="submit" type="submit">Create dispatcher account</button>
+            <p class="form-message" role="alert" aria-live="polite"></p>
+          </form>
+        </section>
+      </div>
+    </section>
+  </main>
+  <script src="/account-access.js"></script>
+</body>
+</html>

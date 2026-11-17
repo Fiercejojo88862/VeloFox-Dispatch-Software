@@ -69,6 +69,27 @@ ON CONFLICT (id) DO UPDATE
 SET display_name = EXCLUDED.display_name;
 
 -- -----------------------------------------------------------------------------
+-- Client and dispatcher accounts
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS accounts (
+    id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    role           text NOT NULL,
+    display_name   varchar(120) NOT NULL,
+    email          varchar(254) NOT NULL,
+    password_salt  varchar(128) NOT NULL,
+    password_hash  varchar(256) NOT NULL,
+    created_at     timestamptz NOT NULL DEFAULT now(),
+    updated_at     timestamptz NOT NULL DEFAULT now(),
+
+    CONSTRAINT accounts_role_check CHECK (role IN ('client', 'dispatcher')),
+    CONSTRAINT accounts_display_name_check CHECK (btrim(display_name) <> ''),
+    CONSTRAINT accounts_email_check CHECK (btrim(email) <> ''),
+    CONSTRAINT accounts_role_email_key UNIQUE (role, email)
+);
+
+CREATE INDEX IF NOT EXISTS accounts_email_idx ON accounts (email);
+
+-- -----------------------------------------------------------------------------
 -- Reservations
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bookings (
@@ -83,6 +104,8 @@ CREATE TABLE IF NOT EXISTS bookings (
     driver_id        varchar(50),
     assigned_vehicle varchar(100),
     luggage_notes    varchar(500),
+    client_email     varchar(254),
+    client_name      varchar(120),
     created_at       timestamptz NOT NULL DEFAULT now(),
     updated_at       timestamptz NOT NULL DEFAULT now(),
 
@@ -113,6 +136,8 @@ CREATE TABLE IF NOT EXISTS bookings (
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS driver_id varchar(50);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS assigned_vehicle varchar(100);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS luggage_notes varchar(500);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_email varchar(254);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_name varchar(120);
 
 ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check;
 ALTER TABLE bookings ADD CONSTRAINT bookings_status_check
@@ -139,7 +164,44 @@ CREATE INDEX IF NOT EXISTS bookings_status_idx ON bookings (status);
 CREATE INDEX IF NOT EXISTS bookings_pickup_datetime_idx ON bookings (pickup_datetime);
 CREATE INDEX IF NOT EXISTS bookings_vehicle_id_idx ON bookings (vehicle_id);
 CREATE INDEX IF NOT EXISTS bookings_driver_id_idx ON bookings (driver_id);
+CREATE INDEX IF NOT EXISTS bookings_client_email_idx ON bookings (client_email);
 CREATE INDEX IF NOT EXISTS bookings_created_at_idx ON bookings (created_at DESC);
+
+-- -----------------------------------------------------------------------------
+-- Client ratings and product feedback
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS trip_reviews (
+    booking_id    uuid PRIMARY KEY,
+    client_email  varchar(254) NOT NULL,
+    driver_id     varchar(50),
+    rating        smallint NOT NULL,
+    feedback      varchar(1000),
+    created_at    timestamptz NOT NULL DEFAULT now(),
+    updated_at    timestamptz NOT NULL DEFAULT now(),
+
+    CONSTRAINT trip_reviews_booking_fkey
+        FOREIGN KEY (booking_id) REFERENCES bookings (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT trip_reviews_driver_fkey
+        FOREIGN KEY (driver_id) REFERENCES drivers (id) ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT trip_reviews_rating_check CHECK (rating BETWEEN 1 AND 5)
+);
+
+CREATE INDEX IF NOT EXISTS trip_reviews_driver_idx ON trip_reviews (driver_id);
+CREATE INDEX IF NOT EXISTS trip_reviews_client_email_idx ON trip_reviews (client_email);
+
+CREATE TABLE IF NOT EXISTS app_feedback (
+    id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    client_email  varchar(254) NOT NULL,
+    category      text NOT NULL,
+    message       varchar(2000) NOT NULL,
+    created_at    timestamptz NOT NULL DEFAULT now(),
+
+    CONSTRAINT app_feedback_category_check
+        CHECK (category IN ('experience', 'booking', 'portal', 'other')),
+    CONSTRAINT app_feedback_message_check CHECK (btrim(message) <> '')
+);
+
+CREATE INDEX IF NOT EXISTS app_feedback_created_at_idx ON app_feedback (created_at DESC);
 
 -- -----------------------------------------------------------------------------
 -- Driver telemetry history
@@ -194,6 +256,18 @@ CREATE TRIGGER vehicles_set_updated_at
 DROP TRIGGER IF EXISTS drivers_set_updated_at ON drivers;
 CREATE TRIGGER drivers_set_updated_at
     BEFORE UPDATE ON drivers
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS accounts_set_updated_at ON accounts;
+CREATE TRIGGER accounts_set_updated_at
+    BEFORE UPDATE ON accounts
+    FOR EACH ROW
+    EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS trip_reviews_set_updated_at ON trip_reviews;
+CREATE TRIGGER trip_reviews_set_updated_at
+    BEFORE UPDATE ON trip_reviews
     FOR EACH ROW
     EXECUTE FUNCTION set_updated_at();
 

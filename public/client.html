@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0b0b">
+  <title>Client Portal — VeloFox Dispatch</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0b0b0b; --card:#141414; --raised:#1a1a1a; --line:#2a2a2a; --text:#f3efe7; --muted:#99958d; --gold:#c5a059; --gold-bright:#dec17e; --green:#7eb591; --red:#d77f77; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
+    * { box-sizing:border-box; }
+    html { min-width:320px; background:var(--bg); }
+    body { min-height:100vh; margin:0; color:var(--text); background:radial-gradient(circle at 90% -10%,rgba(197,160,89,.12),transparent 32rem),var(--bg); }
+    button,select,textarea { font:inherit; }
+    a { color:inherit; }
+    .shell { width:min(100%,1160px); margin:0 auto; padding:20px 18px 64px; }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:18px; min-height:60px; }
+    .brand { display:flex; align-items:center; gap:12px; text-decoration:none; }
+    .mark { display:grid; width:38px; height:38px; place-items:center; border:1px solid var(--gold); border-radius:50%; color:var(--gold); font:700 18px Georgia,serif; }
+    .brand-name { font:19px Georgia,serif; }
+    .brand-sub { display:block; margin-top:1px; color:var(--muted); font-size:9px; font-weight:800; letter-spacing:.17em; text-transform:uppercase; }
+    .top-actions { display:flex; align-items:center; gap:10px; }
+    .button { display:inline-flex; min-height:42px; padding:0 14px; align-items:center; justify-content:center; border:1px solid var(--line); border-radius:999px; color:var(--muted); background:var(--card); font-size:11px; font-weight:800; text-decoration:none; cursor:pointer; }
+    .button:hover { border-color:var(--gold); color:var(--text); }
+    .button--gold { border-color:var(--gold); color:#120e08; background:var(--gold); }
+    .hero { padding:58px 0 34px; }
+    .eyebrow { margin:0 0 12px; color:var(--gold); font-size:10px; font-weight:800; letter-spacing:.2em; text-transform:uppercase; }
+    h1,h2,h3,p { margin-top:0; }
+    h1 { margin-bottom:12px; font:400 clamp(39px,8vw,62px)/1.03 Georgia,serif; letter-spacing:-.03em; }
+    .hero-copy { margin:0; color:var(--muted); line-height:1.65; }
+    .section-head { display:flex; align-items:end; justify-content:space-between; gap:18px; margin:30px 0 14px; }
+    .section-head h2 { margin:0; font:400 26px Georgia,serif; }
+    .section-head span { color:var(--muted); font-size:12px; }
+    .trips { display:grid; gap:15px; }
+    .trip { overflow:hidden; border:1px solid var(--line); border-radius:18px; background:var(--card); }
+    .trip-head { display:flex; align-items:start; justify-content:space-between; gap:14px; padding:19px; border-bottom:1px solid var(--line); }
+    .trip-date { margin-bottom:5px; color:var(--gold-bright); font-size:14px; font-weight:800; }
+    .trip-id { color:#706e69; font-size:10px; letter-spacing:.12em; text-transform:uppercase; }
+    .status { padding:6px 9px; border:1px solid rgba(197,160,89,.3); border-radius:999px; color:var(--gold-bright); background:rgba(197,160,89,.09); font-size:9px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .route { display:grid; gap:17px; padding:20px; }
+    .stop { display:grid; grid-template-columns:10px 1fr; gap:11px; align-items:start; }
+    .dot { width:8px; height:8px; margin-top:5px; border-radius:50%; background:var(--gold); }
+    .stop:last-child .dot { background:#777; }
+    .stop-label { margin-bottom:3px; color:#706e69; font-size:9px; font-weight:800; letter-spacing:.13em; text-transform:uppercase; }
+    .stop-value { font-size:14px; font-weight:650; line-height:1.45; }
+    .meta { display:grid; grid-template-columns:1fr 1fr; gap:1px; border-top:1px solid var(--line); background:var(--line); }
+    .meta-item { min-height:76px; padding:14px 18px; background:var(--card); }
+    .meta-label { margin-bottom:5px; color:#706e69; font-size:9px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+    .meta-value { color:#d8d3ca; font-size:13px; font-weight:650; }
+    .review { padding:18px; border-top:1px solid var(--line); background:#111; }
+    .review h3 { margin-bottom:5px; font:400 20px Georgia,serif; }
+    .review-copy { margin-bottom:14px; color:var(--muted); font-size:12px; }
+    .stars { display:flex; gap:6px; margin-bottom:12px; }
+    .star { width:40px; height:38px; border:1px solid #343434; border-radius:8px; color:#706e69; background:var(--raised); font-size:19px; cursor:pointer; }
+    .star.is-active { border-color:var(--gold); color:var(--gold); background:rgba(197,160,89,.09); }
+    textarea,select { width:100%; border:1px solid #343434; border-radius:10px; outline:0; color:var(--text); background:#0d0d0d; }
+    textarea { min-height:92px; padding:12px; resize:vertical; }
+    select { min-height:48px; padding:0 12px; }
+    textarea:focus,select:focus { border-color:var(--gold); }
+    .review-form { display:grid; gap:10px; }
+    .submit { min-height:46px; border:1px solid var(--gold); border-radius:9px; color:#110e08; background:var(--gold); font-weight:800; cursor:pointer; }
+    .submit:disabled { opacity:.6; cursor:wait; }
+    .message { min-height:18px; margin:0; color:var(--muted); font-size:11px; }
+    .message.error { color:var(--red); }
+    .message.success { color:var(--green); }
+    .existing-review { color:#cfc8ba; font-size:13px; line-height:1.55; }
+    .existing-review strong { color:var(--gold); }
+    .empty { padding:48px 22px; border:1px dashed #343434; border-radius:18px; text-align:center; background:rgba(20,20,20,.65); }
+    .empty h3 { margin-bottom:8px; font:400 23px Georgia,serif; }
+    .empty p { max-width:430px; margin:0 auto 20px; color:var(--muted); line-height:1.6; }
+    .feedback-panel { display:grid; gap:22px; margin-top:36px; padding:24px; border:1px solid var(--line); border-top:2px solid var(--gold); border-radius:18px; background:var(--card); }
+    .feedback-panel h2 { margin-bottom:7px; font:400 27px Georgia,serif; }
+    .feedback-panel p { margin-bottom:0; color:var(--muted); font-size:13px; line-height:1.6; }
+    .feedback-form { display:grid; gap:10px; }
+    .label { color:#bdb8ae; font-size:9px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+    @media(min-width:720px) { .shell{padding-right:32px;padding-left:32px}.trips{grid-template-columns:repeat(2,minmax(0,1fr))}.feedback-panel{grid-template-columns:minmax(0,.8fr) minmax(380px,1.2fr);align-items:start;padding:30px} }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <a class="brand" href="/"><span class="mark">V</span><span><span class="brand-name">VeloFox</span><span class="brand-sub">Client portal</span></span></a>
+      <div class="top-actions"><a class="button button--gold" href="/booking.html">Book a ride</a><button id="logout" class="button" type="button">Sign out</button></div>
+    </header>
+
+    <section class="hero">
+      <p class="eyebrow">Your VeloFox account</p>
+      <h1>Welcome, <span id="client-name">client</span>.</h1>
+      <p class="hero-copy">Review recent journeys and help us refine every detail of the experience.</p>
+    </section>
+
+    <div class="section-head"><h2>Recent trips</h2><span id="trip-count">Loading…</span></div>
+    <section id="trips" class="trips" aria-live="polite" aria-busy="true"></section>
+
+    <section class="feedback-panel" aria-labelledby="feedback-heading">
+      <div><p class="eyebrow">Help us improve</p><h2 id="feedback-heading">Share web app feedback</h2><p>Tell our team what worked, what felt unclear, or what would make booking and trip management better.</p></div>
+      <form id="feedback-form" class="feedback-form">
+        <label class="label" for="category">Feedback area</label>
+        <select id="category" name="category" required><option value="experience">Overall experience</option><option value="booking">Booking process</option><option value="portal">Client portal</option><option value="other">Other</option></select>
+        <label class="label" for="feedback-message">Your feedback</label>
+        <textarea id="feedback-message" name="message" maxlength="2000" placeholder="Tell us what would improve your experience…" required></textarea>
+        <button class="submit" type="submit">Send feedback</button>
+        <p id="feedback-status" class="message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+  </main>
+
+  <script>
+    'use strict';
+    const tripsEl = document.getElementById('trips');
+    const tripCount = document.getElementById('trip-count');
+    const clientName = document.getElementById('client-name');
+    const feedbackForm = document.getElementById('feedback-form');
+    const feedbackStatus = document.getElementById('feedback-status');
+    const dateFormatter = new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'});
+    const statusLabels = { pending:'Pending',confirmed:'Confirmed',assigned:'Assigned',en_route:'En Route',arrived:'On Location',passenger_aboard:'Passenger Aboard',completed:'Completed',cancelled:'Cancelled' };
+
+    async function request(url,options={}) {
+      const response=await fetch(url,{headers:{'Content-Type':'application/json'},...options});
+      if(response.status===401){window.location.replace('/client-login.html');throw new Error('Session expired.');}
+      const data=await response.json().catch(()=>null);
+      if(!response.ok)throw new Error((data&&data.error)||'Request failed.');
+      return data;
+    }
+
+    function el(tag,className,text){const node=document.createElement(tag);if(className)node.className=className;if(text!==undefined)node.textContent=text;return node;}
+    function stop(label,value){const wrap=el('div','stop');wrap.append(el('span','dot'),(()=>{const copy=el('div');copy.append(el('div','stop-label',label),el('div','stop-value',value));return copy;})());return wrap;}
+    function meta(label,value){const wrap=el('div','meta-item');wrap.append(el('div','meta-label',label),el('div','meta-value',value||'To be assigned'));return wrap;}
+
+    async function submitReview(trip,form,status){
+      const rating=Number(form.dataset.rating||0);const feedback=form.querySelector('textarea').value.trim();
+      status.className='message';status.textContent='';
+      if(!rating){status.classList.add('error');status.textContent='Choose a star rating first.';return;}
+      const button=form.querySelector('.submit');button.disabled=true;
+      try{await request(`/api/client/trips/${encodeURIComponent(trip.id)}/review`,{method:'POST',body:JSON.stringify({rating,feedback})});status.classList.add('success');status.textContent='Thank you. Your driver rating was saved.';window.setTimeout(loadTrips,600);}
+      catch(error){status.classList.add('error');status.textContent=error.message;button.disabled=false;}
+    }
+
+    function reviewBlock(trip){
+      const wrap=el('div','review');
+      if(trip.review){const copy=el('p','existing-review');const score=el('strong','',`${'★'.repeat(trip.review.rating)}${'☆'.repeat(5-trip.review.rating)}`);copy.append(score,document.createTextNode(trip.review.feedback?` — ${trip.review.feedback}`:' — Rating submitted'));wrap.append(el('h3','',`Your rating for ${trip.driverName||'your driver'}`),copy);return wrap;}
+      wrap.append(el('h3','',`Rate ${trip.driverName||'your driver'}`),el('p','review-copy','Your feedback is shared with VeloFox after a completed trip.'));
+      const form=el('form','review-form');form.dataset.rating='0';const stars=el('div','stars');
+      for(let value=1;value<=5;value+=1){const button=el('button','star','★');button.type='button';button.setAttribute('aria-label',`${value} star${value===1?'':'s'}`);button.addEventListener('click',()=>{form.dataset.rating=String(value);stars.querySelectorAll('.star').forEach((star,index)=>star.classList.toggle('is-active',index<value));});stars.append(button);}
+      const textarea=el('textarea');textarea.maxLength=1000;textarea.placeholder='Optional note about your driver or journey';const submit=el('button','submit','Submit driver rating');submit.type='submit';const status=el('p','message');status.setAttribute('role','status');
+      form.append(stars,textarea,submit,status);form.addEventListener('submit',(event)=>{event.preventDefault();void submitReview(trip,form,status);});wrap.append(form);return wrap;
+    }
+
+    function tripCard(trip){
+      const card=el('article','trip');const head=el('div','trip-head');const left=el('div');left.append(el('div','trip-date',dateFormatter.format(new Date(trip.pickupDateTime))),el('div','trip-id',`Ride ${String(trip.id).slice(0,8)}`));head.append(left,el('span','status',statusLabels[trip.status]||trip.status));
+      const route=el('div','route');route.append(stop('Pickup',trip.pickupLocation),stop('Drop-off',trip.dropoffLocation));const details=el('div','meta');details.append(meta('Driver',trip.driverName),meta('Vehicle',trip.assignedVehicle||trip.vehicleType));card.append(head,route,details);if(trip.status==='completed')card.append(reviewBlock(trip));return card;
+    }
+
+    async function loadTrips(){
+      try{const data=await request('/api/client/trips');clientName.textContent=(data.user.name||'Client').split(/\s+/)[0];const trips=Array.isArray(data.trips)?data.trips:[];tripCount.textContent=`${trips.length} ${trips.length===1?'trip':'trips'}`;tripsEl.replaceChildren();
+        if(!trips.length){const empty=el('div','empty');empty.append(el('h3','','No trips on this account yet.'),el('p','','Book while signed in and your reservations will appear here automatically.'));const link=el('a','button button--gold','Book your first ride');link.href='/booking.html';empty.append(link);tripsEl.append(empty);}else trips.forEach((trip)=>tripsEl.append(tripCard(trip)));tripsEl.setAttribute('aria-busy','false');}
+      catch(error){if(error.message!=='Session expired.'){tripsEl.replaceChildren(el('div','empty',error.message));tripsEl.setAttribute('aria-busy','false');}}
+    }
+
+    feedbackForm.addEventListener('submit',async(event)=>{event.preventDefault();const button=feedbackForm.querySelector('.submit');feedbackStatus.className='message';feedbackStatus.textContent='';button.disabled=true;try{await request('/api/client/feedback',{method:'POST',body:JSON.stringify(Object.fromEntries(new FormData(feedbackForm).entries()))});feedbackForm.reset();feedbackStatus.classList.add('success');feedbackStatus.textContent='Thank you. Your feedback was sent to the VeloFox team.';}catch(error){feedbackStatus.classList.add('error');feedbackStatus.textContent=error.message;}finally{button.disabled=false;}});
+    document.getElementById('logout').addEventListener('click',async()=>{await fetch('/api/auth/logout',{method:'POST'});window.location.replace('/client-login.html');});
+    void loadTrips();
+  </script>
+</body>
+</html>
