@@ -338,6 +338,110 @@
       .radar-dot::after { animation: none; opacity: 0.35; }
     }
 
+    /* ---------- fare + analytics ---------- */
+
+    .fare-total { font-size: 14px; font-variant-numeric: tabular-nums; font-weight: 500; }
+    .fare-meta { margin-top: 3px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    .fare-meta.is-hourly { color: var(--confirmed); }
+
+    .rate-editor { border-top: 1px solid var(--line); padding-top: 8px; }
+    .rate-editor summary {
+      cursor: pointer;
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      list-style: none;
+    }
+    .rate-editor summary::-webkit-details-marker { display: none; }
+    .rate-editor summary::before { content: "+ "; color: var(--accent); }
+    .rate-editor[open] summary::before { content: "− "; }
+    .rate-editor summary:hover { color: var(--accent); }
+    .rate-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+    .rate-grid label { display: grid; gap: 3px; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    .rate-grid label[hidden] { display: none; }
+    .rate-grid input, .rate-grid select { min-width: 0; }
+    .rate-grid .rate-wide { grid-column: 1 / -1; }
+
+    .analytics-body { padding: 22px 24px 26px; display: grid; gap: 22px; }
+
+    .analytics-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .analytics-controls select {
+      font: inherit;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      color: var(--text);
+      background: var(--bg-soft);
+      border: 1px solid var(--line-strong);
+      border-radius: 2px;
+      padding: 8px 10px;
+    }
+    .analytics-controls select:focus { outline: none; border-color: var(--accent); }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 1px;
+      background: var(--line);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .kpi { background: var(--bg-soft); padding: 16px 18px; }
+    .kpi-label { font-size: 9px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+    .kpi-value { margin-top: 8px; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+    .kpi-value.is-gold { color: var(--accent-bright); }
+    .kpi-sub { margin-top: 4px; font-size: 10px; color: var(--muted); letter-spacing: 0.04em; }
+
+    .analytics-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px; }
+    .analytics-block h3 {
+      margin: 0 0 4px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .analytics-block p.hint { margin: 0 0 12px; font-size: 11px; color: var(--muted); }
+
+    .chart { display: flex; align-items: flex-end; gap: 6px; height: 140px; border-bottom: 1px solid var(--line); }
+    .chart-bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; gap: 6px; height: 100%; }
+    .chart-bar .fill {
+      display: block;
+      min-height: 2px;
+      border-radius: 2px 2px 0 0;
+      background: linear-gradient(180deg, var(--accent-bright), rgba(197, 160, 89, 0.2));
+      box-shadow: 0 0 14px rgba(197, 160, 89, 0.22);
+      transition: height 0.35s ease;
+    }
+    .chart-bar:hover .fill { background: linear-gradient(180deg, #f0d7a5, rgba(197, 160, 89, 0.35)); }
+    .chart-bar .bar-label { text-align: center; font-size: 8.5px; letter-spacing: 0.06em; color: var(--muted); }
+    .chart-axis { display: flex; justify-content: space-between; margin-top: 8px; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+
+    .mode-split { display: grid; gap: 14px; }
+    .mode-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 11px; }
+    .mode-name { letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .mode-value { font-variant-numeric: tabular-nums; color: var(--text); }
+    .mode-track { margin-top: 7px; height: 8px; border-radius: 4px; background: #1b1b1b; overflow: hidden; }
+    .mode-fill { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent-bright)); }
+    .mode-fill.is-hourly { background: linear-gradient(90deg, #6f86a8, var(--confirmed)); }
+
+    .driver-list { display: grid; gap: 11px; }
+    .driver-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 12px; padding-bottom: 8px; border-bottom: 1px solid #1b1b1b; }
+    .driver-row:last-child { border-bottom: 0; padding-bottom: 0; }
+    .driver-name { color: var(--text); }
+    .driver-name small { display: block; color: var(--muted); font-size: 9.5px; letter-spacing: 0.1em; }
+    .driver-revenue { color: var(--accent-bright); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+    .analytics-note {
+      font-size: 10.5px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      border-top: 1px solid var(--line);
+      padding-top: 12px;
+    }
+
     td {
       padding: 18px;
       vertical-align: top;
@@ -517,6 +621,8 @@
 
     @media (max-width: 1180px) {
       .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .analytics-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 960px) {
@@ -562,6 +668,9 @@
 
     @media (max-width: 560px) {
       .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .analytics-body { padding: 18px 16px 20px; }
+      .chart-bar .bar-label { display: none; }
       .topbar { align-items: flex-start; flex-direction: column; }
       .topbar-actions { justify-content: flex-start; }
       td { flex-direction: column; gap: 6px; }
@@ -591,6 +700,28 @@
   <main>
     <section id="stats" class="stats" aria-label="Booking summary"></section>
 
+    <section class="panel" aria-labelledby="analytics-heading">
+      <div class="panel-head">
+        <div>
+          <h2 id="analytics-heading">Financial performance</h2>
+          <span class="muted small">Revenue recognized on completed rides · USD</span>
+        </div>
+        <div class="analytics-controls">
+          <label class="sr-only" for="analytics-range">Reporting range</label>
+          <select id="analytics-range">
+            <option value="7d">Last 7 days</option>
+            <option value="30d" selected>Last 30 days</option>
+            <option value="90d">Last 90 days</option>
+            <option value="all">All time</option>
+          </select>
+          <button id="analytics-refresh" class="btn btn-sm" type="button" data-audio="confirm">Refresh</button>
+        </div>
+      </div>
+      <div id="analytics-body" class="analytics-body" aria-live="polite">
+        <div class="table-state" style="padding: 32px 8px;">Loading reporting data…</div>
+      </div>
+    </section>
+
     <section class="panel" aria-labelledby="bookings-heading">
       <div class="panel-head">
         <h2 id="bookings-heading">Bookings</h2>
@@ -605,6 +736,7 @@
               <th scope="col">Pickup</th>
               <th scope="col">Vehicle</th>
               <th scope="col">Status</th>
+              <th scope="col">Fare</th>
               <th scope="col">Assigned vehicle</th>
               <th scope="col">Actions</th>
             </tr>
@@ -677,6 +809,9 @@
     const lastUpdatedEl = document.getElementById('last-updated');
     const refreshBtn = document.getElementById('refresh');
     const toastsEl = document.getElementById('toasts');
+    const analyticsEl = document.getElementById('analytics-body');
+    const analyticsRangeEl = document.getElementById('analytics-range');
+    const analyticsRefreshBtn = document.getElementById('analytics-refresh');
 
     /** @type {Array<object>} */
     let bookings = [];
@@ -689,6 +824,15 @@
     });
 
     const capitalize = (value) => value.charAt(0).toUpperCase() + value.slice(1);
+
+    const usd = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0,
+    });
+    const formatUsd = (cents) => usd.format((Number(cents) || 0) / 100);
+
+    const shortDate = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric' });
     const formatStatus = (value) => STATUS_LABELS[value] || capitalize(value);
 
     function formatVehicleType(value) {
@@ -783,6 +927,7 @@
       const index = bookings.findIndex((booking) => booking.id === id);
       if (index >= 0 && updated) bookings[index] = updated;
       render();
+      loadAnalytics({ quiet: true });
       window.VeloFoxAudio?.play(soundForChange(payload));
       return updated;
     }
@@ -793,6 +938,243 @@
       if (payload.status === 'cancelled') return 'error';
       if (payload.status === 'assigned' || payload.assignedVehicle || payload.driverId) return 'dispatch';
       return 'confirm';
+    }
+
+    /* ----------------------------- analytics ----------------------------- */
+
+    function makeKpi(label, value, sub, { gold = false } = {}) {
+      const card = document.createElement('div');
+      card.className = 'kpi';
+
+      const labelEl = document.createElement('div');
+      labelEl.className = 'kpi-label';
+      labelEl.textContent = label;
+
+      const valueEl = document.createElement('div');
+      valueEl.className = gold ? 'kpi-value is-gold' : 'kpi-value';
+      valueEl.textContent = String(value);
+
+      card.append(labelEl, valueEl);
+
+      if (sub) {
+        const subEl = document.createElement('div');
+        subEl.className = 'kpi-sub';
+        subEl.textContent = sub;
+        card.append(subEl);
+      }
+
+      return card;
+    }
+
+    function buildTrendChart(days) {
+      const wrapper = document.createElement('div');
+      const chart = document.createElement('div');
+      chart.className = 'chart';
+
+      const peak = Math.max(1, ...days.map((day) => day.revenueCents));
+
+      days.forEach((day) => {
+        const column = document.createElement('div');
+        column.className = 'chart-bar';
+
+        const fill = document.createElement('span');
+        fill.className = 'fill';
+        fill.style.height = `${Math.max(1.5, (day.revenueCents / peak) * 100)}%`;
+        fill.title = `${shortDate.format(new Date(`${day.date}T12:00:00`))}: ${formatUsd(day.revenueCents)} · ${day.rides} completed`;
+
+        const label = document.createElement('span');
+        label.className = 'bar-label';
+        label.textContent = shortDate.format(new Date(`${day.date}T12:00:00`)).replace(',', '');
+
+        column.append(fill, label);
+        chart.append(column);
+      });
+
+      const axis = document.createElement('div');
+      axis.className = 'chart-axis';
+      axis.innerHTML = '<span>Oldest</span><span>Today</span>';
+
+      wrapper.append(chart, axis);
+      return wrapper;
+    }
+
+    function buildModeSplit(byMode) {
+      const totalRides = Math.max(1, byMode.point_to_point.rides + byMode.hourly.rides);
+      const rows = [
+        { key: 'point_to_point', label: 'Point to point', data: byMode.point_to_point },
+        { key: 'hourly', label: 'Hourly charter', data: byMode.hourly },
+      ];
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'mode-split';
+
+      rows.forEach(({ key, label, data }) => {
+        const row = document.createElement('div');
+
+        const head = document.createElement('div');
+        head.className = 'mode-head';
+
+        const name = document.createElement('span');
+        name.className = 'mode-name';
+        name.textContent = `${label} · ${data.rides}`;
+
+        const value = document.createElement('span');
+        value.className = 'mode-value';
+        value.textContent = formatUsd(data.revenueCents);
+
+        head.append(name, value);
+
+        const track = document.createElement('div');
+        track.className = 'mode-track';
+
+        const fill = document.createElement('div');
+        fill.className = key === 'hourly' ? 'mode-fill is-hourly' : 'mode-fill';
+        fill.style.width = `${Math.round((data.rides / totalRides) * 100)}%`;
+        track.append(fill);
+
+        row.append(head, track);
+        wrapper.append(row);
+      });
+
+      return wrapper;
+    }
+
+    function renderAnalytics(data) {
+      const totals = data.totals;
+      const fragment = document.createDocumentFragment();
+
+      const kpis = document.createElement('div');
+      kpis.className = 'kpi-grid';
+      kpis.append(
+        makeKpi('Revenue', formatUsd(totals.revenueCents), `${totals.completed} completed`, { gold: true }),
+        makeKpi('Pipeline', formatUsd(totals.pipelineCents), 'Active + pending'),
+        makeKpi('Completed', totals.completed, `${totals.active} active now`),
+        makeKpi('Pending', totals.pending, `${totals.cancelled} cancelled`),
+        makeKpi('Average fare', formatUsd(totals.averageFareCents), 'Per completed ride'),
+        makeKpi('Gratuity', formatUsd(totals.gratuityCents), `${formatUsd(totals.depositCents)} deposits held`)
+      );
+      fragment.append(kpis);
+
+      const columns = document.createElement('div');
+      columns.className = 'analytics-grid';
+
+      const trendBlock = document.createElement('div');
+      trendBlock.className = 'analytics-block';
+      const trendHeading = document.createElement('h3');
+      trendHeading.textContent = 'Revenue trend';
+      const trendHint = document.createElement('p');
+      trendHint.className = 'hint';
+      trendHint.textContent = 'Completed rides by scheduled pickup date.';
+      trendBlock.append(trendHeading, trendHint, buildTrendChart(data.revenueByDay));
+
+      const sideBlock = document.createElement('div');
+      sideBlock.className = 'analytics-block';
+      const modeHeading = document.createElement('h3');
+      modeHeading.textContent = 'Charter mix';
+      const modeHint = document.createElement('p');
+      modeHint.className = 'hint';
+      modeHint.textContent = 'Ride volume per billing model.';
+      sideBlock.append(modeHeading, modeHint, buildModeSplit(data.byMode));
+
+      const driverHeading = document.createElement('h3');
+      driverHeading.textContent = 'Chauffeur contribution';
+      driverHeading.style.marginTop = '20px';
+      sideBlock.append(driverHeading);
+
+      if (data.drivers.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'hint';
+        empty.textContent = 'No completed rides with an assigned chauffeur in this range.';
+        sideBlock.append(empty);
+      } else {
+        const list = document.createElement('div');
+        list.className = 'driver-list';
+        data.drivers.forEach((driver) => {
+          const row = document.createElement('div');
+          row.className = 'driver-row';
+
+          const name = document.createElement('span');
+          name.className = 'driver-name';
+
+          const display = document.createElement('strong');
+          display.textContent = driver.name;
+          const meta = document.createElement('small');
+          meta.textContent = `${driver.driverId} · ${driver.completed} rides`;
+
+          name.append(display, meta);
+
+          const revenue = document.createElement('span');
+          revenue.className = 'driver-revenue';
+          revenue.textContent = formatUsd(driver.revenueCents);
+
+          row.append(name, revenue);
+          list.append(row);
+        });
+        sideBlock.append(list);
+      }
+
+      columns.append(trendBlock, sideBlock);
+      fragment.append(columns);
+
+      const note = document.createElement('p');
+      note.className = 'analytics-note';
+      note.textContent = [
+        `Fleet utilization: ${data.utilization.assignedDrivers} of ${data.utilization.fleetDrivers} chauffeurs assigned`,
+        `${data.utilization.activeTrips} trips in motion`,
+        `completion rate ${Math.round(data.utilization.completionRate * 100)}%`,
+      ].join(' · ');
+      fragment.append(note);
+
+      if (totals.rides === 0) {
+        const seedWrap = document.createElement('div');
+        const hint = document.createElement('p');
+        hint.className = 'hint';
+        hint.textContent = 'No rides in this range yet. Load demo history to preview the reporting view.';
+
+        const seedBtn = document.createElement('button');
+        seedBtn.type = 'button';
+        seedBtn.className = 'btn btn-sm';
+        seedBtn.textContent = 'Seed demo history';
+        seedBtn.addEventListener('click', async () => {
+          seedBtn.disabled = true;
+          seedBtn.textContent = 'Seeding…';
+          try {
+            const result = await request('/api/demo/history', { method: 'POST' });
+            showToast(`Loaded ${result.created} completed demo rides.`, 'success');
+            await loadBookings({ quiet: true });
+            await loadAnalytics();
+          } catch (error) {
+            seedBtn.disabled = false;
+            seedBtn.textContent = 'Seed demo history';
+            showToast(error.message, 'error', error.details);
+          }
+        });
+
+        seedWrap.append(hint, seedBtn);
+        fragment.append(seedWrap);
+      }
+
+      analyticsEl.replaceChildren(fragment);
+    }
+
+    async function loadAnalytics({ quiet = false } = {}) {
+      analyticsRefreshBtn.disabled = true;
+      try {
+        const range = encodeURIComponent(analyticsRangeEl.value);
+        const data = await request(`/api/analytics/summary?range=${range}`);
+        renderAnalytics(data);
+      } catch (error) {
+        if (!quiet) {
+          analyticsEl.replaceChildren();
+          const state = document.createElement('div');
+          state.className = 'table-state';
+          state.style.padding = '32px 8px';
+          state.textContent = `Reporting unavailable: ${error.message}`;
+          analyticsEl.append(state);
+        }
+      } finally {
+        analyticsRefreshBtn.disabled = false;
+      }
     }
 
     /* --------------------------- rendering --------------------------- */
@@ -891,8 +1273,159 @@
       return select;
     }
 
-    function makeAssignForm(booking) {
+    function makeFareCell(booking) {
+      const wrap = document.createElement('div');
+      const quote = booking.pricing;
+
+      const total = document.createElement('div');
+      total.className = 'fare-total';
+
+      const meta = document.createElement('div');
+      meta.className = 'fare-meta';
+
+      if (!quote || !Number.isInteger(quote.totalCents)) {
+        total.textContent = '—';
+        meta.textContent = 'No rate set';
+      } else {
+        total.textContent = formatUsd(quote.totalCents);
+        if (quote.mode === 'hourly') {
+          meta.classList.add('is-hourly');
+          meta.textContent = `${quote.hours} hr × ${formatUsd(quote.baseRateCents)}/hr`;
+        } else {
+          meta.textContent = 'Point to point';
+        }
+      }
+
+      wrap.append(total, meta);
+      return wrap;
+    }
+
+    function makeRateEditor(booking) {
+      const details = document.createElement('details');
+      details.className = 'rate-editor';
+
+      const summary = document.createElement('summary');
+      summary.textContent = 'Rate & gratuity';
+      details.append(summary);
+
       const form = document.createElement('form');
+      form.className = 'rate-grid';
+
+      const quote = booking.pricing || {};
+      const dollars = (cents) => (Number.isFinite(cents) ? (cents / 100).toFixed(2) : '0.00');
+
+      const modeSelect = document.createElement('select');
+      modeSelect.setAttribute('aria-label', `Billing mode for ride ${booking.id.slice(0, 8)}`);
+      [
+        ['point_to_point', 'Point to point'],
+        ['hourly', 'Hourly charter'],
+      ].forEach(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        modeSelect.append(option);
+      });
+      modeSelect.value = quote.mode === 'hourly' ? 'hourly' : 'point_to_point';
+
+      const modeField = document.createElement('label');
+      modeField.className = 'rate-wide';
+      modeField.textContent = 'Billing';
+      modeField.append(modeSelect);
+
+      const baseField = document.createElement('label');
+      baseField.textContent = 'Base rate ($)';
+      const baseInput = document.createElement('input');
+      baseInput.type = 'number';
+      baseInput.min = '0';
+      baseInput.step = '0.01';
+      baseInput.inputMode = 'decimal';
+      baseInput.value = dollars(quote.baseRateCents);
+      baseField.append(baseInput);
+
+      const hoursField = document.createElement('label');
+      hoursField.textContent = 'Hours';
+      const hoursInput = document.createElement('input');
+      hoursInput.type = 'number';
+      hoursInput.min = '0.5';
+      hoursInput.max = '24';
+      hoursInput.step = '0.5';
+      hoursInput.value = String(quote.hours || 2);
+      hoursField.append(hoursInput);
+
+      const gratuityField = document.createElement('label');
+      gratuityField.textContent = 'Gratuity ($)';
+      const gratuityInput = document.createElement('input');
+      gratuityInput.type = 'number';
+      gratuityInput.min = '0';
+      gratuityInput.step = '0.01';
+      gratuityInput.inputMode = 'decimal';
+      gratuityInput.value = dollars(quote.gratuityCents || 0);
+      gratuityField.append(gratuityInput);
+
+      const depositField = document.createElement('label');
+      depositField.textContent = 'Deposit ($)';
+      const depositInput = document.createElement('input');
+      depositInput.type = 'number';
+      depositInput.min = '0';
+      depositInput.step = '0.01';
+      depositInput.inputMode = 'decimal';
+      depositInput.value = dollars(quote.depositCents || 0);
+      depositField.append(depositInput);
+
+      const submit = document.createElement('button');
+      submit.type = 'submit';
+      submit.className = 'btn btn-primary btn-sm rate-wide';
+      submit.textContent = 'Save rate';
+
+      const syncMode = () => {
+        const hourly = modeSelect.value === 'hourly';
+        hoursField.hidden = !hourly;
+        baseField.firstChild.textContent = hourly ? 'Hourly rate ($)' : 'Base rate ($)';
+      };
+      modeSelect.addEventListener('change', syncMode);
+
+      form.append(modeField, baseField, hoursField, gratuityField, depositField, submit);
+      details.append(form);
+      syncMode();
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const baseDollars = Number(baseInput.value);
+        const gratuityDollars = Number(gratuityInput.value || 0);
+        const depositDollars = Number(depositInput.value || 0);
+        const mode = modeSelect.value;
+
+        if (!Number.isFinite(baseDollars) || baseDollars < 0) {
+          showToast('Enter a base rate of zero or more.', 'error');
+          baseInput.focus();
+          return;
+        }
+
+        submit.disabled = true;
+        try {
+          await patchBooking(booking.id, {
+            pricing: {
+              mode,
+              baseRateCents: Math.round(baseDollars * 100),
+              hours: mode === 'hourly' ? Number(hoursInput.value) : null,
+              gratuityCents: Number.isFinite(gratuityDollars) ? Math.round(gratuityDollars * 100) : 0,
+              depositCents: Number.isFinite(depositDollars) ? Math.round(depositDollars * 100) : 0,
+            },
+          });
+          showToast(`Rate updated for ride ${booking.id.slice(0, 8)}.`, 'success');
+          details.open = false;
+          window.VeloFoxAudio?.play('confirm');
+        } catch (error) {
+          showToast(error.message, 'error', error.details);
+        } finally {
+          submit.disabled = false;
+        }
+      });
+
+      return details;
+    }
+
+    function makeAssignForm(booking) {      const form = document.createElement('form');
       form.className = 'assign';
 
       const vehicleInput = document.createElement('input');
@@ -1035,7 +1568,7 @@
       statusLabel.className = 'actions-label';
       statusLabel.textContent = 'Set status';
 
-      actions.append(statusLabel, makeStatusSelect(booking), makeAssignForm(booking));
+      actions.append(statusLabel, makeStatusSelect(booking), makeAssignForm(booking), makeRateEditor(booking));
 
       row.append(
         rideCell,
@@ -1043,6 +1576,7 @@
         makeCell('Pickup', when),
         makeCell('Vehicle', vehicleType, passengers),
         makeCell('Status', makeBadge(booking.status)),
+        makeCell('Fare', makeFareCell(booking)),
         makeCell('Assigned', assigned),
         makeCell('Actions', actions)
       );
@@ -1074,7 +1608,7 @@
 
       const row = document.createElement('tr');
       const cell = document.createElement('td');
-      cell.colSpan = 7;
+      cell.colSpan = 8;
       cell.style.padding = '0';
       cell.append(wrapper);
       row.append(cell);
@@ -1138,6 +1672,8 @@
 
     refreshBtn.addEventListener('click', () => loadBookings());
     window.VeloFoxAudio?.attachMuteToggle(document.getElementById('sound-toggle'));
+    analyticsRangeEl.addEventListener('change', () => loadAnalytics());
+    analyticsRefreshBtn.addEventListener('click', () => loadAnalytics());
     document.getElementById('logout').addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.replace('/dispatcher-login.html');
@@ -1154,6 +1690,7 @@
     }, REFRESH_INTERVAL_MS);
 
     loadBookings();
+    loadAnalytics();
   </script>
 </body>
 </html>

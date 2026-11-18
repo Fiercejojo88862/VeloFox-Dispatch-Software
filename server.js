@@ -3,6 +3,7 @@
 const path = require('node:path');
 const crypto = require('node:crypto');
 const express = require('express');
+const pricing = require('./lib/pricing');
 
 const app = express();
 
@@ -31,6 +32,7 @@ const BOOKING_STATUSES = [
   'cancelled',
 ];
 const TERMINAL_STATUSES = new Set(['completed', 'cancelled']);
+const ACTIVE_BOOKING_STATUSES = new Set(['assigned', 'en_route', 'arrived', 'passenger_aboard']);
 const STATUS_TRANSITIONS = {
   pending: new Set(['confirmed', 'cancelled']),
   confirmed: new Set(['assigned', 'cancelled']),
@@ -351,6 +353,13 @@ function validateBooking(body) {
     errors.push('assignedVehicle must be a non-empty string or null.');
   }
 
+  let normalizedPricing = null;
+  if (body.pricing !== undefined && body.pricing !== null) {
+    const result = pricing.normalizePricing(body.pricing);
+    errors.push(...result.errors);
+    normalizedPricing = result.value;
+  }
+
   if (errors.length > 0) {
     return { errors, value: null };
   }
@@ -366,6 +375,7 @@ function validateBooking(body) {
       driverId: driverId == null ? null : driverId,
       luggageNotes: typeof luggageNotes === 'string' && luggageNotes.trim() ? luggageNotes.trim() : null,
       assignedVehicle: assignedVehicle == null ? null : assignedVehicle.trim(),
+      pricing: normalizedPricing || pricing.defaultPricing(vehicleType),
     },
   };
 }
@@ -382,6 +392,140 @@ function getDriverManifest(driverId) {
 
 function canTransitionStatus(currentStatus, nextStatus) {
   return currentStatus === nextStatus || Boolean(STATUS_TRANSITIONS[currentStatus]?.has(nextStatus));
+}
+
+/* ------------------------------ analytics ------------------------------ */
+
+const ANALYTICS_RANGES = new Map([
+  ['7d', 7],
+  ['30d', 30],
+  ['90d', 90],
+  ['all', null],
+]);
+
+function dayKey(date) {
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Aggregates the in-memory booking table into the reporting payload.
+ * Mirrors the future SQL view: revenue is recognized on completed rides only,
+ * while non-terminal rides contribute to pipeline value.
+ */
+function buildAnalyticsSummary(rangeKey, now = new Date()) {
+  const rangeDays = ANALYTICS_RANGES.get(rangeKey);
+  const sinceMs = rangeDays === null ? null : now.getTime() - rangeDays * 24 * 60 * 60 * 1000;
+
+  const scoped = bookings.filter((booking) => {
+    if (sinceMs === null) return true;
+    const pickupMs = Date.parse(booking.pickupDateTime);
+    return Number.isFinite(pickupMs) && pickupMs >= sinceMs;
+  });
+
+  const byStatus = Object.fromEntries(BOOKING_STATUSES.map((status) => [status, 0]));
+  const byMode = {
+    point_to_point: { rides: 0, completed: 0, revenueCents: 0 },
+    hourly: { rides: 0, completed: 0, revenueCents: 0 },
+  };
+  const driverTotals = new Map();
+  const dailyTotals = new Map();
+
+  let completed = 0;
+  let cancelled = 0;
+  let active = 0;
+  let pending = 0;
+  let revenueCents = 0;
+  let pipelineCents = 0;
+  let gratuityCents = 0;
+  let depositCents = 0;
+
+  for (const booking of scoped) {
+    const quote = pricing.ensurePricing(booking);
+    const mode = byMode[quote.mode] ? quote.mode : 'point_to_point';
+
+    byStatus[booking.status] = (byStatus[booking.status] || 0) + 1;
+    byMode[mode].rides += 1;
+    if (!TERMINAL_STATUSES.has(booking.status)) pipelineCents += quote.totalCents;
+
+    if (booking.status === 'completed') {
+      completed += 1;
+      revenueCents += quote.totalCents;
+      gratuityCents += quote.gratuityCents;
+      depositCents += quote.depositCents;
+      byMode[mode].completed += 1;
+      byMode[mode].revenueCents += quote.totalCents;
+
+      const pickup = new Date(booking.pickupDateTime);
+      if (!Number.isNaN(pickup.getTime())) {
+        const key = dayKey(pickup);
+        const day = dailyTotals.get(key) || { date: key, revenueCents: 0, rides: 0 };
+        day.revenueCents += quote.totalCents;
+        day.rides += 1;
+        dailyTotals.set(key, day);
+      }
+
+      if (booking.driverId) {
+        const entry = driverTotals.get(booking.driverId) || {
+          driverId: booking.driverId,
+          name: DRIVER_REGISTRY.get(booking.driverId)?.name || booking.driverId,
+          completed: 0,
+          revenueCents: 0,
+        };
+        entry.completed += 1;
+        entry.revenueCents += quote.totalCents;
+        driverTotals.set(booking.driverId, entry);
+      }
+    } else if (booking.status === 'cancelled') {
+      cancelled += 1;
+    } else if (ACTIVE_BOOKING_STATUSES.has(booking.status)) {
+      active += 1;
+    } else {
+      pending += 1;
+    }
+  }
+
+  // Fill the trend series so the chart never renders as a single floating bar.
+  const trendDays = rangeDays === null ? 14 : Math.min(rangeDays, 14);
+  const revenueByDay = [];
+  for (let offset = trendDays - 1; offset >= 0; offset -= 1) {
+    const date = new Date(now.getTime() - offset * 24 * 60 * 60 * 1000);
+    const key = dayKey(date);
+    const day = dailyTotals.get(key);
+    revenueByDay.push({ date: key, revenueCents: day ? day.revenueCents : 0, rides: day ? day.rides : 0 });
+  }
+
+  const assignedDrivers = new Set(
+    scoped.filter((booking) => booking.driverId && !TERMINAL_STATUSES.has(booking.status)).map((booking) => booking.driverId)
+  ).size;
+  const terminalCount = completed + cancelled;
+
+  return {
+    generatedAt: now.toISOString(),
+    range: rangeKey,
+    currency: 'USD',
+    totals: {
+      rides: scoped.length,
+      completed,
+      pending,
+      active,
+      cancelled,
+      revenueCents,
+      pipelineCents,
+      gratuityCents,
+      depositCents,
+      averageFareCents: completed > 0 ? Math.round(revenueCents / completed) : 0,
+    },
+    byMode,
+    byStatus,
+    revenueByDay,
+    drivers: [...driverTotals.values()].sort((a, b) => b.revenueCents - a.revenueCents),
+    utilization: {
+      assignedDrivers,
+      fleetDrivers: DRIVER_REGISTRY.size,
+      activeTrips: active,
+      completionRate: terminalCount > 0 ? Number((completed / terminalCount).toFixed(3)) : 0,
+    },
+  };
 }
 
 function recordDriverTelemetry(booking, location, createdAt = new Date().toISOString()) {
@@ -556,6 +700,86 @@ app.get('/api/bookings', requireApiRole('dispatcher'), (req, res) => {
   res.json(bookings);
 });
 
+app.get('/api/analytics/summary', requireApiRole('dispatcher'), (req, res) => {
+  const range = String(req.query.range || '30d').toLowerCase();
+  if (!ANALYTICS_RANGES.has(range)) {
+    return res.status(400).json({
+      error: `range must be one of: ${[...ANALYTICS_RANGES.keys()].join(', ')}.`,
+    });
+  }
+  res.json(buildAnalyticsSummary(range));
+});
+
+/**
+ * Demo-only historical rides so the reporting view has something to show.
+ * Never available in production unless ALLOW_DEMO_SEED=1 is set explicitly.
+ */
+app.post('/api/demo/history', requireApiRole('dispatcher'), (req, res) => {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== '1') {
+    return res.status(403).json({ error: 'Demo history seeding is disabled in production.' });
+  }
+
+  const routes = [
+    ['Newark Liberty International (EWR)', 'Hudson Yards, Manhattan', 'suv'],
+    ['The Peninsula, Midtown', 'Teterboro Airport (TEB)', 'sedan'],
+    ['Greenwich, CT', 'Wall Street, Manhattan', 'sedan'],
+    ['Princeton, NJ', 'MetLife Stadium', 'sprinter'],
+    ['SoHo, Manhattan', 'Westchester County Airport (HPN)', 'suv'],
+    ['Jersey City, NJ', 'The Ned NoMad, Manhattan', 'sedan'],
+    ['Teterboro Airport (TEB)', 'Scarsdale, NY', 'suv'],
+    ['The Plaza, Midtown', 'Hamptons, NY', 'limousine'],
+    ['Hoboken, NJ', 'Brooklyn Heights, NY', 'sedan'],
+    ['Newark Liberty International (EWR)', 'Ritz-Carlton Central Park', 'limousine'],
+    ['Madison, NJ', 'Philadelphia International (PHL)', 'suv'],
+    ['Lower Manhattan, NY', 'Greenwich, CT', 'suv'],
+  ];
+  const driverIds = [...DRIVER_REGISTRY.keys()];
+  const now = new Date();
+  const created = [];
+
+  routes.forEach(([pickupLocation, dropoffLocation, vehicleType], index) => {
+    const pickup = new Date(now);
+    pickup.setDate(pickup.getDate() - (index + 1));
+    pickup.setHours(8 + (index % 10), index % 2 === 0 ? 0 : 30, 0, 0);
+
+    const hourly = index % 3 === 0;
+    const hours = hourly ? 2 + (index % 4) : null;
+    const baseRateCents = hourly
+      ? 16500 + (index % 3) * 1500
+      : pricing.VEHICLE_BASE_RATES_CENTS[vehicleType];
+    const fareCents = hourly ? Math.round(baseRateCents * hours) : baseRateCents;
+    const quote = pricing.derive({
+      mode: hourly ? 'hourly' : 'point_to_point',
+      baseRateCents,
+      hours,
+      gratuityCents: Math.round(fareCents * 0.18),
+      depositCents: index % 4 === 0 ? 10000 : 0,
+    });
+
+    created.push({
+      id: crypto.randomUUID(),
+      pickupLocation,
+      dropoffLocation,
+      pickupDateTime: pickup.toISOString(),
+      vehicleType,
+      passengerCount: 1 + (index % 4),
+      driverId: driverIds[index % driverIds.length],
+      luggageNotes: null,
+      assignedVehicle: `${vehicleType === 'sedan' ? 'Executive Sedan' : vehicleType === 'suv' ? 'Luxury SUV' : vehicleType === 'sprinter' ? 'Sprinter Van' : 'Limousine'} 0${1 + (index % 2)}`,
+      pricing: quote,
+      status: 'completed',
+      clientEmail: null,
+      clientName: null,
+      driverLocation: null,
+      createdAt: pickup.toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+  });
+
+  bookings.push(...created);
+  res.status(201).json({ created: created.length, rides: created });
+});
+
 app.get('/api/client/trips', requireApiRole('client'), (req, res) => {
   const trips = bookings
     .filter((booking) => booking.clientEmail === req.authUser.email)
@@ -682,7 +906,7 @@ app.patch('/api/bookings/:id', (req, res) => {
     return res.status(400).json({ error: 'Request body must be a JSON object.' });
   }
 
-  const allowedFields = ['status', 'assignedVehicle', 'driverId', 'luggageNotes', 'driverLocation'];
+  const allowedFields = ['status', 'assignedVehicle', 'driverId', 'luggageNotes', 'driverLocation', 'pricing'];
   const receivedFields = Object.keys(req.body);
   const unknownFields = receivedFields.filter((field) => !allowedFields.includes(field));
 
@@ -701,7 +925,7 @@ app.patch('/api/bookings/:id', (req, res) => {
   }
 
   const requestedStatus = typeof req.body.status === 'string' ? req.body.status.trim().toLowerCase() : null;
-  const dispatcherOnlyUpdate = receivedFields.some((field) => ['assignedVehicle', 'driverId', 'luggageNotes'].includes(field))
+  const dispatcherOnlyUpdate = receivedFields.some((field) => ['assignedVehicle', 'driverId', 'luggageNotes', 'pricing'].includes(field))
     || (requestedStatus !== null && !['en_route', 'arrived', 'passenger_aboard', 'completed'].includes(requestedStatus));
   if (dispatcherOnlyUpdate) {
     const authenticatedUser = getAuthenticatedUser(req);
@@ -768,6 +992,12 @@ app.patch('/api/bookings/:id', (req, res) => {
     } else {
       changes.assignedVehicle = assignedVehicle === null ? null : assignedVehicle.trim();
     }
+  }
+
+  if (Object.hasOwn(req.body, 'pricing')) {
+    const result = pricing.normalizePricing(req.body.pricing);
+    errors.push(...result.errors);
+    if (result.value) changes.pricing = result.value;
   }
 
   if (errors.length > 0) {

@@ -735,6 +735,12 @@
           pickupDateTime: at(1, 19, 30),
           vehicleType: 'suv',
           passengerCount: 4,
+          pricing: {
+            mode: 'point_to_point',
+            baseRateCents: 12500,
+            gratuityCents: 2250,
+            depositCents: 0,
+          },
         },
         {
           pickupLocation: 'The Peninsula, Midtown',
@@ -742,6 +748,12 @@
           pickupDateTime: at(2, 11, 0),
           vehicleType: 'sedan',
           passengerCount: 2,
+          pricing: {
+            mode: 'point_to_point',
+            baseRateCents: 9500,
+            gratuityCents: 1710,
+            depositCents: 5000,
+          },
         },
         {
           pickupLocation: 'Princeton, NJ',
@@ -749,6 +761,13 @@
           pickupDateTime: at(3, 17, 45),
           vehicleType: 'sprinter',
           passengerCount: 11,
+          pricing: {
+            mode: 'hourly',
+            baseRateCents: 16500,
+            hours: 3,
+            gratuityCents: 8910,
+            depositCents: 0,
+          },
         },
       ];
     }

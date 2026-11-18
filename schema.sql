@@ -125,6 +125,13 @@ CREATE TABLE IF NOT EXISTS bookings (
     luggage_notes    varchar(500),
     client_email     varchar(254),
     client_name      varchar(120),
+    billing_mode     text NOT NULL DEFAULT 'point_to_point',
+    base_rate_cents  integer NOT NULL DEFAULT 0,
+    charter_hours    numeric(4, 2),
+    gratuity_cents   integer NOT NULL DEFAULT 0,
+    deposit_cents    integer NOT NULL DEFAULT 0,
+    fare_cents       integer NOT NULL DEFAULT 0,
+    total_cents      integer NOT NULL DEFAULT 0,
     created_at       timestamptz NOT NULL DEFAULT now(),
     updated_at       timestamptz NOT NULL DEFAULT now(),
 
@@ -141,6 +148,15 @@ CREATE TABLE IF NOT EXISTS bookings (
             'pending', 'confirmed', 'assigned', 'en_route', 'arrived',
             'passenger_aboard', 'completed', 'cancelled'
         )),
+    CONSTRAINT bookings_billing_mode_check
+        CHECK (billing_mode IN ('point_to_point', 'hourly')),
+    CONSTRAINT bookings_charter_hours_check
+        CHECK (charter_hours IS NULL OR charter_hours BETWEEN 0.5 AND 24),
+    CONSTRAINT bookings_billing_nonnegative_check
+        CHECK (
+            base_rate_cents >= 0 AND gratuity_cents >= 0
+            AND deposit_cents >= 0 AND fare_cents >= 0 AND total_cents >= 0
+        ),
     CONSTRAINT bookings_vehicle_id_fkey
         FOREIGN KEY (vehicle_id) REFERENCES vehicles (id)
         ON DELETE SET NULL
@@ -157,6 +173,28 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS assigned_vehicle varchar(100);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS luggage_notes varchar(500);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_email varchar(254);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_name varchar(120);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS billing_mode text NOT NULL DEFAULT 'point_to_point';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS base_rate_cents integer NOT NULL DEFAULT 0;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS charter_hours numeric(4, 2);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS gratuity_cents integer NOT NULL DEFAULT 0;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS deposit_cents integer NOT NULL DEFAULT 0;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS fare_cents integer NOT NULL DEFAULT 0;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS total_cents integer NOT NULL DEFAULT 0;
+
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_billing_mode_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_billing_mode_check
+    CHECK (billing_mode IN ('point_to_point', 'hourly'));
+
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_charter_hours_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_charter_hours_check
+    CHECK (charter_hours IS NULL OR charter_hours BETWEEN 0.5 AND 24);
+
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_billing_nonnegative_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_billing_nonnegative_check
+    CHECK (
+        base_rate_cents >= 0 AND gratuity_cents >= 0
+        AND deposit_cents >= 0 AND fare_cents >= 0 AND total_cents >= 0
+    );
 
 ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check;
 ALTER TABLE bookings ADD CONSTRAINT bookings_status_check
@@ -178,6 +216,17 @@ COMMENT ON COLUMN bookings.status IS 'pending | confirmed | assigned | en_route 
 COMMENT ON COLUMN bookings.vehicle_id IS 'Fleet vehicle assigned to the ride, or NULL while unassigned.';
 COMMENT ON COLUMN bookings.driver_id IS 'Driver ID assigned to the ride and used by the mobile manifest.';
 COMMENT ON COLUMN bookings.assigned_vehicle IS 'Human-readable fleet label displayed to the driver.';
+COMMENT ON COLUMN bookings.billing_mode IS 'point_to_point flat fare, or hourly charter billed against charter_hours.';
+COMMENT ON COLUMN bookings.base_rate_cents IS 'Flat fare in cents (point_to_point) or hourly rate in cents (hourly).';
+COMMENT ON COLUMN bookings.charter_hours IS 'Billable hours for hourly charters; NULL for point-to-point rides.';
+COMMENT ON COLUMN bookings.gratuity_cents IS 'Gratuity in cents, included in total_cents.';
+COMMENT ON COLUMN bookings.deposit_cents IS 'Prepaid deposit in cents; reported separately from recognized revenue.';
+COMMENT ON COLUMN bookings.fare_cents IS 'Derived fare: base_rate_cents, or base_rate_cents * charter_hours.';
+COMMENT ON COLUMN bookings.total_cents IS 'Derived trip total: fare_cents + gratuity_cents.';
+
+CREATE INDEX IF NOT EXISTS bookings_billing_mode_idx ON bookings (billing_mode);
+CREATE INDEX IF NOT EXISTS bookings_completed_pickup_idx
+    ON bookings (pickup_datetime) WHERE status = 'completed';
 
 CREATE INDEX IF NOT EXISTS bookings_status_idx ON bookings (status);
 CREATE INDEX IF NOT EXISTS bookings_pickup_datetime_idx ON bookings (pickup_datetime);
