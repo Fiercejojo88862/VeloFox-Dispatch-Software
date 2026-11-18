@@ -533,8 +533,9 @@
     <div class="topbar-actions">
       <a class="nav-link" href="/">Home</a>
       <span id="last-updated" class="muted small">Loading…</span>
+      <button id="sound-toggle" class="btn btn-sm" type="button" aria-pressed="false">Sound on</button>
       <button id="logout" class="btn" type="button">Sign out</button>
-      <button id="refresh" class="btn" type="button">Refresh</button>
+      <button id="refresh" class="btn" type="button" data-audio="confirm">Refresh</button>
     </div>
   </header>
 
@@ -583,6 +584,7 @@
     <option value="VF-2004">Naomi Laurent</option>
   </datalist>
 
+  <script src="/js/audio-fx.js"></script>
   <script>
     'use strict';
 
@@ -717,15 +719,30 @@
     }
 
     async function patchBooking(id, payload) {
-      const updated = await request(`${API_URL}/${encodeURIComponent(id)}`, {
-        method: 'PATCH',
-        body: JSON.stringify(payload),
-      });
+      let updated;
+      try {
+        updated = await request(`${API_URL}/${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+      } catch (error) {
+        window.VeloFoxAudio?.play('error');
+        throw error;
+      }
 
       const index = bookings.findIndex((booking) => booking.id === id);
       if (index >= 0 && updated) bookings[index] = updated;
       render();
+      window.VeloFoxAudio?.play(soundForChange(payload));
       return updated;
+    }
+
+    function soundForChange(payload) {
+      if (payload.status === 'completed') return 'success';
+      if (payload.status === 'arrived') return 'arrive';
+      if (payload.status === 'cancelled') return 'error';
+      if (payload.status === 'assigned' || payload.assignedVehicle || payload.driverId) return 'dispatch';
+      return 'confirm';
     }
 
     /* --------------------------- rendering --------------------------- */
@@ -1059,6 +1076,7 @@
     /* ------------------------------ boot ------------------------------ */
 
     refreshBtn.addEventListener('click', () => loadBookings());
+    window.VeloFoxAudio?.attachMuteToggle(document.getElementById('sound-toggle'));
     document.getElementById('logout').addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.replace('/dispatcher-login.html');

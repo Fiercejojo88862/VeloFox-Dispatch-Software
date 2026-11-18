@@ -489,6 +489,7 @@
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
+  <script src="/js/audio-fx.js"></script>
   <script>
     'use strict';
 
@@ -621,6 +622,7 @@
         });
         const index = trips.findIndex((trip) => trip.id === bookingId);
         if (index >= 0) trips[index] = updated;
+        window.VeloFoxAudio?.play(status === 'completed' ? 'success' : status === 'arrived' ? 'arrive' : 'confirm');
         showToast(`Trip updated: ${STATUS_LABELS[status]}.`);
         if (status === 'completed') {
           await loadManifest({ quiet: true });
@@ -628,6 +630,7 @@
           renderManifest();
         }
       } catch (error) {
+        window.VeloFoxAudio?.play('error');
         showToast(error.message, true);
         button.disabled = false;
       }
