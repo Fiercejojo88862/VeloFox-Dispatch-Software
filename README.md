@@ -27,6 +27,54 @@ feedback in memory until PostgreSQL is wired into `server.js`; restarting the
 server clears those runtime records. `schema.sql` contains the matching durable
 database structures.
 
+## PostgreSQL persistence
+
+Accounts, sessions, bookings, reviews, feedback, and driver telemetry are stored
+in PostgreSQL. The schema in `schema.sql` is applied automatically on boot (or on
+the first request when running serverless), guarded by an advisory lock so
+concurrent cold starts cannot collide.
+
+1. Start a local PostgreSQL 16 instance and create the database referenced by
+   `DATABASE_URL`, e.g.:
+
+   ```bash
+   docker run -d --name velofox-postgres \
+     -e POSTGRES_USER=user \
+     -e POSTGRES_PASSWORD=password \
+     -e POSTGRES_DB=velofox \
+     -p 5432:5432 postgres:16-alpine
+   ```
+
+2. Set `DATABASE_URL=postgres://user:password@localhost:5432/velofox` in `.env`.
+3. Run `npm start`. `GET /api/health` reports `"database": "connected"` when the
+   pool is reachable.
+
+Session cookies store a random token; only its SHA-256 hash is written to the
+`sessions` table, and expired sessions are pruned as new ones are created.
+
+## Deploying to Vercel
+
+`vercel.json` uses `@vercel/node` with `public/**` included in the function
+bundle. The app exports the Express handler, so serverless invocations and
+`node server.js` both work.
+
+```bash
+vercel login
+vercel link
+vercel env add DATABASE_URL production
+vercel env add DISPATCHER_INVITE_CODE production
+vercel env add APP_BASE_URL production   # https://<your-project>.vercel.app
+vercel env add SESSION_TTL_HOURS production   # optional, defaults to 12
+vercel --prod
+```
+
+Use a **pooled** PostgreSQL connection string (Neon `-pooler` host, Supabase
+port `6543`, or Vercel Postgres) because serverless functions open many short
+connections. `lib/db.js` caps the pool at one connection per instance when
+`process.env.VERCEL` is set, and enables SSL automatically for any non-local
+host. Re-run `vercel --prod` after changing environment variables so the new
+values are baked into the deployment.
+
 ## Dispatch dashboard features
 
 - **Interface audio** (`public/js/audio-fx.js`): Web Audio chimes for dispatch,

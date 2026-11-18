@@ -4,6 +4,8 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const express = require('express');
 const pricing = require('./lib/pricing');
+const db = require('./lib/db');
+const repo = require('./lib/repository');
 
 const app = express();
 
@@ -50,18 +52,34 @@ const DRIVER_REGISTRY = new Map([
   ['VF-2004', { id: 'VF-2004', name: 'Naomi Laurent' }],
 ]);
 
-// Temporary storage until PostgreSQL is wired up. Lives only as long as the process.
-const bookings = [];
-const driverTelemetry = [];
-const users = new Map();
-const sessions = new Map();
-const tripReviews = new Map();
-const appFeedback = [];
+// Rate-limit counters stay per instance; all durable state lives in PostgreSQL.
 const authAttempts = new Map();
-const passwordResetTokens = new Map();
+
+// Serverless platforms never hit `require.main`, so the schema is bootstrapped
+// lazily on the first request instead. The promise is cached per instance.
+let schemaReady = null;
+function ensureDatabase() {
+  if (!schemaReady) {
+    schemaReady = db.ensureSchema().catch((error) => {
+      schemaReady = null;
+      throw error;
+    });
+  }
+  return schemaReady;
+}
 
 app.disable('x-powered-by');
 app.use(express.json());
+app.use(async (req, res, next) => {
+  // Health must be able to report an outage instead of failing on the check.
+  if (req.path === '/api/health') return next();
+  try {
+    await ensureDatabase();
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 app.get('/dashboard.html', requirePageRole('dispatcher', '/dispatcher-login.html'), (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
@@ -84,10 +102,6 @@ function normalizeEmail(value) {
   return typeof value === 'string' ? value.trim().toLowerCase() : value;
 }
 
-function userKey(role, email) {
-  return `${role}:${email}`;
-}
-
 function hashPassword(password, salt = crypto.randomBytes(16).toString('hex')) {
   const hash = crypto.scryptSync(password, salt, 64).toString('hex');
   return { salt, hash };
@@ -101,19 +115,6 @@ function verifyPassword(password, user) {
 
 function hashResetToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
-}
-
-function clearPasswordReset(user) {
-  if (user.resetToken) passwordResetTokens.delete(user.resetToken);
-  user.resetToken = null;
-  user.resetTokenExpires = null;
-}
-
-function revokeUserSessions(user) {
-  const key = userKey(user.role, user.email);
-  for (const [token, session] of sessions.entries()) {
-    if (session.userKey === key) sessions.delete(token);
-  }
 }
 
 function safeStringEqual(left, right) {
@@ -133,28 +134,24 @@ function parseCookies(header = '') {
   }, {});
 }
 
-function getAuthenticatedUser(req) {
+async function getAuthenticatedUser(req) {
   const token = parseCookies(req.headers.cookie)[SESSION_COOKIE];
   if (!token) return null;
-  const session = sessions.get(token);
-  if (!session) return null;
-  if (session.expiresAt <= Date.now()) {
-    sessions.delete(token);
+  const user = await repo.findSessionUser(hashResetToken(token));
+  if (!user) {
+    await repo.deleteSession(hashResetToken(token));
     return null;
   }
-  return users.get(session.userKey) || null;
+  return user;
 }
 
 function publicUser(user) {
   return { id: user.id, name: user.name, email: user.email, role: user.role };
 }
 
-function createSession(res, user) {
+async function createSession(res, user) {
   const token = crypto.randomBytes(32).toString('base64url');
-  sessions.set(token, {
-    userKey: userKey(user.role, user.email),
-    expiresAt: Date.now() + SESSION_TTL_MS,
-  });
+  await repo.createSession(hashResetToken(token), user.id, new Date(Date.now() + SESSION_TTL_MS));
   const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
   res.setHeader(
     'Set-Cookie',
@@ -162,15 +159,15 @@ function createSession(res, user) {
   );
 }
 
-function clearSession(req, res) {
+async function clearSession(req, res) {
   const token = parseCookies(req.headers.cookie)[SESSION_COOKIE];
-  if (token) sessions.delete(token);
+  if (token) await repo.deleteSession(hashResetToken(token));
   res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`);
 }
 
 function requireApiRole(role) {
-  return (req, res, next) => {
-    const user = getAuthenticatedUser(req);
+  return async (req, res, next) => {
+    const user = await getAuthenticatedUser(req);
     if (!user) return res.status(401).json({ error: 'Sign in is required.' });
     if (user.role !== role) return res.status(403).json({ error: 'This account cannot access that resource.' });
     req.authUser = user;
@@ -179,8 +176,8 @@ function requireApiRole(role) {
 }
 
 function requirePageRole(role, loginPath) {
-  return (req, res, next) => {
-    const user = getAuthenticatedUser(req);
+  return async (req, res, next) => {
+    const user = await getAuthenticatedUser(req);
     if (!user || user.role !== role) {
       return res.redirect(303, `${loginPath}?next=${encodeURIComponent(req.originalUrl)}`);
     }
@@ -380,16 +377,6 @@ function validateBooking(body) {
   };
 }
 
-function findBookingIndex(id) {
-  return bookings.findIndex((booking) => booking.id === id);
-}
-
-function getDriverManifest(driverId) {
-  return bookings
-    .filter((booking) => booking.driverId === driverId && !TERMINAL_STATUSES.has(booking.status))
-    .sort((a, b) => Date.parse(a.pickupDateTime) - Date.parse(b.pickupDateTime));
-}
-
 function canTransitionStatus(currentStatus, nextStatus) {
   return currentStatus === nextStatus || Boolean(STATUS_TRANSITIONS[currentStatus]?.has(nextStatus));
 }
@@ -408,15 +395,15 @@ function dayKey(date) {
 }
 
 /**
- * Aggregates the in-memory booking table into the reporting payload.
+ * Aggregates booking rows into the reporting payload.
  * Mirrors the future SQL view: revenue is recognized on completed rides only,
  * while non-terminal rides contribute to pipeline value.
  */
-function buildAnalyticsSummary(rangeKey, now = new Date()) {
+function buildAnalyticsSummary(rows, rangeKey, now = new Date()) {
   const rangeDays = ANALYTICS_RANGES.get(rangeKey);
   const sinceMs = rangeDays === null ? null : now.getTime() - rangeDays * 24 * 60 * 60 * 1000;
 
-  const scoped = bookings.filter((booking) => {
+  const scoped = rows.filter((booking) => {
     if (sinceMs === null) return true;
     const pickupMs = Date.parse(booking.pickupDateTime);
     return Number.isFinite(pickupMs) && pickupMs >= sinceMs;
@@ -528,25 +515,19 @@ function buildAnalyticsSummary(rangeKey, now = new Date()) {
   };
 }
 
-function recordDriverTelemetry(booking, location, createdAt = new Date().toISOString()) {
-  const telemetry = {
-    id: driverTelemetry.length + 1,
-    driverId: booking.driverId,
-    bookingId: booking.id,
-    ...location,
-    createdAt,
-  };
-  driverTelemetry.push(telemetry);
-  return telemetry;
-}
-
 /* -------------------------------- routes -------------------------------- */
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', message: 'VeloFox Dispatch API is running' });
+app.get('/api/health', async (req, res) => {
+  try {
+    await db.healthCheck();
+    res.json({ status: 'ok', message: 'VeloFox Dispatch API is running', database: 'connected' });
+  } catch (error) {
+    console.error('[health] database check failed:', error.message);
+    res.status(503).json({ status: 'error', message: 'VeloFox Dispatch API cannot reach its database.', database: 'unavailable' });
+  }
 });
 
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', async (req, res) => {
   const role = req.body && req.body.role;
   if (!['client', 'dispatcher'].includes(role)) {
     return res.status(400).json({ error: 'role must be client or dispatcher.' });
@@ -571,28 +552,30 @@ app.post('/api/auth/register', (req, res) => {
   if (errors.length > 0) return res.status(400).json({ error: 'Registration failed.', details: errors });
 
   const email = normalizeEmail(req.body.email);
-  const key = userKey(role, email);
-  if (users.has(key)) return res.status(409).json({ error: 'An account already exists for this email and role.' });
-
   const password = hashPassword(req.body.password);
-  const user = {
-    id: crypto.randomUUID(),
-    role,
-    name: req.body.name.trim(),
-    email,
-    passwordSalt: password.salt,
-    passwordHash: password.hash,
-    resetToken: null,
-    resetTokenExpires: null,
-    createdAt: new Date().toISOString(),
-  };
-  users.set(key, user);
+
+  let user;
+  try {
+    user = await repo.createAccount({
+      role,
+      name: req.body.name.trim(),
+      email,
+      passwordSalt: password.salt,
+      passwordHash: password.hash,
+    });
+  } catch (error) {
+    if (error.code === '23505') {
+      return res.status(409).json({ error: 'An account already exists for this email and role.' });
+    }
+    throw error;
+  }
+
   if (role === 'dispatcher') authAttempts.delete(inviteAttemptKey);
-  createSession(res, user);
+  await createSession(res, user);
   res.status(201).json({ user: publicUser(user) });
 });
 
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   if (!isPlainObject(req.body)) return res.status(400).json({ error: 'Request body must be a JSON object.' });
   const role = req.body.role;
   const email = normalizeEmail(req.body.email);
@@ -606,29 +589,29 @@ app.post('/api/auth/login', (req, res) => {
     return res.status(429).json({ error: 'Too many login attempts. Try again in 15 minutes.' });
   }
 
-  const user = users.get(userKey(role, email));
+  const user = await repo.findUser(role, email);
   if (!user || !verifyPassword(password, user)) {
     recordAuthFailure(attemptKey);
     return res.status(401).json({ error: 'Email or password is incorrect.' });
   }
 
   authAttempts.delete(attemptKey);
-  createSession(res, user);
+  await createSession(res, user);
   res.json({ user: publicUser(user) });
 });
 
-app.get('/api/auth/session', (req, res) => {
-  const user = getAuthenticatedUser(req);
+app.get('/api/auth/session', async (req, res) => {
+  const user = await getAuthenticatedUser(req);
   if (!user) return res.status(401).json({ error: 'No active session.' });
   res.json({ user: publicUser(user) });
 });
 
-app.post('/api/auth/logout', (req, res) => {
-  clearSession(req, res);
+app.post('/api/auth/logout', async (req, res) => {
+  await clearSession(req, res);
   res.status(204).end();
 });
 
-app.post('/api/auth/forgot-password', (req, res) => {
+app.post('/api/auth/forgot-password', async (req, res) => {
   const email = normalizeEmail(req.body && req.body.email);
   if (!isNonEmptyString(email, 254) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: 'Enter a valid dispatcher email address.' });
@@ -640,14 +623,11 @@ app.post('/api/auth/forgot-password', (req, res) => {
   };
   if (isAuthRateLimited(attemptKey)) return res.status(202).json(genericResponse);
 
-  const user = users.get(userKey('dispatcher', email));
+  const user = await repo.findUser('dispatcher', email);
   if (user) {
-    clearPasswordReset(user);
     const rawToken = crypto.randomBytes(32).toString('base64url');
     const tokenHash = hashResetToken(rawToken);
-    user.resetToken = tokenHash;
-    user.resetTokenExpires = Date.now() + RESET_TOKEN_TTL_MS;
-    passwordResetTokens.set(tokenHash, userKey(user.role, user.email));
+    await repo.setResetToken(user.id, tokenHash, new Date(Date.now() + RESET_TOKEN_TTL_MS));
     const resetLink = `${APP_BASE_URL}/reset-password.html?token=${encodeURIComponent(rawToken)}`;
 
     if (process.env.NODE_ENV !== 'production') {
@@ -661,7 +641,7 @@ app.post('/api/auth/forgot-password', (req, res) => {
   res.status(202).json(genericResponse);
 });
 
-app.post('/api/auth/reset-password', (req, res) => {
+app.post('/api/auth/reset-password', async (req, res) => {
   const token = req.body && req.body.token;
   const newPassword = req.body && req.body.newPassword;
   const attemptKey = authAttemptKey(req, 'dispatcher-reset-token', 'token');
@@ -675,46 +655,58 @@ app.post('/api/auth/reset-password', (req, res) => {
   }
 
   const tokenHash = hashResetToken(token);
-  const resetUserKey = passwordResetTokens.get(tokenHash);
-  const user = resetUserKey ? users.get(resetUserKey) : null;
-  if (!user || user.role !== 'dispatcher' || !user.resetToken || !safeStringEqual(user.resetToken, tokenHash)) {
+  const user = await repo.findDispatcherByResetToken(tokenHash);
+  if (!user || !user.resetToken || !safeStringEqual(user.resetToken, tokenHash)) {
     recordAuthFailure(attemptKey);
     return res.status(400).json({ error: 'This reset link is invalid or has already been used.' });
   }
   if (!user.resetTokenExpires || user.resetTokenExpires <= Date.now()) {
-    clearPasswordReset(user);
+    await repo.clearResetToken(user.id);
     recordAuthFailure(attemptKey);
     return res.status(400).json({ error: 'This reset link has expired. Request a new one.' });
   }
 
   const password = hashPassword(newPassword);
-  user.passwordSalt = password.salt;
-  user.passwordHash = password.hash;
-  clearPasswordReset(user);
-  revokeUserSessions(user);
+  await db.withTransaction(async (client) => {
+    await client.query(
+      'UPDATE accounts SET password_salt = $2, password_hash = $3, updated_at = now() WHERE id = $1',
+      [user.id, password.salt, password.hash]
+    );
+    await client.query(
+      'UPDATE dispatchers SET reset_token = NULL, reset_token_expires = NULL WHERE account_id = $1',
+      [user.id]
+    );
+    await client.query('DELETE FROM sessions WHERE account_id = $1', [user.id]);
+  });
   authAttempts.delete(attemptKey);
   res.json({ message: 'Password updated. Sign in with your new password.' });
 });
 
-app.get('/api/bookings', requireApiRole('dispatcher'), (req, res) => {
-  res.json(bookings);
+app.get('/api/bookings', requireApiRole('dispatcher'), async (req, res) => {
+  res.json(await repo.listBookings());
 });
 
-app.get('/api/analytics/summary', requireApiRole('dispatcher'), (req, res) => {
+app.get('/api/analytics/summary', requireApiRole('dispatcher'), async (req, res) => {
   const range = String(req.query.range || '30d').toLowerCase();
   if (!ANALYTICS_RANGES.has(range)) {
     return res.status(400).json({
       error: `range must be one of: ${[...ANALYTICS_RANGES.keys()].join(', ')}.`,
     });
   }
-  res.json(buildAnalyticsSummary(range));
+
+  const rangeDays = ANALYTICS_RANGES.get(range);
+  const sinceIso = rangeDays === null
+    ? null
+    : new Date(Date.now() - rangeDays * 24 * 60 * 60 * 1000).toISOString();
+  const rows = await repo.listBookingsSince(sinceIso);
+  res.json(buildAnalyticsSummary(rows, range));
 });
 
 /**
  * Demo-only historical rides so the reporting view has something to show.
  * Never available in production unless ALLOW_DEMO_SEED=1 is set explicitly.
  */
-app.post('/api/demo/history', requireApiRole('dispatcher'), (req, res) => {
+app.post('/api/demo/history', requireApiRole('dispatcher'), async (req, res) => {
   if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== '1') {
     return res.status(403).json({ error: 'Demo history seeding is disabled in production.' });
   }
@@ -757,7 +749,6 @@ app.post('/api/demo/history', requireApiRole('dispatcher'), (req, res) => {
     });
 
     created.push({
-      id: crypto.randomUUID(),
       pickupLocation,
       dropoffLocation,
       pickupDateTime: pickup.toISOString(),
@@ -770,31 +761,33 @@ app.post('/api/demo/history', requireApiRole('dispatcher'), (req, res) => {
       status: 'completed',
       clientEmail: null,
       clientName: null,
-      driverLocation: null,
       createdAt: pickup.toISOString(),
-      updatedAt: new Date().toISOString(),
     });
   });
 
-  bookings.push(...created);
-  res.status(201).json({ created: created.length, rides: created });
+  const inserted = await repo.insertDemoBookings(created);
+  res.status(201).json({ created: inserted.length, rides: inserted });
 });
 
-app.get('/api/client/trips', requireApiRole('client'), (req, res) => {
-  const trips = bookings
-    .filter((booking) => booking.clientEmail === req.authUser.email)
-    .sort((a, b) => Date.parse(b.pickupDateTime) - Date.parse(a.pickupDateTime))
-    .map((booking) => ({
-      ...booking,
-      driverName: booking.driverId ? getDriver(booking.driverId)?.name || null : null,
-      review: tripReviews.get(booking.id) || null,
-    }));
+app.get('/api/client/trips', requireApiRole('client'), async (req, res) => {
+  const [rows, reviews] = await Promise.all([
+    repo.listClientTrips(req.authUser.email),
+    repo.listReviewsForClient(req.authUser.email),
+  ]);
+
+  const trips = rows.map((booking) => ({
+    ...booking,
+    driverName: booking.driverId ? getDriver(booking.driverId)?.name || null : null,
+    review: reviews.get(booking.id) || null,
+  }));
   res.json({ user: publicUser(req.authUser), trips });
 });
 
-app.post('/api/client/trips/:id/review', requireApiRole('client'), (req, res) => {
-  const booking = bookings.find((item) => item.id === req.params.id && item.clientEmail === req.authUser.email);
-  if (!booking) return res.status(404).json({ error: 'Trip was not found.' });
+app.post('/api/client/trips/:id/review', requireApiRole('client'), async (req, res) => {
+  const booking = await repo.getBooking(req.params.id);
+  if (!booking || booking.clientEmail !== req.authUser.email) {
+    return res.status(404).json({ error: 'Trip was not found.' });
+  }
   if (booking.status !== 'completed') return res.status(409).json({ error: 'A trip can be rated after it is completed.' });
 
   const rating = Number(req.body && req.body.rating);
@@ -804,19 +797,17 @@ app.post('/api/client/trips/:id/review', requireApiRole('client'), (req, res) =>
   }
   if (feedback.length > 1000) return res.status(400).json({ error: 'feedback must not exceed 1000 characters.' });
 
-  const review = {
+  const review = await repo.upsertReview({
     bookingId: booking.id,
     clientEmail: req.authUser.email,
     driverId: booking.driverId,
     rating,
     feedback: feedback || null,
-    updatedAt: new Date().toISOString(),
-  };
-  tripReviews.set(booking.id, review);
+  });
   res.json(review);
 });
 
-app.post('/api/client/feedback', requireApiRole('client'), (req, res) => {
+app.post('/api/client/feedback', requireApiRole('client'), async (req, res) => {
   const category = req.body && typeof req.body.category === 'string' ? req.body.category.trim() : '';
   const message = req.body && typeof req.body.message === 'string' ? req.body.message.trim() : '';
   if (!['experience', 'booking', 'portal', 'other'].includes(category)) {
@@ -825,20 +816,16 @@ app.post('/api/client/feedback', requireApiRole('client'), (req, res) => {
   if (!message || message.length > 2000) {
     return res.status(400).json({ error: 'Feedback is required and must not exceed 2000 characters.' });
   }
-  const entry = {
-    id: crypto.randomUUID(),
-    clientEmail: req.authUser.email,
-    category,
-    message,
-    createdAt: new Date().toISOString(),
-  };
-  appFeedback.push(entry);
-  res.status(201).json({ id: entry.id, createdAt: entry.createdAt });
+  const entry = await repo.insertFeedback({ clientEmail: req.authUser.email, category, message });
+  res.status(201).json(entry);
 });
 
-app.get('/api/telemetry', requireApiRole('dispatcher'), (req, res) => {
-  const latestByDriver = new Map();
-  for (const point of driverTelemetry) latestByDriver.set(point.driverId, point);
+app.get('/api/telemetry', requireApiRole('dispatcher'), async (req, res) => {
+  const [latestByDriver, activeTripRows, totalPings] = await Promise.all([
+    repo.latestTelemetryByDriver(),
+    repo.listActiveTrips(),
+    repo.countTelemetry(),
+  ]);
 
   const drivers = [...DRIVER_REGISTRY.values()].map((driver) => {
     const fix = latestByDriver.get(driver.id) || null;
@@ -858,22 +845,20 @@ app.get('/api/telemetry', requireApiRole('dispatcher'), (req, res) => {
     };
   });
 
-  const activeTrips = bookings
-    .filter((booking) => booking.driverId && !TERMINAL_STATUSES.has(booking.status))
-    .map((booking) => ({
-      id: booking.id,
-      driverId: booking.driverId,
-      status: booking.status,
-      pickupLocation: booking.pickupLocation,
-      dropoffLocation: booking.dropoffLocation,
-      pickupDateTime: booking.pickupDateTime,
-    }));
+  const activeTrips = activeTripRows.map((booking) => ({
+    id: booking.id,
+    driverId: booking.driverId,
+    status: booking.status,
+    pickupLocation: booking.pickupLocation,
+    dropoffLocation: booking.dropoffLocation,
+    pickupDateTime: booking.pickupDateTime,
+  }));
 
   res.json({
     generatedAt: new Date().toISOString(),
     drivers,
     activeTrips,
-    totalPings: driverTelemetry.length,
+    totalPings,
   });
 });
 
@@ -892,7 +877,7 @@ app.get('/api/drivers/:driverId', (req, res) => {
   res.json(driver);
 });
 
-app.get('/api/drivers/:driverId/manifest', (req, res) => {
+app.get('/api/drivers/:driverId/manifest', async (req, res) => {
   const driverId = normalizeDriverId(req.params.driverId);
 
   if (!isNonEmptyString(driverId, MAX_DRIVER_ID_LENGTH)) {
@@ -904,42 +889,36 @@ app.get('/api/drivers/:driverId/manifest', (req, res) => {
     return res.status(404).json({ error: `Driver ID "${driverId}" was not recognized.` });
   }
 
-  const manifest = getDriverManifest(driverId);
+  const manifest = await repo.listManifest(driverId);
 
   res.json({ driver, driverId, trips: manifest, updatedAt: new Date().toISOString() });
 });
 
-app.post('/api/bookings', (req, res) => {
+app.post('/api/bookings', async (req, res) => {
   const { errors, value } = validateBooking(req.body);
 
   if (errors.length > 0) {
     return res.status(400).json({ error: 'Validation failed.', details: errors });
   }
 
-  const now = new Date().toISOString();
-  const authenticatedUser = getAuthenticatedUser(req);
+  const authenticatedUser = await getAuthenticatedUser(req);
   const clientUser = authenticatedUser?.role === 'client' ? authenticatedUser : null;
-  const booking = {
-    id: crypto.randomUUID(),
+  const booking = await repo.createBooking({
     ...value,
     status: 'pending',
     driverId: null,
     assignedVehicle: null,
     clientEmail: clientUser?.email || null,
     clientName: clientUser?.name || null,
-    driverLocation: null,
-    createdAt: now,
-    updatedAt: now,
-  };
+  });
 
-  bookings.push(booking);
   res.status(201).json(booking);
 });
 
-app.patch('/api/bookings/:id', (req, res) => {
-  const index = findBookingIndex(req.params.id);
+app.patch('/api/bookings/:id', async (req, res) => {
+  const booking = await repo.getBooking(req.params.id);
 
-  if (index === -1) {
+  if (!booking) {
     return res.status(404).json({ error: `Booking with id "${req.params.id}" was not found.` });
   }
 
@@ -969,7 +948,7 @@ app.patch('/api/bookings/:id', (req, res) => {
   const dispatcherOnlyUpdate = receivedFields.some((field) => ['assignedVehicle', 'driverId', 'luggageNotes', 'pricing'].includes(field))
     || (requestedStatus !== null && !['en_route', 'arrived', 'passenger_aboard', 'completed'].includes(requestedStatus));
   if (dispatcherOnlyUpdate) {
-    const authenticatedUser = getAuthenticatedUser(req);
+    const authenticatedUser = await getAuthenticatedUser(req);
     if (!authenticatedUser) return res.status(401).json({ error: 'Dispatcher sign in is required for this update.' });
     if (authenticatedUser.role !== 'dispatcher') {
       return res.status(403).json({ error: 'Only dispatcher accounts can make this update.' });
@@ -983,8 +962,8 @@ app.patch('/api/bookings/:id', (req, res) => {
     const status = typeof req.body.status === 'string' ? req.body.status.trim().toLowerCase() : req.body.status;
     if (!BOOKING_STATUSES.includes(status)) {
       errors.push(`status must be one of: ${BOOKING_STATUSES.join(', ')}.`);
-    } else if (!canTransitionStatus(bookings[index].status, status)) {
-      errors.push(`status cannot transition from ${bookings[index].status} to ${status}.`);
+    } else if (!canTransitionStatus(booking.status, status)) {
+      errors.push(`status cannot transition from ${booking.status} to ${status}.`);
     } else {
       changes.status = status;
     }
@@ -1017,11 +996,11 @@ app.patch('/api/bookings/:id', (req, res) => {
     errors.push(...locationResult.errors);
     if (locationResult.value) changes.driverLocation = locationResult.value;
 
-    const telemetryDriverId = changes.driverId ?? bookings[index].driverId;
+    const telemetryDriverId = changes.driverId ?? booking.driverId;
     if (!telemetryDriverId) {
       errors.push('A driver must be assigned before telemetry can be recorded.');
     }
-    if (TERMINAL_STATUSES.has(bookings[index].status)) {
+    if (TERMINAL_STATUSES.has(booking.status)) {
       errors.push('Telemetry cannot be recorded for a completed or cancelled booking.');
     }
   }
@@ -1045,12 +1024,15 @@ app.patch('/api/bookings/:id', (req, res) => {
     return res.status(400).json({ error: 'Validation failed.', details: errors });
   }
 
-  const now = new Date().toISOString();
-  const updated = { ...bookings[index], ...changes, updatedAt: now };
-  bookings[index] = updated;
+  const updated = await repo.updateBooking(booking.id, changes);
 
   if (changes.driverLocation) {
-    recordDriverTelemetry(updated, changes.driverLocation, now);
+    await repo.recordTelemetry({
+      driverId: updated.driverId ?? changes.driverId ?? booking.driverId,
+      bookingId: booking.id,
+      ...changes.driverLocation,
+    });
+    updated.driverLocation = changes.driverLocation;
   }
 
   res.json(updated);
@@ -1075,6 +1057,11 @@ app.use((err, req, res, next) => {
     return res.status(413).json({ error: 'Request body is too large.' });
   }
 
+  if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND' || /DATABASE_URL/.test(err.message || '')) {
+    console.error('[db] unavailable:', err.message);
+    return res.status(503).json({ error: 'The database is unavailable. Verify DATABASE_URL.' });
+  }
+
   console.error(err);
   res.status(500).json({ error: 'Internal server error.' });
 });
@@ -1085,9 +1072,18 @@ if (require.main === module) {
   if (!DISPATCHER_INVITE_CODE) {
     console.warn('Dispatcher registration is disabled: set DISPATCHER_INVITE_CODE in .env.');
   }
-  app.listen(PORT, () => {
-    console.log(`VeloFox Dispatch API listening on http://localhost:${PORT}`);
-  });
+
+  db.ensureSchema()
+    .then(() => {
+      app.listen(PORT, () => {
+        console.log(`VeloFox Dispatch API listening on http://localhost:${PORT}`);
+      });
+    })
+    .catch((error) => {
+      console.error('Failed to initialise the database:', error.message);
+      console.error('Check DATABASE_URL and that PostgreSQL is reachable.');
+      process.exit(1);
+    });
 }
 
 // @vercel/node invokes the exported function directly, while local runs use
@@ -1095,21 +1091,13 @@ if (require.main === module) {
 module.exports = app;
 module.exports.app = app;
 module.exports.testables = {
-  bookings,
-  appFeedback,
+  buildAnalyticsSummary,
   canTransitionStatus,
-  driverTelemetry,
   getDriver,
-  getDriverManifest,
   hashPassword,
   hashResetToken,
   normalizeDriverId,
-  recordDriverTelemetry,
   safeStringEqual,
-  sessions,
-  passwordResetTokens,
-  tripReviews,
-  users,
   validateAccountPayload,
   verifyPassword,
   validateBooking,

@@ -20,7 +20,8 @@
   },
   "homepage": "https://github.com/Fiercejojo88862/VeloFox-Dispatch-Software#readme",
   "dependencies": {
-    "express": "^5.3.0"
+    "express": "^5.3.0",
+    "pg": "^8.23.1"
   },
   "devDependencies": {
     "@vercel/node": "^31.0.2"

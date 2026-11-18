@@ -109,6 +109,25 @@ COMMENT ON COLUMN dispatchers.reset_token_expires IS 'Expiration time for the on
 CREATE INDEX IF NOT EXISTS dispatchers_reset_token_idx ON dispatchers (reset_token);
 
 -- -----------------------------------------------------------------------------
+-- Authenticated sessions
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS sessions (
+    token_hash  char(64) PRIMARY KEY,
+    account_id  uuid NOT NULL,
+    expires_at  timestamptz NOT NULL,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+
+    CONSTRAINT sessions_account_fkey
+        FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+COMMENT ON TABLE sessions IS 'Server-side sessions; only the SHA-256 hash of the cookie token is stored.';
+COMMENT ON COLUMN sessions.expires_at IS 'Sessions past this timestamp are rejected and deleted on access.';
+
+CREATE INDEX IF NOT EXISTS sessions_account_idx ON sessions (account_id);
+CREATE INDEX IF NOT EXISTS sessions_expires_at_idx ON sessions (expires_at);
+
+-- -----------------------------------------------------------------------------
 -- Reservations
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS bookings (
