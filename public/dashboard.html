@@ -289,6 +289,55 @@
     tbody tr:last-child { border-bottom: 0; }
     tbody tr:hover { background: var(--panel-hover); }
 
+    /* ---------- active trip radar ---------- */
+
+    tbody tr.is-active {
+      position: relative;
+      background: linear-gradient(90deg, rgba(197, 160, 89, 0.07), transparent 46%);
+      box-shadow: inset 3px 0 0 rgba(197, 160, 89, 0.9);
+      animation: radarPulse 2.8s ease-out infinite;
+    }
+
+    tbody tr.is-active:hover { background: linear-gradient(90deg, rgba(197, 160, 89, 0.11), transparent 52%); }
+
+    @keyframes radarPulse {
+      0% { box-shadow: inset 3px 0 0 rgba(197, 160, 89, 0.95), 0 0 0 0 rgba(197, 160, 89, 0.26); }
+      55% { box-shadow: inset 3px 0 0 rgba(197, 160, 89, 0.65), 0 0 0 8px rgba(197, 160, 89, 0.06); }
+      100% { box-shadow: inset 3px 0 0 rgba(197, 160, 89, 0.95), 0 0 0 12px rgba(197, 160, 89, 0); }
+    }
+
+    .ride-id { display: flex; align-items: center; gap: 8px; }
+
+    .radar-dot {
+      position: relative;
+      flex: none;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 6px rgba(197, 160, 89, 0.85);
+    }
+
+    .radar-dot::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: 50%;
+      border: 1px solid rgba(197, 160, 89, 0.75);
+      animation: radarRing 2.8s ease-out infinite;
+    }
+
+    @keyframes radarRing {
+      0% { transform: scale(0.8); opacity: 0.85; }
+      70% { transform: scale(3.4); opacity: 0; }
+      100% { transform: scale(3.4); opacity: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      tbody tr.is-active { animation: none; }
+      .radar-dot::after { animation: none; opacity: 0.35; }
+    }
+
     td {
       padding: 18px;
       vertical-align: top;
@@ -620,6 +669,7 @@
       limousine: 'Limousine',
     };
     const REFRESH_INTERVAL_MS = 30000;
+    const ACTIVE_STATUSES = new Set(['assigned', 'en_route', 'arrived', 'passenger_aboard']);
 
     const tbody = document.getElementById('bookings-body');
     const statsEl = document.getElementById('stats');
@@ -921,7 +971,18 @@
 
       const idEl = document.createElement('div');
       idEl.className = 'ride-id';
-      idEl.textContent = `#${booking.id.slice(0, 8)}`;
+
+      if (ACTIVE_STATUSES.has(booking.status)) {
+        row.classList.add('is-active');
+        row.setAttribute('data-active', 'true');
+
+        const radar = document.createElement('span');
+        radar.className = 'radar-dot';
+        radar.setAttribute('aria-hidden', 'true');
+        idEl.append(radar);
+      }
+
+      idEl.append(`#${booking.id.slice(0, 8)}`);
       idEl.title = booking.id;
 
       const createdEl = document.createElement('div');
