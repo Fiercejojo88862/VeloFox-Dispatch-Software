@@ -89,6 +89,25 @@ CREATE TABLE IF NOT EXISTS accounts (
 
 CREATE INDEX IF NOT EXISTS accounts_email_idx ON accounts (email);
 
+CREATE TABLE IF NOT EXISTS dispatchers (
+    account_id           uuid PRIMARY KEY,
+    reset_token          varchar(128),
+    reset_token_expires  timestamptz,
+
+    CONSTRAINT dispatchers_account_fkey
+        FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT dispatchers_reset_pair_check
+        CHECK ((reset_token IS NULL) = (reset_token_expires IS NULL))
+);
+
+-- Existing installations may already have a dispatcher profile table.
+ALTER TABLE dispatchers ADD COLUMN IF NOT EXISTS reset_token varchar(128);
+ALTER TABLE dispatchers ADD COLUMN IF NOT EXISTS reset_token_expires timestamptz;
+
+COMMENT ON COLUMN dispatchers.reset_token IS 'SHA-256 hash of the one-time reset token; the raw token is never persisted.';
+COMMENT ON COLUMN dispatchers.reset_token_expires IS 'Expiration time for the one-time password reset token.';
+CREATE INDEX IF NOT EXISTS dispatchers_reset_token_idx ON dispatchers (reset_token);
+
 -- -----------------------------------------------------------------------------
 -- Reservations
 -- -----------------------------------------------------------------------------

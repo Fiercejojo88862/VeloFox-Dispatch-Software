@@ -16,6 +16,8 @@ const SESSION_TTL_MS = Math.max(1, Number(process.env.SESSION_TTL_HOURS) || 12) 
 const DISPATCHER_INVITE_CODE = process.env.DISPATCHER_INVITE_CODE || '';
 const AUTH_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_MAX_ATTEMPTS = 8;
+const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
+const APP_BASE_URL = (process.env.APP_BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
 
 const VEHICLE_TYPES = ['sedan', 'suv', 'sprinter', 'limousine'];
 const BOOKING_STATUSES = [
@@ -54,6 +56,7 @@ const sessions = new Map();
 const tripReviews = new Map();
 const appFeedback = [];
 const authAttempts = new Map();
+const passwordResetTokens = new Map();
 
 app.disable('x-powered-by');
 app.use(express.json());
@@ -92,6 +95,23 @@ function verifyPassword(password, user) {
   const candidate = crypto.scryptSync(password, user.passwordSalt, 64);
   const expected = Buffer.from(user.passwordHash, 'hex');
   return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
+}
+
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+function clearPasswordReset(user) {
+  if (user.resetToken) passwordResetTokens.delete(user.resetToken);
+  user.resetToken = null;
+  user.resetTokenExpires = null;
+}
+
+function revokeUserSessions(user) {
+  const key = userKey(user.role, user.email);
+  for (const [token, session] of sessions.entries()) {
+    if (session.userKey === key) sessions.delete(token);
+  }
 }
 
 function safeStringEqual(left, right) {
@@ -418,6 +438,8 @@ app.post('/api/auth/register', (req, res) => {
     email,
     passwordSalt: password.salt,
     passwordHash: password.hash,
+    resetToken: null,
+    resetTokenExpires: null,
     createdAt: new Date().toISOString(),
   };
   users.set(key, user);
@@ -460,6 +482,74 @@ app.get('/api/auth/session', (req, res) => {
 app.post('/api/auth/logout', (req, res) => {
   clearSession(req, res);
   res.status(204).end();
+});
+
+app.post('/api/auth/forgot-password', (req, res) => {
+  const email = normalizeEmail(req.body && req.body.email);
+  if (!isNonEmptyString(email, 254) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Enter a valid dispatcher email address.' });
+  }
+
+  const attemptKey = authAttemptKey(req, 'dispatcher-password-reset', email);
+  const genericResponse = {
+    message: 'If a dispatcher account matches that email, a reset link has been prepared.',
+  };
+  if (isAuthRateLimited(attemptKey)) return res.status(202).json(genericResponse);
+
+  const user = users.get(userKey('dispatcher', email));
+  if (user) {
+    clearPasswordReset(user);
+    const rawToken = crypto.randomBytes(32).toString('base64url');
+    const tokenHash = hashResetToken(rawToken);
+    user.resetToken = tokenHash;
+    user.resetTokenExpires = Date.now() + RESET_TOKEN_TTL_MS;
+    passwordResetTokens.set(tokenHash, userKey(user.role, user.email));
+    const resetLink = `${APP_BASE_URL}/reset-password.html?token=${encodeURIComponent(rawToken)}`;
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[VeloFox local password reset] ${email}: ${resetLink}`);
+    } else {
+      console.warn('Password reset requested, but production email delivery is not configured.');
+    }
+  }
+
+  recordAuthFailure(attemptKey);
+  res.status(202).json(genericResponse);
+});
+
+app.post('/api/auth/reset-password', (req, res) => {
+  const token = req.body && req.body.token;
+  const newPassword = req.body && req.body.newPassword;
+  const attemptKey = authAttemptKey(req, 'dispatcher-reset-token', 'token');
+
+  if (isAuthRateLimited(attemptKey)) {
+    return res.status(429).json({ error: 'Too many reset attempts. Request a new link later.' });
+  }
+  if (!isNonEmptyString(token, 200) || typeof newPassword !== 'string' || newPassword.length < 10 || newPassword.length > 128) {
+    recordAuthFailure(attemptKey);
+    return res.status(400).json({ error: 'A valid reset token and a password between 10 and 128 characters are required.' });
+  }
+
+  const tokenHash = hashResetToken(token);
+  const resetUserKey = passwordResetTokens.get(tokenHash);
+  const user = resetUserKey ? users.get(resetUserKey) : null;
+  if (!user || user.role !== 'dispatcher' || !user.resetToken || !safeStringEqual(user.resetToken, tokenHash)) {
+    recordAuthFailure(attemptKey);
+    return res.status(400).json({ error: 'This reset link is invalid or has already been used.' });
+  }
+  if (!user.resetTokenExpires || user.resetTokenExpires <= Date.now()) {
+    clearPasswordReset(user);
+    recordAuthFailure(attemptKey);
+    return res.status(400).json({ error: 'This reset link has expired. Request a new one.' });
+  }
+
+  const password = hashPassword(newPassword);
+  user.passwordSalt = password.salt;
+  user.passwordHash = password.hash;
+  clearPasswordReset(user);
+  revokeUserSessions(user);
+  authAttempts.delete(attemptKey);
+  res.json({ message: 'Password updated. Sign in with your new password.' });
 });
 
 app.get('/api/bookings', requireApiRole('dispatcher'), (req, res) => {
@@ -739,10 +829,12 @@ module.exports = {
     getDriver,
     getDriverManifest,
     hashPassword,
+    hashResetToken,
     normalizeDriverId,
     recordDriverTelemetry,
     safeStringEqual,
     sessions,
+    passwordResetTokens,
     tripReviews,
     users,
     validateAccountPayload,
