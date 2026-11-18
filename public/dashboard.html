@@ -442,6 +442,106 @@
       padding-top: 12px;
     }
 
+    /* ---------- voice console ---------- */
+
+    .voice-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 12px 24px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(90deg, rgba(197, 160, 89, 0.06), transparent 42%);
+    }
+
+    .voice-mic {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      border: 1px solid var(--line-strong);
+      background: var(--bg-soft);
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      padding: 9px 14px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .voice-mic::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(197, 160, 89, 0.7);
+    }
+
+    .voice-mic:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .voice-mic:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
+
+    .voice-mic[aria-pressed="true"] {
+      border-color: var(--accent);
+      color: var(--accent-bright);
+      box-shadow: 0 0 0 1px rgba(197, 160, 89, 0.25), 0 0 20px rgba(197, 160, 89, 0.18);
+    }
+
+    .voice-mic[aria-pressed="true"]::before { animation: micPulse 1.15s ease-in-out infinite; }
+    .voice-mic:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    @keyframes micPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.9); opacity: 0.3; }
+    }
+
+    .voice-form { display: flex; gap: 8px; flex: 1 1 280px; min-width: 0; }
+
+    .voice-form input {
+      flex: 1;
+      min-width: 0;
+      font: inherit;
+      font-size: 12px;
+      color: var(--text);
+      background: var(--bg-soft);
+      border: 1px solid var(--line-strong);
+      border-radius: 2px;
+      padding: 9px 11px;
+    }
+
+    .voice-form input::placeholder { color: #6f6a61; }
+    .voice-form input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px rgba(197, 160, 89, 0.3); }
+
+    .voice-status { font-size: 10.5px; letter-spacing: 0.08em; color: var(--muted); flex-basis: 100%; }
+    .voice-status.is-listening { color: var(--accent-bright); }
+    .voice-status.is-error { color: var(--cancelled); }
+    .voice-status.is-success { color: var(--completed); }
+
+    .filter-chip {
+      border: 1px solid rgba(197, 160, 89, 0.45);
+      background: rgba(197, 160, 89, 0.1);
+      color: var(--accent-bright);
+      font: inherit;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 8px 11px;
+      border-radius: 2px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .filter-chip:hover { background: rgba(197, 160, 89, 0.18); }
+    .filter-chip[hidden] { display: none; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .voice-mic[aria-pressed="true"]::before { animation: none; }
+    }
+
     td {
       padding: 18px;
       vertical-align: top;
@@ -727,6 +827,16 @@
         <h2 id="bookings-heading">Bookings</h2>
         <span id="booking-count" class="muted small"></span>
       </div>
+      <div class="voice-bar" role="group" aria-label="Voice command console">
+        <button id="voice-toggle" class="voice-mic" type="button" aria-pressed="false" aria-describedby="voice-status">Voice command</button>
+        <form id="voice-form" class="voice-form" novalidate>
+          <label class="sr-only" for="voice-input">Dispatcher command</label>
+          <input id="voice-input" type="text" maxlength="160" autocomplete="off" spellcheck="false" placeholder='Try "assign VF-1001 to 1a2b3c4d" or "show pending"'>
+          <button class="btn btn-sm" type="submit">Run</button>
+        </form>
+        <button id="filter-chip" class="filter-chip" type="button" hidden></button>
+        <span id="voice-status" class="voice-status" aria-live="polite">Voice ready · type a command or tap the mic</span>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -766,6 +876,7 @@
   </datalist>
 
   <script src="/js/audio-fx.js"></script>
+  <script src="/js/voice-command.js"></script>
   <script>
     'use strict';
 
@@ -812,11 +923,17 @@
     const analyticsEl = document.getElementById('analytics-body');
     const analyticsRangeEl = document.getElementById('analytics-range');
     const analyticsRefreshBtn = document.getElementById('analytics-refresh');
+    const voiceToggleBtn = document.getElementById('voice-toggle');
+    const voiceForm = document.getElementById('voice-form');
+    const voiceInput = document.getElementById('voice-input');
+    const voiceStatusEl = document.getElementById('voice-status');
+    const filterChip = document.getElementById('filter-chip');
 
     /** @type {Array<object>} */
     let bookings = [];
     let isLoading = false;
     let hasLoadedOnce = false;
+    let activeFilter = null;
 
     const dateFormatter = new Intl.DateTimeFormat(undefined, {
       dateStyle: 'medium',
@@ -1176,6 +1293,162 @@
         analyticsRefreshBtn.disabled = false;
       }
     }
+
+    /* --------------------------- voice commands --------------------------- */
+
+    function setVoiceStatus(text, state = '') {
+      voiceStatusEl.textContent = text;
+      voiceStatusEl.className = state ? `voice-status is-${state}` : 'voice-status';
+    }
+
+    function findBookingByRef(ref) {
+      if (!ref) return null;
+      const needle = String(ref).toLowerCase();
+      return bookings.find((booking) => booking.id.toLowerCase() === needle)
+        || bookings.find((booking) => booking.id.toLowerCase().startsWith(needle))
+        || null;
+    }
+
+    function updateFilterChip() {
+      if (!activeFilter) {
+        filterChip.hidden = true;
+        return;
+      }
+      const label = activeFilter === 'unassigned' ? 'Unassigned' : formatStatus(activeFilter);
+      filterChip.hidden = false;
+      filterChip.textContent = `Filter: ${label} ✕`;
+      filterChip.title = 'Clear the ride filter';
+      filterChip.setAttribute('aria-label', `Clear filter: ${label}`);
+    }
+
+    function applyFilter(status) {
+      activeFilter = status || null;
+      updateFilterChip();
+      render();
+    }
+
+    function voiceSay(text, state = 'success') {
+      setVoiceStatus(text, state);
+      window.VeloFoxVoice?.speak(text);
+    }
+
+    async function executeIntent(intent, raw) {
+      if (!intent) return;
+
+      if (intent.type === 'help') {
+        voiceSay('Try: assign V F 1001 to ride 1 a 2 b 3 c 4 d. Set ride 1 a 2 b 3 c 4 d to en route. Show pending. How many completed. Show all. Refresh.');
+        return;
+      }
+
+      if (intent.type === 'stop') {
+        voice?.stop();
+        setVoiceStatus('Voice console idle.');
+        return;
+      }
+
+      if (intent.type === 'refresh') {
+        await loadBookings();
+        await loadAnalytics({ quiet: true });
+        voiceSay('Dispatch board refreshed.');
+        return;
+      }
+
+      if (intent.type === 'filter') {
+        applyFilter(intent.status);
+        voiceSay(intent.status
+          ? `Filtering to ${intent.status === 'unassigned' ? 'unassigned' : formatStatus(intent.status)} rides.`
+          : 'Showing every ride.');
+        return;
+      }
+
+      if (intent.type === 'count') {
+        const total = bookings.filter((booking) => booking.status === intent.status).length;
+        voiceSay(`${total} ${formatStatus(intent.status)} ${total === 1 ? 'ride' : 'rides'}.`);
+        return;
+      }
+
+      if (intent.type === 'assign') {
+        const booking = findBookingByRef(intent.rideRef);
+        if (!booking) {
+          voiceSay(`No ride matches ${intent.rideRef}.`, 'error');
+          window.VeloFoxAudio?.play('error');
+          return;
+        }
+        try {
+          await patchBooking(booking.id, { driverId: intent.driverId });
+          const label = `Ride ${booking.id.slice(0, 8)} assigned to ${intent.driverId}.`;
+          showToast(label, 'success');
+          voiceSay(label);
+        } catch (error) {
+          showToast(error.message, 'error', error.details);
+          voiceSay(error.message, 'error');
+        }
+        return;
+      }
+
+      if (intent.type === 'set_status') {
+        const booking = findBookingByRef(intent.rideRef);
+        if (!booking) {
+          voiceSay(`No ride matches ${intent.rideRef}.`, 'error');
+          window.VeloFoxAudio?.play('error');
+          return;
+        }
+
+        const label = formatStatus(intent.status);
+        if (booking.status === intent.status) {
+          voiceSay(`Ride ${booking.id.slice(0, 8)} is already ${label}.`);
+          return;
+        }
+
+        const allowed = STATUS_TRANSITIONS[booking.status] || [];
+        if (!allowed.includes(intent.status)) {
+          const message = `Ride ${booking.id.slice(0, 8)} cannot move from ${formatStatus(booking.status)} to ${label}.`;
+          showToast(message, 'error');
+          voiceSay(message, 'error');
+          window.VeloFoxAudio?.play('error');
+          return;
+        }
+
+        try {
+          await patchBooking(booking.id, { status: intent.status });
+          const message = `Ride ${booking.id.slice(0, 8)} marked ${label}.`;
+          showToast(message, 'success');
+          voiceSay(message);
+        } catch (error) {
+          showToast(error.message, 'error', error.details);
+          voiceSay(error.message, 'error');
+        }
+        return;
+      }
+
+      setVoiceStatus(`Heard “${raw}” but no command matched. Say “help” for examples.`, 'error');
+      window.VeloFoxAudio?.play('error');
+    }
+
+    const voice = window.VeloFoxVoice
+      ? window.VeloFoxVoice.create({
+        onIntent: (intent, raw) => executeIntent(intent, raw),
+        onTranscript: (text) => {
+          if (text) voiceInput.value = text;
+        },
+        onStateChange: ({ supported, listening, error }) => {
+          voiceToggleBtn.setAttribute('aria-pressed', String(Boolean(listening)));
+          if (!supported) return;
+
+          if (error === 'not-allowed' || error === 'service-not-allowed') {
+            setVoiceStatus('Microphone permission denied. Type a command instead.', 'error');
+          } else if (error === 'no-speech') {
+            setVoiceStatus('No speech detected. Try again or type a command.', 'error');
+          } else if (error) {
+            setVoiceStatus(`Voice error: ${error}.`, 'error');
+          } else if (listening) {
+            setVoiceStatus('Listening… speak a command.', 'listening');
+          } else {
+            setVoiceStatus('Voice idle · tap the mic or type a command.');
+          }
+        },
+      })
+      : null;
 
     /* --------------------------- rendering --------------------------- */
 
@@ -1625,18 +1898,36 @@
 
     function render() {
       renderStats();
-      countEl.textContent = `${bookings.length} ${bookings.length === 1 ? 'ride' : 'rides'}`;
 
-      if (bookings.length === 0) {
-        renderState(
-          'No bookings yet',
-          'New reservations from the client app will appear here automatically.'
-        );
+      const visible = activeFilter
+        ? activeFilter === 'unassigned'
+          ? bookings.filter((booking) => !booking.driverId)
+          : bookings.filter((booking) => booking.status === activeFilter)
+        : bookings;
+
+      countEl.textContent = activeFilter
+        ? `${visible.length} of ${bookings.length} rides`
+        : `${bookings.length} ${bookings.length === 1 ? 'ride' : 'rides'}`;
+
+      if (visible.length === 0) {
+        if (bookings.length === 0) {
+          renderState(
+            'No bookings yet',
+            'New reservations from the client app will appear here automatically.'
+          );
+        } else {
+          renderState(
+            'No rides match this filter',
+            `Nothing is currently ${activeFilter === 'unassigned' ? 'unassigned' : formatStatus(activeFilter).toLowerCase()}.`,
+            'Clear filter',
+            () => applyFilter(null)
+          );
+        }
         return;
       }
 
       const fragment = document.createDocumentFragment();
-      bookings
+      visible
         .slice()
         .sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0))
         .forEach((booking) => fragment.append(makeRow(booking)));
@@ -1674,6 +1965,31 @@
     window.VeloFoxAudio?.attachMuteToggle(document.getElementById('sound-toggle'));
     analyticsRangeEl.addEventListener('change', () => loadAnalytics());
     analyticsRefreshBtn.addEventListener('click', () => loadAnalytics());
+
+    if (!voice || !voice.supported) {
+      voiceToggleBtn.disabled = true;
+      voiceToggleBtn.title = 'Speech recognition is unavailable in this browser. Typed commands work here.';
+      setVoiceStatus('Speech recognition unavailable here — typed commands are active.');
+    }
+
+    voiceToggleBtn.addEventListener('click', () => {
+      if (!voice || !voice.supported) return;
+      window.VeloFoxAudio?.play('listen');
+      if (!voice.toggle()) setVoiceStatus('Voice idle · tap the mic or type a command.');
+    });
+
+    voiceForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const raw = voiceInput.value.trim();
+      if (!raw) return;
+      voiceInput.value = '';
+      voice?.submit(raw);
+    });
+
+    filterChip.addEventListener('click', () => {
+      applyFilter(null);
+      setVoiceStatus('Filter cleared.');
+    });
     document.getElementById('logout').addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.replace('/dispatcher-login.html');
