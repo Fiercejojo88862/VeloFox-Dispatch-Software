@@ -1,0 +1,9 @@
+# Never upload local secrets or heavyweight local-only directories.
+.env
+.env.*
+.venv/
+node_modules/
+.crush/
+.aider*
+Site Timeline/
+*.log

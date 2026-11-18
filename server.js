@@ -1090,27 +1090,28 @@ if (require.main === module) {
   });
 }
 
-module.exports = {
-  app,
-  testables: {
-    bookings,
-    appFeedback,
-    canTransitionStatus,
-    driverTelemetry,
-    getDriver,
-    getDriverManifest,
-    hashPassword,
-    hashResetToken,
-    normalizeDriverId,
-    recordDriverTelemetry,
-    safeStringEqual,
-    sessions,
-    passwordResetTokens,
-    tripReviews,
-    users,
-    validateAccountPayload,
-    verifyPassword,
-    validateBooking,
-    validateDriverLocation,
-  },
+// @vercel/node invokes the exported function directly, while local runs use
+// `app.listen` above. Expose the app itself and attach internals for tests.
+module.exports = app;
+module.exports.app = app;
+module.exports.testables = {
+  bookings,
+  appFeedback,
+  canTransitionStatus,
+  driverTelemetry,
+  getDriver,
+  getDriverManifest,
+  hashPassword,
+  hashResetToken,
+  normalizeDriverId,
+  recordDriverTelemetry,
+  safeStringEqual,
+  sessions,
+  passwordResetTokens,
+  tripReviews,
+  users,
+  validateAccountPayload,
+  verifyPassword,
+  validateBooking,
+  validateDriverLocation,
 };
