@@ -89,30 +89,6 @@
 
     .topbar-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
 
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 11px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--muted);
-      border: 1px solid var(--line);
-      border-radius: 2px;
-      padding: 6px 12px;
-    }
-
-    .status-pill::before {
-      content: "";
-      width: 5px;
-      height: 5px;
-      border-radius: 50%;
-      background: var(--muted);
-    }
-
-    .status-pill[data-state="ok"]::before { background: var(--green); }
-    .status-pill[data-state="down"]::before { background: var(--red); }
-
     main {
       max-width: 1140px;
       margin: 0 auto;
@@ -585,7 +561,6 @@
       </div>
     </a>
     <div class="topbar-actions">
-      <span id="api-status" class="status-pill" data-state="checking">Checking API…</span>
       <a class="btn" href="/login.html">Enterprise Login</a>
     </div>
   </header>
@@ -731,7 +706,7 @@
 
     <footer>
       <span>VeloFox Dispatch Software</span>
-      <span><a class="link" href="/driver.html">Driver portal</a> · <a class="link" href="/api/health">API health</a></span>
+      <span><a class="link" href="/driver.html">Driver portal</a></span>
     </footer>
   </main>
 
@@ -739,11 +714,9 @@
     'use strict';
 
     const API_BOOKINGS = '/api/bookings';
-    const API_HEALTH = '/api/health';
 
     const seedBtn = document.getElementById('seed');
     const seedResult = document.getElementById('seed-result');
-    const apiStatus = document.getElementById('api-status');
 
     const shortId = (id) => String(id || '').slice(0, 8);
 
@@ -873,25 +846,7 @@
       seedBtn.textContent = created.length > 0 ? 'Seed again' : 'Seed demo bookings';
     }
 
-    async function checkApiHealth() {
-      try {
-        const response = await fetch(API_HEALTH);
-        const data = await readJson(response);
-
-        if (response.ok && data && data.status === 'ok') {
-          apiStatus.dataset.state = 'ok';
-          apiStatus.textContent = 'API online';
-        } else {
-          throw new Error('unhealthy');
-        }
-      } catch {
-        apiStatus.dataset.state = 'down';
-        apiStatus.textContent = 'API offline';
-      }
-    }
-
     seedBtn.addEventListener('click', seedDemoBookings);
-    checkApiHealth();
   </script>
 </body>
 </html>
