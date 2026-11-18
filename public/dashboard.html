@@ -338,6 +338,61 @@
       .radar-dot::after { animation: none; opacity: 0.35; }
     }
 
+    /* ---------- telemetry radar ---------- */
+
+    .panel + .panel { margin-top: 24px; }
+
+    .telemetry-body { display: grid; grid-template-columns: minmax(0, 1fr) 250px; }
+
+    .telemetry-stage {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: radial-gradient(circle at 50% 50%, rgba(197, 160, 89, 0.05), transparent 60%);
+    }
+
+    #telemetry-canvas {
+      width: 100%;
+      height: clamp(260px, 32vw, 360px);
+      display: block;
+    }
+
+    .telemetry-legend {
+      border-left: 1px solid var(--line);
+      padding: 20px;
+      display: grid;
+      align-content: start;
+      gap: 10px;
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    .legend-row { display: flex; align-items: center; gap: 9px; }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 8px rgba(197, 160, 89, 0.75);
+      flex: none;
+    }
+
+    .legend-dot.is-hollow { background: transparent; border: 1px dashed rgba(197, 160, 89, 0.6); box-shadow: none; }
+
+    .legend-line { width: 18px; border-top: 1px dashed var(--accent); flex: none; }
+
+    .telemetry-legend p { margin: 6px 0 0; font-size: 10.5px; line-height: 1.6; }
+    .telemetry-legend a { color: var(--accent); text-decoration: none; }
+    .telemetry-legend a:hover { text-decoration: underline; }
+
+    @media (max-width: 960px) {
+      .telemetry-body { grid-template-columns: 1fr; }
+      .telemetry-legend { border-left: 0; border-top: 1px solid var(--line); }
+    }
+
     /* ---------- fare + analytics ---------- */
 
     .fare-total { font-size: 14px; font-variant-numeric: tabular-nums; font-weight: 500; }
@@ -800,6 +855,28 @@
   <main>
     <section id="stats" class="stats" aria-label="Booking summary"></section>
 
+    <section class="panel" aria-labelledby="telemetry-heading">
+      <div class="panel-head">
+        <div>
+          <h2 id="telemetry-heading">Live telemetry</h2>
+          <span id="telemetry-summary" class="muted small">Connecting to the fleet GPS feed…</span>
+        </div>
+        <button id="telemetry-refresh" class="btn btn-sm" type="button" data-audio="confirm">Ping fleet</button>
+      </div>
+      <div class="telemetry-body">
+        <div class="telemetry-stage">
+          <canvas id="telemetry-canvas" width="600" height="320" role="img"
+            aria-label="Relative radar plot of active chauffeur telemetry and trip bearings"></canvas>
+        </div>
+        <aside class="telemetry-legend">
+          <div class="legend-row"><span class="legend-dot"></span> Chauffeur GPS fix</div>
+          <div class="legend-row"><span class="legend-dot is-hollow"></span> Awaiting fix</div>
+          <div class="legend-row"><span class="legend-line"></span> Active trip bearing</div>
+          <p>Relative plot: pickup and drop-off are free-text addresses, so arcs show bearing rather than street routing. GPS arrives from the <a href="/driver.html">driver portal</a>.</p>
+        </aside>
+      </div>
+    </section>
+
     <section class="panel" aria-labelledby="analytics-heading">
       <div class="panel-head">
         <div>
@@ -877,6 +954,7 @@
 
   <script src="/js/audio-fx.js"></script>
   <script src="/js/voice-command.js"></script>
+  <script src="/js/telemetry-canvas.js"></script>
   <script>
     'use strict';
 
@@ -928,6 +1006,9 @@
     const voiceInput = document.getElementById('voice-input');
     const voiceStatusEl = document.getElementById('voice-status');
     const filterChip = document.getElementById('filter-chip');
+    const telemetrySummaryEl = document.getElementById('telemetry-summary');
+    const telemetryRefreshBtn = document.getElementById('telemetry-refresh');
+    const telemetryCanvas = document.getElementById('telemetry-canvas');
 
     /** @type {Array<object>} */
     let bookings = [];
@@ -1045,6 +1126,7 @@
       if (index >= 0 && updated) bookings[index] = updated;
       render();
       loadAnalytics({ quiet: true });
+      radar?.refresh();
       window.VeloFoxAudio?.play(soundForChange(payload));
       return updated;
     }
@@ -1446,6 +1528,23 @@
           } else {
             setVoiceStatus('Voice idle · tap the mic or type a command.');
           }
+        },
+      })
+      : null;
+
+    const radar = window.VeloFoxTelemetry
+      ? window.VeloFoxTelemetry.create({
+        canvas: telemetryCanvas,
+        onSummary: ({ drivers, reporting, activeTrips, totalPings, updatedAt }) => {
+          telemetrySummaryEl.textContent = [
+            `${reporting} of ${drivers} chauffeurs reporting`,
+            `${activeTrips} active ${activeTrips === 1 ? 'trip' : 'trips'}`,
+            `${totalPings} pings logged`,
+            updatedAt ? `updated ${updatedAt.toLocaleTimeString()}` : null,
+          ].filter(Boolean).join(' · ');
+        },
+        onState: ({ error }) => {
+          if (error) telemetrySummaryEl.textContent = error;
         },
       })
       : null;
@@ -1990,6 +2089,13 @@
       applyFilter(null);
       setVoiceStatus('Filter cleared.');
     });
+
+    if (radar) {
+      radar.start();
+      telemetryRefreshBtn.addEventListener('click', () => radar.refresh());
+    } else {
+      telemetrySummaryEl.textContent = 'Telemetry module unavailable.';
+    }
     document.getElementById('logout').addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.replace('/dispatcher-login.html');

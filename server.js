@@ -836,6 +836,47 @@ app.post('/api/client/feedback', requireApiRole('client'), (req, res) => {
   res.status(201).json({ id: entry.id, createdAt: entry.createdAt });
 });
 
+app.get('/api/telemetry', requireApiRole('dispatcher'), (req, res) => {
+  const latestByDriver = new Map();
+  for (const point of driverTelemetry) latestByDriver.set(point.driverId, point);
+
+  const drivers = [...DRIVER_REGISTRY.values()].map((driver) => {
+    const fix = latestByDriver.get(driver.id) || null;
+    return {
+      driverId: driver.id,
+      name: driver.name,
+      location: fix
+        ? {
+          latitude: fix.latitude,
+          longitude: fix.longitude,
+          accuracy: fix.accuracy,
+          heading: fix.heading,
+          speed: fix.speed,
+          recordedAt: fix.recordedAt,
+        }
+        : null,
+    };
+  });
+
+  const activeTrips = bookings
+    .filter((booking) => booking.driverId && !TERMINAL_STATUSES.has(booking.status))
+    .map((booking) => ({
+      id: booking.id,
+      driverId: booking.driverId,
+      status: booking.status,
+      pickupLocation: booking.pickupLocation,
+      dropoffLocation: booking.dropoffLocation,
+      pickupDateTime: booking.pickupDateTime,
+    }));
+
+  res.json({
+    generatedAt: new Date().toISOString(),
+    drivers,
+    activeTrips,
+    totalPings: driverTelemetry.length,
+  });
+});
+
 app.get('/api/drivers/:driverId', (req, res) => {
   const driverId = normalizeDriverId(req.params.driverId);
 
