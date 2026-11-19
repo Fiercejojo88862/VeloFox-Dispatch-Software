@@ -22,11 +22,6 @@ Dispatcher password resets are requested from `/forgot-password.html`. In local
 development, the one-time reset link is printed in the terminal running the
 server. Set `APP_BASE_URL` when the app is not served from `http://localhost:3000`.
 
-The current Express prototype keeps accounts, sessions, bookings, reviews, and
-feedback in memory until PostgreSQL is wired into `server.js`; restarting the
-server clears those runtime records. `schema.sql` contains the matching durable
-database structures.
-
 ## PostgreSQL persistence
 
 Accounts, sessions, bookings, reviews, feedback, and driver telemetry are stored
