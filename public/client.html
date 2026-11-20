@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b0b0b">
   <title>Client Portal — VeloFox Dispatch</title>
+  <link rel="stylesheet" href="/theme.css">
+  <script src="/js/theme.js"></script>
   <style>
     :root { color-scheme: dark; --bg:#0b0b0b; --card:#141414; --raised:#1a1a1a; --line:#2a2a2a; --text:#f3efe7; --muted:#99958d; --gold:#c5a059; --gold-bright:#dec17e; --green:#7eb591; --red:#d77f77; font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif; }
     * { box-sizing:border-box; }
@@ -147,7 +149,7 @@
 
     function tripCard(trip){
       const card=el('article','trip');const head=el('div','trip-head');const left=el('div');left.append(el('div','trip-date',dateFormatter.format(new Date(trip.pickupDateTime))),el('div','trip-id',`Ride ${String(trip.id).slice(0,8)}`));head.append(left,el('span','status',statusLabels[trip.status]||trip.status));
-      const route=el('div','route');route.append(stop('Pickup',trip.pickupLocation),stop('Drop-off',trip.dropoffLocation));const details=el('div','meta');details.append(meta('Driver',trip.driverName),meta('Vehicle',trip.assignedVehicle||trip.vehicleType));card.append(head,route,details);if(trip.status==='completed')card.append(reviewBlock(trip));return card;
+      const route=el('div','route');route.append(stop('Pickup',trip.pickupLocation),stop('Drop-off',trip.dropoffLocation));const details=el('div','meta');details.append(meta('Driver',trip.driverName),meta('Vehicle',trip.assignedVehicle||trip.vehicleType),meta('Luggage',trip.luggageNotes||'None requested'),meta('Amenities',[trip.beverageRequest,trip.specialRequests].filter(Boolean).join(' · ')||'None requested'));card.append(head,route,details);if(trip.status==='completed')card.append(reviewBlock(trip));return card;
     }
 
     async function loadTrips(){

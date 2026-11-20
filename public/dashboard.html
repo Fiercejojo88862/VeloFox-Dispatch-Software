@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>VeloFox Dispatch — Dashboard</title>
+  <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="/js/theme.js"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -338,7 +341,7 @@
       .radar-dot::after { animation: none; opacity: 0.35; }
     }
 
-    /* ---------- telemetry radar ---------- */
+    /* ---------- live Leaflet telemetry map ---------- */
 
     .panel + .panel { margin-top: 24px; }
 
@@ -352,11 +355,17 @@
       background: radial-gradient(circle at 50% 50%, rgba(197, 160, 89, 0.05), transparent 60%);
     }
 
-    #telemetry-canvas {
+    #telemetry-map {
       width: 100%;
       height: clamp(260px, 32vw, 360px);
       display: block;
+      background: var(--bg-soft);
+      z-index: 1;
     }
+
+    .leaflet-container { font-family: inherit; }
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--panel); color: var(--text); }
+    .fleet-marker { display: grid; width: 26px; height: 26px; place-items: center; border: 2px solid var(--panel); border-radius: 50%; color: var(--accent-ink); background: var(--accent); box-shadow: 0 0 0 3px rgba(197,160,89,.28); font-size: 9px; font-weight: 800; }
 
     .telemetry-legend {
       border-left: 1px solid var(--line);
@@ -865,14 +874,14 @@
       </div>
       <div class="telemetry-body">
         <div class="telemetry-stage">
-          <canvas id="telemetry-canvas" width="600" height="320" role="img"
-            aria-label="Relative radar plot of active chauffeur telemetry and trip bearings"></canvas>
+          <div id="telemetry-map" role="img"
+            aria-label="Live map of reporting chauffeur GPS positions"></div>
         </div>
         <aside class="telemetry-legend">
           <div class="legend-row"><span class="legend-dot"></span> Chauffeur GPS fix</div>
           <div class="legend-row"><span class="legend-dot is-hollow"></span> Awaiting fix</div>
-          <div class="legend-row"><span class="legend-line"></span> Active trip bearing</div>
-          <p>Relative plot: pickup and drop-off are free-text addresses, so arcs show bearing rather than street routing. GPS arrives from the <a href="/driver.html">driver portal</a>.</p>
+          <div class="legend-row"><span class="legend-line"></span> Open marker for trip details</div>
+          <p>Leaflet map using live GPS from the <a href="/driver.html">driver portal</a>. Pickup and drop-off remain private text addresses until dispatch opens the ride.</p>
         </aside>
       </div>
     </section>
@@ -954,7 +963,8 @@
 
   <script src="/js/audio-fx.js"></script>
   <script src="/js/voice-command.js"></script>
-  <script src="/js/telemetry-canvas.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="/js/telemetry-map.js"></script>
   <script>
     'use strict';
 
@@ -1008,7 +1018,7 @@
     const filterChip = document.getElementById('filter-chip');
     const telemetrySummaryEl = document.getElementById('telemetry-summary');
     const telemetryRefreshBtn = document.getElementById('telemetry-refresh');
-    const telemetryCanvas = document.getElementById('telemetry-canvas');
+    const telemetryMap = document.getElementById('telemetry-map');
 
     /** @type {Array<object>} */
     let bookings = [];
@@ -1532,9 +1542,9 @@
       })
       : null;
 
-    const radar = window.VeloFoxTelemetry
-      ? window.VeloFoxTelemetry.create({
-        canvas: telemetryCanvas,
+    const radar = window.VeloFoxTelemetryMap
+      ? window.VeloFoxTelemetryMap.create({
+        container: telemetryMap,
         onSummary: ({ drivers, reporting, activeTrips, totalPings, updatedAt }) => {
           telemetrySummaryEl.textContent = [
             `${reporting} of ${drivers} chauffeurs reporting`,
@@ -1892,7 +1902,11 @@
 
       const createdEl = document.createElement('div');
       createdEl.className = 'muted small';
-      createdEl.textContent = booking.createdAt ? `Created ${formatDateTime(booking.createdAt)}` : '';
+      createdEl.textContent = [
+        booking.createdAt ? `Created ${formatDateTime(booking.createdAt)}` : '',
+        booking.clientName || '',
+        booking.clientPhone || booking.clientEmail || '',
+      ].filter(Boolean).join(' · ');
 
       const rideCell = makeCell('Ride', idEl, createdEl);
 
@@ -1921,6 +1935,15 @@
       passengers.className = 'muted small';
       const count = Number(booking.passengerCount);
       passengers.textContent = `${count} ${count === 1 ? 'passenger' : 'passengers'}`;
+      const requestSummary = [
+        booking.preferredDriverId ? `Prefers ${booking.preferredDriverId}` : '',
+        booking.luggageNotes ? `Luggage: ${booking.luggageNotes}` : '',
+        booking.beverageRequest ? `Beverage: ${booking.beverageRequest}` : '',
+        booking.specialRequests ? `Special: ${booking.specialRequests}` : '',
+      ].filter(Boolean);
+      if (requestSummary.length > 0) {
+        passengers.append(document.createElement('br'), document.createTextNode(requestSummary.join(' · ')));
+      }
 
       const assigned = document.createElement('div');
       if (booking.assignedVehicle) {

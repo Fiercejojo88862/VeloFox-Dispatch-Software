@@ -142,8 +142,12 @@ CREATE TABLE IF NOT EXISTS bookings (
     driver_id        varchar(50),
     assigned_vehicle varchar(100),
     luggage_notes    varchar(500),
+    beverage_request varchar(200),
+    special_requests varchar(1000),
+    preferred_driver_id varchar(50),
     client_email     varchar(254),
     client_name      varchar(120),
+    client_phone     varchar(30),
     billing_mode     text NOT NULL DEFAULT 'point_to_point',
     base_rate_cents  integer NOT NULL DEFAULT 0,
     charter_hours    numeric(4, 2),
@@ -183,6 +187,10 @@ CREATE TABLE IF NOT EXISTS bookings (
     CONSTRAINT bookings_driver_id_fkey
         FOREIGN KEY (driver_id) REFERENCES drivers (id)
         ON DELETE SET NULL
+        ON UPDATE CASCADE,
+    CONSTRAINT bookings_preferred_driver_id_fkey
+        FOREIGN KEY (preferred_driver_id) REFERENCES drivers (id)
+        ON DELETE SET NULL
         ON UPDATE CASCADE
 );
 
@@ -190,8 +198,12 @@ CREATE TABLE IF NOT EXISTS bookings (
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS driver_id varchar(50);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS assigned_vehicle varchar(100);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS luggage_notes varchar(500);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS beverage_request varchar(200);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS special_requests varchar(1000);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS preferred_driver_id varchar(50);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_email varchar(254);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_name varchar(120);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_phone varchar(30);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS billing_mode text NOT NULL DEFAULT 'point_to_point';
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS base_rate_cents integer NOT NULL DEFAULT 0;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS charter_hours numeric(4, 2);
@@ -228,6 +240,12 @@ ALTER TABLE bookings ADD CONSTRAINT bookings_driver_id_fkey
     ON DELETE SET NULL
     ON UPDATE CASCADE;
 
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_preferred_driver_id_fkey;
+ALTER TABLE bookings ADD CONSTRAINT bookings_preferred_driver_id_fkey
+    FOREIGN KEY (preferred_driver_id) REFERENCES drivers (id)
+    ON DELETE SET NULL
+    ON UPDATE CASCADE;
+
 COMMENT ON TABLE bookings IS 'Client ride reservations managed from the dispatcher dashboard.';
 COMMENT ON COLUMN bookings.pickup_datetime IS 'Scheduled pickup time; stored with time zone.';
 COMMENT ON COLUMN bookings.vehicle_type IS 'Requested class; vehicles.category must match once assigned.';
@@ -235,6 +253,9 @@ COMMENT ON COLUMN bookings.status IS 'pending | confirmed | assigned | en_route 
 COMMENT ON COLUMN bookings.vehicle_id IS 'Fleet vehicle assigned to the ride, or NULL while unassigned.';
 COMMENT ON COLUMN bookings.driver_id IS 'Driver ID assigned to the ride and used by the mobile manifest.';
 COMMENT ON COLUMN bookings.assigned_vehicle IS 'Human-readable fleet label displayed to the driver.';
+COMMENT ON COLUMN bookings.preferred_driver_id IS 'Optional chauffeur requested by the client; dispatch makes the final assignment.';
+COMMENT ON COLUMN bookings.beverage_request IS 'Optional beverage amenity requested by the client.';
+COMMENT ON COLUMN bookings.special_requests IS 'Accessibility, assistance, or other trip-specific requests.';
 COMMENT ON COLUMN bookings.billing_mode IS 'point_to_point flat fare, or hourly charter billed against charter_hours.';
 COMMENT ON COLUMN bookings.base_rate_cents IS 'Flat fare in cents (point_to_point) or hourly rate in cents (hourly).';
 COMMENT ON COLUMN bookings.charter_hours IS 'Billable hours for hourly charters; NULL for point-to-point rides.';
@@ -251,6 +272,7 @@ CREATE INDEX IF NOT EXISTS bookings_status_idx ON bookings (status);
 CREATE INDEX IF NOT EXISTS bookings_pickup_datetime_idx ON bookings (pickup_datetime);
 CREATE INDEX IF NOT EXISTS bookings_vehicle_id_idx ON bookings (vehicle_id);
 CREATE INDEX IF NOT EXISTS bookings_driver_id_idx ON bookings (driver_id);
+CREATE INDEX IF NOT EXISTS bookings_preferred_driver_id_idx ON bookings (preferred_driver_id);
 CREATE INDEX IF NOT EXISTS bookings_client_email_idx ON bookings (client_email);
 CREATE INDEX IF NOT EXISTS bookings_created_at_idx ON bookings (created_at DESC);
 

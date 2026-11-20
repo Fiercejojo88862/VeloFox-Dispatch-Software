@@ -56,10 +56,11 @@ bundle. The app exports the Express handler, so serverless invocations and
 ```bash
 vercel login
 vercel link
-vercel env add DATABASE_URL production
-vercel env add DISPATCHER_INVITE_CODE production
-vercel env add APP_BASE_URL production   # https://<your-project>.vercel.app
-vercel env add SESSION_TTL_HOURS production   # optional, defaults to 12
+vercel env add DATABASE_URL --environment production
+vercel env add DATABASE_URL_UNPOOLED --environment production
+vercel env add DISPATCHER_INVITE_CODE --environment production
+vercel env add APP_BASE_URL --environment production   # https://<your-project>.vercel.app
+vercel env add SESSION_TTL_HOURS --environment production   # optional, defaults to 12
 vercel --prod
 ```
 
@@ -78,9 +79,14 @@ values are baked into the deployment.
   control. Say or type `assign VF-1001 to 1a2b3c4d`, `set ride 1a2b3c4d to en
   route`, `show pending`, `how many completed`, or `help`. Chromium browsers get
   the microphone; Firefox falls back to typed commands using the same parser.
-- **Live telemetry radar** (`public/js/telemetry-canvas.js`): relative plot of
-  chauffeur GPS fixes from `/api/telemetry`, with active-trip bearings. Arcs are
-  directional because pickup/drop-off are free-text addresses.
+- **Live Leaflet fleet map** (`public/js/telemetry-map.js`): plots real chauffeur
+  GPS fixes from `/api/telemetry` on OpenStreetMap tiles, with trip and speed
+  details in each marker.
+- **Client preferences**: reservations preserve passenger contact details,
+  luggage, beverage, preferred-chauffeur, and accessibility/special requests.
+  The same details appear in dispatcher, client, and assigned-driver views.
+- **Light and dark themes** (`public/js/theme.js`): every page follows the saved
+  user preference, with a persistent theme switcher and system-theme fallback.
 - **Pricing and analytics**: bookings carry a point-to-point or hourly quote
   (`lib/pricing.js`) with base rate, gratuity, and deposit in integer cents.
   `GET /api/analytics/summary?range=7d|30d|90d|all` powers the financial panel.

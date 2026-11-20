@@ -14,6 +14,9 @@ const MAX_PASSENGERS = 14;
 const MAX_TEXT_LENGTH = 200;
 const MAX_DRIVER_ID_LENGTH = 50;
 const MAX_LUGGAGE_NOTES_LENGTH = 500;
+const MAX_BEVERAGE_REQUEST_LENGTH = 200;
+const MAX_SPECIAL_REQUESTS_LENGTH = 1000;
+const MAX_PHONE_LENGTH = 30;
 const SESSION_COOKIE = 'velofox_session';
 const SESSION_TTL_MS = Math.max(1, Number(process.env.SESSION_TTL_HOURS) || 12) * 60 * 60 * 1000;
 const DISPATCHER_INVITE_CODE = process.env.DISPATCHER_INVITE_CODE || '';
@@ -327,6 +330,16 @@ function validateBooking(body) {
     errors.push(`passengerCount must be an integer between 1 and ${MAX_PASSENGERS}.`);
   }
 
+  const clientName = typeof body.clientName === 'string' ? body.clientName.trim() : body.clientName;
+  if (!isNonEmptyString(clientName, 120)) {
+    errors.push('clientName is required and must not exceed 120 characters.');
+  }
+
+  const clientEmail = normalizeEmail(body.clientEmail);
+  if (!isNonEmptyString(clientEmail, 254) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
+    errors.push('clientEmail must be a valid email address.');
+  }
+
   if (errors.length > 0) {
     return { errors, value: null };
   }
@@ -343,6 +356,34 @@ function validateBooking(body) {
     errors.push('luggageNotes must be a string or null.');
   } else if (typeof luggageNotes === 'string' && luggageNotes.trim().length > MAX_LUGGAGE_NOTES_LENGTH) {
     errors.push(`luggageNotes must not exceed ${MAX_LUGGAGE_NOTES_LENGTH} characters.`);
+  }
+
+  const beverageRequest = body.beverageRequest;
+  if (beverageRequest != null && typeof beverageRequest !== 'string') {
+    errors.push('beverageRequest must be a string or null.');
+  } else if (typeof beverageRequest === 'string' && beverageRequest.trim().length > MAX_BEVERAGE_REQUEST_LENGTH) {
+    errors.push(`beverageRequest must not exceed ${MAX_BEVERAGE_REQUEST_LENGTH} characters.`);
+  }
+
+  const specialRequests = body.specialRequests;
+  if (specialRequests != null && typeof specialRequests !== 'string') {
+    errors.push('specialRequests must be a string or null.');
+  } else if (typeof specialRequests === 'string' && specialRequests.trim().length > MAX_SPECIAL_REQUESTS_LENGTH) {
+    errors.push(`specialRequests must not exceed ${MAX_SPECIAL_REQUESTS_LENGTH} characters.`);
+  }
+
+  const clientPhone = body.clientPhone;
+  if (clientPhone != null && typeof clientPhone !== 'string') {
+    errors.push('clientPhone must be a string or null.');
+  } else if (typeof clientPhone === 'string' && clientPhone.trim().length > MAX_PHONE_LENGTH) {
+    errors.push(`clientPhone must not exceed ${MAX_PHONE_LENGTH} characters.`);
+  }
+
+  const preferredDriverId = normalizeDriverId(body.preferredDriverId);
+  if (preferredDriverId != null && !isNonEmptyString(preferredDriverId, MAX_DRIVER_ID_LENGTH)) {
+    errors.push(`preferredDriverId must be a non-empty string (max ${MAX_DRIVER_ID_LENGTH} characters) or null.`);
+  } else if (preferredDriverId != null && !getDriver(preferredDriverId)) {
+    errors.push(`preferredDriverId "${preferredDriverId}" is not registered.`);
   }
 
   const assignedVehicle = body.assignedVehicle;
@@ -369,8 +410,14 @@ function validateBooking(body) {
       pickupDateTime: pickupDateTime.trim(),
       vehicleType,
       passengerCount,
+      clientName,
+      clientEmail,
       driverId: driverId == null ? null : driverId,
       luggageNotes: typeof luggageNotes === 'string' && luggageNotes.trim() ? luggageNotes.trim() : null,
+      beverageRequest: typeof beverageRequest === 'string' && beverageRequest.trim() ? beverageRequest.trim() : null,
+      specialRequests: typeof specialRequests === 'string' && specialRequests.trim() ? specialRequests.trim() : null,
+      preferredDriverId: preferredDriverId == null ? null : preferredDriverId,
+      clientPhone: typeof clientPhone === 'string' && clientPhone.trim() ? clientPhone.trim() : null,
       assignedVehicle: assignedVehicle == null ? null : assignedVehicle.trim(),
       pricing: normalizedPricing || pricing.defaultPricing(vehicleType),
     },
@@ -908,8 +955,8 @@ app.post('/api/bookings', async (req, res) => {
     status: 'pending',
     driverId: null,
     assignedVehicle: null,
-    clientEmail: clientUser?.email || null,
-    clientName: clientUser?.name || null,
+    clientEmail: clientUser?.email || value.clientEmail,
+    clientName: clientUser?.name || value.clientName,
   });
 
   res.status(201).json(booking);

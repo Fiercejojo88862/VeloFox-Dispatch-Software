@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b0b0b">
   <title>Driver Portal — VeloFox Dispatch</title>
+  <link rel="stylesheet" href="/theme.css">
+  <script src="/js/theme.js"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -581,6 +583,16 @@
       return Number.isNaN(timestamp) ? 'Time to be confirmed' : dateFormatter.format(timestamp);
     }
 
+    function pickupTiming(value) {
+      const difference = Date.parse(value) - Date.now();
+      if (!Number.isFinite(difference)) return '';
+      const minutes = Math.round(Math.abs(difference) / 60000);
+      if (difference < 0) return `${minutes} min past pickup`;
+      if (minutes < 60) return `Pickup in ${minutes} min`;
+      const hours = Math.floor(minutes / 60);
+      return `Pickup in ${hours}h ${minutes % 60}m`;
+    }
+
     function detail(label, value, wide = false) {
       const wrapper = document.createElement('div');
       wrapper.className = `detail${wide ? ' detail--wide' : ''}`;
@@ -645,7 +657,7 @@
       const schedule = document.createElement('div');
       const time = document.createElement('div');
       time.className = 'trip-time';
-      time.textContent = formatDate(trip.pickupDateTime);
+      time.textContent = `${formatDate(trip.pickupDateTime)} · ${pickupTiming(trip.pickupDateTime)}`;
       const reference = document.createElement('div');
       reference.className = 'trip-reference';
       reference.textContent = `Ride ${String(trip.id).slice(0, 8)}`;
@@ -665,7 +677,11 @@
       details.append(
         detail('Guests', passengerLabel),
         detail('Vehicle', trip.assignedVehicle || trip.vehicleType),
-        detail('Luggage notes', trip.luggageNotes || 'No luggage notes', true)
+        detail('Passenger', trip.clientName || 'Client name not provided'),
+        detail('Contact', [trip.clientPhone, trip.clientEmail].filter(Boolean).join(' · ') || 'Contact dispatch'),
+        detail('Luggage notes', trip.luggageNotes || 'No luggage notes', true),
+        detail('Beverage request', trip.beverageRequest || 'No beverage request', true),
+        detail('Special requests', trip.specialRequests || 'No special requests', true)
       );
 
       const actions = document.createElement('div');

@@ -9,9 +9,9 @@
  * script parses, and that the files the server serves at runtime exist.
  */
 
-const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const ROOT = path.join(__dirname, '..');
 const SCRIPT_DIRS = ['lib', 'public', 'public/js'];
@@ -23,6 +23,7 @@ const REQUIRED_FILES = [
   'public/booking.html',
   'public/dashboard.html',
   'public/client.html',
+  'public/theme.css',
 ];
 
 function collectScripts() {
@@ -45,9 +46,10 @@ function main() {
   const scripts = collectScripts();
   for (const relative of scripts) {
     try {
-      execFileSync(process.execPath, ['--check', path.join(ROOT, relative)], { stdio: 'pipe' });
+      const absolute = path.join(ROOT, relative);
+      new vm.Script(fs.readFileSync(absolute, 'utf8'), { filename: absolute });
     } catch (error) {
-      failures.push(`${relative}: ${String(error.stderr || error.message).trim()}`);
+      failures.push(`${relative}: ${error.message}`);
     }
   }
 

@@ -4,6 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Client Booking Portal — VeloFox Dispatch</title>
+  <link rel="stylesheet" href="/theme.css">
+  <script src="/js/theme.js"></script>
   <style>
     :root {
       color-scheme: dark;
@@ -270,7 +272,8 @@
     }
 
     input,
-    select {
+    select,
+    textarea {
       width: 100%;
       font: inherit;
       font-size: 14px;
@@ -282,13 +285,18 @@
       transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
     }
 
-    input::placeholder { color: #6c675e; }
+    textarea { min-height: 92px; resize: vertical; }
+
+    input::placeholder,
+    textarea::placeholder { color: #6c675e; }
 
     input:hover,
-    select:hover { border-color: #46423a; }
+    select:hover,
+    textarea:hover { border-color: #46423a; }
 
     input:focus,
-    select:focus {
+    select:focus,
+    textarea:focus {
       outline: none;
       border-color: var(--accent);
       box-shadow: 0 0 0 1px rgba(197, 160, 89, 0.35);
@@ -313,7 +321,8 @@
     }
 
     input[aria-invalid="true"],
-    select[aria-invalid="true"] {
+    select[aria-invalid="true"],
+    textarea[aria-invalid="true"] {
       border-color: var(--red);
       box-shadow: 0 0 0 1px rgba(204, 138, 125, 0.3);
     }
@@ -728,6 +737,20 @@
 
         <form id="booking-form" novalidate>
           <div class="form-grid">
+            <div class="field">
+              <label for="clientName">Passenger name</label>
+              <input id="clientName" name="clientName" type="text" maxlength="120"
+                autocomplete="name" placeholder="Full name" aria-describedby="clientName-error" required>
+              <p class="field-error" id="clientName-error" hidden></p>
+            </div>
+
+            <div class="field">
+              <label for="clientEmail">Contact email</label>
+              <input id="clientEmail" name="clientEmail" type="email" maxlength="254"
+                autocomplete="email" placeholder="name@example.com" aria-describedby="clientEmail-error" required>
+              <p class="field-error" id="clientEmail-error" hidden></p>
+            </div>
+
             <div class="field full">
               <label for="pickupLocation">Pickup location</label>
               <input
@@ -798,6 +821,42 @@
                 aria-describedby="passengerCount-error"
                 required>
               <p class="field-error" id="passengerCount-error" hidden></p>
+            </div>
+
+            <div class="field">
+              <label for="clientPhone">Contact phone</label>
+              <input id="clientPhone" name="clientPhone" type="tel" maxlength="30"
+                autocomplete="tel" placeholder="e.g. (201) 555-0142">
+            </div>
+
+            <div class="field">
+              <label for="preferredDriverId">Preferred chauffeur</label>
+              <select id="preferredDriverId" name="preferredDriverId">
+                <option value="">No preference</option>
+                <option value="VF-1001">Marcus Vance</option>
+                <option value="VF-1002">David Sterling</option>
+                <option value="VF-1003">Elena Marquez</option>
+                <option value="VF-2004">Naomi Laurent</option>
+              </select>
+              <p class="hint">Dispatch will try to honor the request when available.</p>
+            </div>
+
+            <div class="field full">
+              <label for="luggageNotes">Luggage details</label>
+              <textarea id="luggageNotes" name="luggageNotes" maxlength="500"
+                placeholder="Number of bags, oversized or heavy luggage, mobility equipment…"></textarea>
+            </div>
+
+            <div class="field full">
+              <label for="beverageRequest">Beverage request</label>
+              <input id="beverageRequest" name="beverageRequest" type="text" maxlength="200"
+                placeholder="Still water, sparkling water, coffee, or another preference">
+            </div>
+
+            <div class="field full">
+              <label for="specialRequests">Special requests</label>
+              <textarea id="specialRequests" name="specialRequests" maxlength="1000"
+                placeholder="Accessibility needs, child seating, meet-and-greet instructions, or other details"></textarea>
             </div>
           </div>
 
@@ -943,13 +1002,20 @@
     const banner = document.getElementById('banner');
     const submitBtn = document.getElementById('submit-btn');
 
+    const clientName = document.getElementById('clientName');
+    const clientEmail = document.getElementById('clientEmail');
     const pickupLocation = document.getElementById('pickupLocation');
     const dropoffLocation = document.getElementById('dropoffLocation');
     const pickupDateTime = document.getElementById('pickupDateTime');
     const vehicleType = document.getElementById('vehicleType');
     const passengerCount = document.getElementById('passengerCount');
+    const clientPhone = document.getElementById('clientPhone');
+    const preferredDriverId = document.getElementById('preferredDriverId');
+    const luggageNotes = document.getElementById('luggageNotes');
+    const beverageRequest = document.getElementById('beverageRequest');
+    const specialRequests = document.getElementById('specialRequests');
 
-    const controls = [pickupLocation, dropoffLocation, pickupDateTime, vehicleType, passengerCount];
+    const controls = [clientName, clientEmail, pickupLocation, dropoffLocation, pickupDateTime, vehicleType, passengerCount];
 
     /* ------------------------------ datetime minimum ----------------------------- */
 
@@ -1032,16 +1098,31 @@
 
     function collectValues() {
       return {
+        clientName: clientName.value.trim(),
+        clientEmail: clientEmail.value.trim(),
         pickupLocation: pickupLocation.value.trim(),
         dropoffLocation: dropoffLocation.value.trim(),
         pickupDateTime: pickupDateTime.value,
         vehicleType: vehicleType.value.trim().toLowerCase(),
         passengerCount: passengerCount.value.trim(),
+        clientPhone: clientPhone.value.trim(),
+        preferredDriverId: preferredDriverId.value || null,
+        luggageNotes: luggageNotes.value.trim(),
+        beverageRequest: beverageRequest.value.trim(),
+        specialRequests: specialRequests.value.trim(),
       };
     }
 
     function validate(values) {
       const errors = [];
+
+      if (!values.clientName) {
+        errors.push({ input: clientName, message: 'Passenger name is required.' });
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.clientEmail)) {
+        errors.push({ input: clientEmail, message: 'Enter a valid contact email.' });
+      }
 
       if (!values.pickupLocation) {
         errors.push({ input: pickupLocation, message: 'Pickup location is required.' });
@@ -1127,11 +1208,18 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            clientName: values.clientName,
+            clientEmail: values.clientEmail,
             pickupLocation: values.pickupLocation,
             dropoffLocation: values.dropoffLocation,
             pickupDateTime: new Date(values.pickupDateTime).toISOString(),
             vehicleType: values.vehicleType,
             passengerCount: Number(values.passengerCount),
+            clientPhone: values.clientPhone || null,
+            preferredDriverId: values.preferredDriverId,
+            luggageNotes: values.luggageNotes || null,
+            beverageRequest: values.beverageRequest || null,
+            specialRequests: values.specialRequests || null,
           }),
         });
 
