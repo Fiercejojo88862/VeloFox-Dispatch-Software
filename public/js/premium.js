@@ -97,6 +97,43 @@
       });
     });
 
+    /* Animated counters for the stats band. */
+    const counters = Array.from(document.querySelectorAll('[data-count]'));
+
+    if (counters.length > 0 && !reduceMotion.matches) {
+      const counterObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (!entry.isIntersecting) return;
+            counterObserver.unobserve(entry.target);
+
+            const el = entry.target;
+            const target = parseFloat(el.getAttribute('data-count') || '0');
+            const decimals = Math.max(0, (String(target).split('.')[1] || '').length);
+            const duration = 1600;
+            const start = performance.now();
+
+            const step = (now) => {
+              const progress = Math.min(1, (now - start) / duration);
+              const eased = 1 - Math.pow(1 - progress, 3);
+              const current = target * eased;
+              el.textContent = decimals > 0 ? current.toFixed(decimals) : Math.round(current).toString();
+              if (progress < 1) window.requestAnimationFrame(step);
+            };
+
+            window.requestAnimationFrame(step);
+          });
+        },
+        { threshold: 0.4 },
+      );
+
+      counters.forEach((el) => counterObserver.observe(el));
+    } else {
+      counters.forEach((el) => {
+        el.textContent = el.getAttribute('data-count') || '0';
+      });
+    }
+
     /* Image tilt inside fleet cards. */
     document.querySelectorAll('[data-tilt]').forEach((card) => {
       const target = card.querySelector('[data-tilt-target]') || card;
