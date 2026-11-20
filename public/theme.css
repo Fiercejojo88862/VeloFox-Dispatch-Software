@@ -182,10 +182,10 @@ html[data-theme="light"] .driver-panel label { color: var(--muted); }
   outline-offset: 2px;
 }
 
-/* Right-side logo in the topbars (dashboard, financial, admin, client, driver, login, …). */
+/* Logo inside the top-left brand mark (the "VF" square/circle). */
 .topbar-logo {
   display: block;
-  width: 40px;
+  width: 32px;
   height: auto;
 }
 
