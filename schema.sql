@@ -165,7 +165,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     CONSTRAINT bookings_vehicle_type_check
         CHECK (vehicle_type IN ('sedan', 'suv', 'sprinter', 'limousine')),
     CONSTRAINT bookings_passenger_count_check
-        CHECK (passenger_count BETWEEN 1 AND 14),
+        CHECK (passenger_count BETWEEN 1 AND 16),
     CONSTRAINT bookings_status_check
         CHECK (status IN (
             'pending', 'confirmed', 'assigned', 'en_route', 'arrived',
@@ -211,6 +211,10 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS gratuity_cents integer NOT NULL DE
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS deposit_cents integer NOT NULL DEFAULT 0;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS fare_cents integer NOT NULL DEFAULT 0;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS total_cents integer NOT NULL DEFAULT 0;
+
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_passenger_count_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_passenger_count_check
+    CHECK (passenger_count BETWEEN 1 AND 16);
 
 ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_billing_mode_check;
 ALTER TABLE bookings ADD CONSTRAINT bookings_billing_mode_check

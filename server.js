@@ -10,7 +10,7 @@ const repo = require('./lib/repository');
 const app = express();
 
 const PORT = Number(process.env.PORT) || 3000;
-const MAX_PASSENGERS = 14;
+const MAX_PASSENGERS = 16;
 const MAX_TEXT_LENGTH = 200;
 const MAX_DRIVER_ID_LENGTH = 50;
 const MAX_LUGGAGE_NOTES_LENGTH = 500;
@@ -26,6 +26,7 @@ const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
 const APP_BASE_URL = (process.env.APP_BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
 
 const VEHICLE_TYPES = ['sedan', 'suv', 'sprinter', 'limousine'];
+const VEHICLE_CAPACITIES = Object.freeze({ sedan: 3, suv: 6, sprinter: 15, limousine: 16 });
 const BOOKING_STATUSES = [
   'pending',
   'confirmed',
@@ -328,6 +329,8 @@ function validateBooking(body) {
   const passengerCount = body.passengerCount;
   if (!Number.isInteger(passengerCount) || passengerCount < 1 || passengerCount > MAX_PASSENGERS) {
     errors.push(`passengerCount must be an integer between 1 and ${MAX_PASSENGERS}.`);
+  } else if (VEHICLE_TYPES.includes(vehicleType) && passengerCount > VEHICLE_CAPACITIES[vehicleType]) {
+    errors.push(`${vehicleType} supports up to ${VEHICLE_CAPACITIES[vehicleType]} passengers.`);
   }
 
   const clientName = typeof body.clientName === 'string' ? body.clientName.trim() : body.clientName;
@@ -803,7 +806,7 @@ app.post('/api/demo/history', requireApiRole('dispatcher'), async (req, res) => 
       passengerCount: 1 + (index % 4),
       driverId: driverIds[index % driverIds.length],
       luggageNotes: null,
-      assignedVehicle: `${vehicleType === 'sedan' ? 'Executive Sedan' : vehicleType === 'suv' ? 'Luxury SUV' : vehicleType === 'sprinter' ? 'Sprinter Van' : 'Limousine'} 0${1 + (index % 2)}`,
+      assignedVehicle: `${vehicleType === 'sedan' ? 'Executive Sedan' : vehicleType === 'suv' ? 'Cadillac Escalade' : vehicleType === 'sprinter' ? 'Mercedes Sprinter' : 'Stretch Limousine'} 0${1 + (index % 2)}`,
       pricing: quote,
       status: 'completed',
       clientEmail: null,

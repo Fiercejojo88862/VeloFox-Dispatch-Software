@@ -814,10 +814,10 @@
                 name="passengerCount"
                 type="number"
                 min="1"
-                max="14"
+                max="16"
                 step="1"
                 inputmode="numeric"
-                placeholder="1 – 14"
+                placeholder="1 – 16"
                 aria-describedby="passengerCount-error"
                 required>
               <p class="field-error" id="passengerCount-error" hidden></p>
@@ -901,8 +901,8 @@
           <dl class="fleet">
             <div><dt>Sedan</dt><dd>Up to 3</dd></div>
             <div><dt>SUV</dt><dd>Up to 6</dd></div>
-            <div><dt>Sprinter</dt><dd>Up to 14</dd></div>
-            <div><dt>Limousine</dt><dd>Up to 8</dd></div>
+            <div><dt>Sprinter</dt><dd>Up to 15</dd></div>
+            <div><dt>Limousine</dt><dd>Up to 16</dd></div>
           </dl>
         </section>
       </aside>
@@ -940,13 +940,13 @@
         <article class="fleet-card" data-vehicle="suv">
           <div class="fleet-card__media">
             <img
-              src="https://images.unsplash.com/photo-1563720223185-11003d516935?auto=format&amp;fit=crop&amp;w=800&amp;q=70"
-              alt="Black luxury SUV parked in front of a garage"
-              width="800" height="533" loading="lazy" decoding="async">
+              src="/assets/fleet/cadillac-escalade.webp"
+              alt="Black Cadillac Escalade luxury SUV at a premium garage entrance"
+              width="1200" height="800" loading="lazy" decoding="async">
           </div>
           <div class="fleet-card__body">
             <span class="fleet-card__cap">Up to 6 passengers</span>
-            <h3>Luxury SUV</h3>
+            <h3>Cadillac Escalade</h3>
             <p>Raised seating and generous cargo room for families, ski bags, and extra luggage.</p>
             <button class="fleet-select" type="button" data-select-vehicle="suv">Select</button>
           </div>
@@ -955,12 +955,12 @@
         <article class="fleet-card" data-vehicle="sprinter">
           <div class="fleet-card__media">
             <img
-              src="https://images.unsplash.com/photo-1765461734605-34657fa04db2?auto=format&amp;fit=crop&amp;w=800&amp;q=70"
-              alt="Black Mercedes Sprinter van with headlights on"
-              width="800" height="533" loading="lazy" decoding="async">
+              src="/assets/fleet/mercedes-sprinter.webp"
+              alt="Black full-size Mercedes-Benz Sprinter high-roof passenger van"
+              width="1200" height="800" loading="lazy" decoding="async">
           </div>
           <div class="fleet-card__body">
-            <span class="fleet-card__cap">Up to 14 passengers</span>
+            <span class="fleet-card__cap">Up to 15 passengers</span>
             <h3>Mercedes Sprinter</h3>
             <p>Captain chairs and a roomy cabin built for group travel and corporate shuttles.</p>
             <button class="fleet-select" type="button" data-select-vehicle="sprinter">Select</button>
@@ -976,7 +976,7 @@
               width="960" height="720" loading="lazy" decoding="async">
           </div>
           <div class="fleet-card__body">
-            <span class="fleet-card__cap">Up to 8 passengers</span>
+            <span class="fleet-card__cap">Up to 16 passengers</span>
             <h3>Stretch Limousine</h3>
             <p>Formal arrivals, weddings, and evenings out with a dedicated chauffeur.</p>
             <button class="fleet-select" type="button" data-select-vehicle="limousine">Select</button>
@@ -996,7 +996,8 @@
 
     const API_BOOKINGS = '/api/bookings';
     const VEHICLE_TYPES = ['sedan', 'suv', 'sprinter', 'limousine'];
-    const MAX_PASSENGERS = 14;
+    const MAX_PASSENGERS = 16;
+    const VEHICLE_CAPACITIES = Object.freeze({ sedan: 3, suv: 6, sprinter: 15, limousine: 16 });
 
     const form = document.getElementById('booking-form');
     const banner = document.getElementById('banner');
@@ -1157,6 +1158,11 @@
           errors.push({
             input: passengerCount,
             message: `Enter a whole number of passengers between 1 and ${MAX_PASSENGERS}.`,
+          });
+        } else if (values.vehicleType && count > VEHICLE_CAPACITIES[values.vehicleType]) {
+          errors.push({
+            input: passengerCount,
+            message: `${values.vehicleType} supports up to ${VEHICLE_CAPACITIES[values.vehicleType]} passengers.`,
           });
         }
       }

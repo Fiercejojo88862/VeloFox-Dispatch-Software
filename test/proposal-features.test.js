@@ -40,6 +40,13 @@ test('booking validation rejects bad client and chauffeur data', () => {
   assert(validateBooking(validBooking({ preferredDriverId: 'UNKNOWN' })).errors.some((error) => error.includes('preferredDriverId')));
 });
 
+test('fleet passenger capacities match the published vehicle limits', () => {
+  assert.deepEqual(validateBooking(validBooking({ vehicleType: 'sprinter', passengerCount: 15 })).errors, []);
+  assert.deepEqual(validateBooking(validBooking({ vehicleType: 'limousine', passengerCount: 16 })).errors, []);
+  assert(validateBooking(validBooking({ vehicleType: 'sprinter', passengerCount: 16 })).errors.some((error) => error.includes('up to 15')));
+  assert(validateBooking(validBooking({ vehicleType: 'suv', passengerCount: 7 })).errors.some((error) => error.includes('up to 6')));
+});
+
 test('every page loads the persistent theme controller', () => {
   const pages = fs.readdirSync(path.join(ROOT, 'public')).filter((name) => name.endsWith('.html'));
   assert(pages.length > 0);
