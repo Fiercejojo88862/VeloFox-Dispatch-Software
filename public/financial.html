@@ -26,7 +26,34 @@
       --completed: #93b39a;
       --cancelled: #cc8a7d;
       --confirmed: #8fb0cf;
+      --pending: #c5a059;
+      --assigned: #b3a1d0;
+      --en-route: #d4a15b;
+      --arrived: #73b6b0;
+      --aboard: #7fa6d9;
     }
+
+    .pages-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .page-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg-soft);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--text);
+      text-decoration: none;
+      transition: border-color 0.16s ease, color 0.16s ease;
+    }
+    .page-link:hover { border-color: var(--accent); color: var(--accent); }
+    .page-link:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
+    .page-link .page-title { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    .page-link .page-path { margin-top: 2px; font-size: 9.5px; color: var(--muted); letter-spacing: 0.06em; }
 
     * { box-sizing: border-box; }
 
@@ -258,7 +285,7 @@
 
     .kpi-grid {
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
       gap: 1px;
       background: var(--line);
       border: 1px solid var(--line);
@@ -270,6 +297,35 @@
     .kpi-value { margin-top: 8px; font-size: 22px; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
     .kpi-value.is-gold { color: var(--accent-bright); }
     .kpi-sub { margin-top: 4px; font-size: 10px; color: var(--muted); letter-spacing: 0.04em; }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+      gap: 10px;
+    }
+    .metric {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--bg-soft);
+      border: 1px solid var(--line);
+      border-left: 2px solid var(--line);
+      border-radius: var(--radius);
+      transition: border-color 0.16s ease;
+    }
+    .metric:hover { border-color: var(--line-strong); }
+    .metric .metric-label { font-size: 9px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+    .metric .metric-value { font-variant-numeric: tabular-nums; color: var(--text); font-size: 17px; font-weight: 500; }
+    .metric.is-pending { border-left-color: var(--pending); }
+    .metric.is-confirmed { border-left-color: var(--confirmed); }
+    .metric.is-assigned { border-left-color: var(--assigned); }
+    .metric.is-en_route { border-left-color: var(--en-route); }
+    .metric.is-arrived { border-left-color: var(--arrived); }
+    .metric.is-passenger_aboard { border-left-color: var(--aboard); }
+    .metric.is-completed { border-left-color: var(--completed); }
+    .metric.is-cancelled { border-left-color: var(--cancelled); }
 
     .analytics-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 24px; }
     .analytics-block h3 {
@@ -322,7 +378,7 @@
     /* ---------- responsive ---------- */
 
     @media (max-width: 1180px) {
-      .kpi-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .analytics-grid { grid-template-columns: 1fr; }
     }
 
@@ -373,6 +429,26 @@
         <div class="table-state" style="padding: 32px 8px;">Loading reporting data…</div>
       </div>
     </section>
+
+    <section class="panel" aria-labelledby="status-heading">
+      <div class="panel-head">
+        <div>
+          <h2 id="status-heading">Ride status</h2>
+          <span class="muted small">Count by current status</span>
+        </div>
+      </div>
+      <div id="status-body" class="metrics-grid" aria-live="polite"></div>
+    </section>
+
+    <section class="panel" aria-labelledby="pages-heading">
+      <div class="panel-head">
+        <div>
+          <h2 id="pages-heading">Available pages</h2>
+          <span class="muted small">Dispatcher app and login pages</span>
+        </div>
+      </div>
+      <div id="pages-body" class="pages-grid" aria-live="polite"></div>
+    </section>
   </main>
 
   <div id="toasts" class="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
@@ -388,6 +464,37 @@
     const lastUpdatedEl = document.getElementById('last-updated');
     const refreshBtn = document.getElementById('refresh');
     const soundToggleBtn = document.getElementById('sound-toggle');
+    const statusBody = document.getElementById('status-body');
+    const pagesBody = document.getElementById('pages-body');
+
+    const STATUSES = [
+      'pending', 'confirmed', 'assigned', 'en_route', 'arrived',
+      'passenger_aboard', 'completed', 'cancelled',
+    ];
+    const STATUS_LABELS = {
+      pending: 'Pending',
+      confirmed: 'Confirmed',
+      assigned: 'Assigned',
+      en_route: 'En Route',
+      arrived: 'On Location',
+      passenger_aboard: 'Passenger Aboard',
+      completed: 'Completed',
+      cancelled: 'Cancelled',
+    };
+    const PAGES = [
+      { path: '/', title: 'Home', purpose: 'Public home, booking intake and information hub.' },
+      { path: '/dashboard.html', title: 'Dispatcher dashboard', purpose: 'Live booking board, telemetry and dispatch tools.' },
+      { path: '/financial.html', title: 'Financial performance', purpose: 'Revenue, utilization and driver contribution reporting.' },
+      { path: '/booking.html', title: 'Bookings intake', purpose: 'Fast client booking intake form.' },
+      { path: '/client.html', title: 'Client portal', purpose: 'Client self-service portal for trips and receipts.' },
+      { path: '/client-login.html', title: 'Client login', purpose: 'Sign in for the client portal.' },
+      { path: '/dispatcher-login.html', title: 'Dispatcher login', purpose: 'Dispatcher sign-in (admin and agents).' },
+      { path: '/driver.html', title: 'Driver portal', purpose: 'Chauffeur job management and status updates.' },
+      { path: '/admin.html', title: 'Administrator console', purpose: 'Administrator tools for the dispatcher team.' },
+      { path: '/forgot-password.html', title: 'Forgot password', purpose: 'Password recovery entry point.' },
+      { path: '/login.html', title: 'Login', purpose: 'General login page.' },
+      { path: '/reset-password.html', title: 'Reset password', purpose: 'Set a new password after requesting a reset.' },
+    ];
 
     const usd = new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -458,6 +565,54 @@
       }
 
       return card;
+    }
+
+    function makeMetric(label, value, status) {
+      const card = document.createElement('div');
+      card.className = `metric is-${status}`;
+
+      const labelEl = document.createElement('div');
+      labelEl.className = 'metric-label';
+      labelEl.textContent = label;
+
+      const valueEl = document.createElement('div');
+      valueEl.className = 'metric-value';
+      valueEl.textContent = String(value);
+
+      card.append(labelEl, valueEl);
+      return card;
+    }
+
+    function renderStatusGrid(data) {
+      const grid = document.createElement('div');
+      grid.className = 'metrics-grid';
+      STATUSES.forEach((status) => {
+        const count = Number((data.byStatus && data.byStatus[status]) || 0);
+        grid.append(makeMetric(STATUS_LABELS[status], count, status));
+      });
+      return grid;
+    }
+
+    function renderPages() {
+      pagesBody.replaceChildren(
+        ...PAGES.map(({ path, title, purpose }) => {
+          const link = document.createElement('a');
+          link.className = 'page-link';
+          link.href = path;
+          link.title = purpose;
+
+          const titleEl = document.createElement('span');
+          titleEl.className = 'page-title';
+          titleEl.textContent = title;
+
+          const pathEl = document.createElement('span');
+          pathEl.className = 'page-path';
+          pathEl.textContent = path;
+
+          link.append(titleEl, pathEl);
+          return link;
+        })
+      );
     }
 
     function buildTrendChart(days) {
@@ -544,8 +699,14 @@
         makeKpi('Pipeline', formatUsd(totals.pipelineCents), 'Active + pending'),
         makeKpi('Completed', totals.completed, `${totals.active} active now`),
         makeKpi('Pending', totals.pending, `${totals.cancelled} cancelled`),
+        makeKpi('Active trips', data.utilization.activeTrips, 'In motion now'),
+        makeKpi('Rides in range', totals.rides, `${totals.completed} completed`),
+        makeKpi('Cancelled', totals.cancelled),
+        makeKpi('Completion rate', `${Math.round(data.utilization.completionRate * 100)}%`, 'Of finished rides'),
+        makeKpi('Chauffeurs', data.drivers.length, 'With completed rides'),
+        makeKpi('Deposits', formatUsd(totals.depositCents), 'Held by passenger'),
         makeKpi('Average fare', formatUsd(totals.averageFareCents), 'Per completed ride'),
-        makeKpi('Gratuity', formatUsd(totals.gratuityCents), `${formatUsd(totals.depositCents)} deposits held`)
+        makeKpi('Gratuity', formatUsd(totals.gratuityCents), 'Tips received')
       );
       fragment.append(kpis);
 
@@ -648,6 +809,7 @@
       }
 
       analyticsEl.replaceChildren(fragment);
+      statusBody.replaceChildren(renderStatusGrid(data));
     }
 
     async function loadAnalytics({ quiet = false } = {}) {
@@ -707,6 +869,7 @@
       window.location.replace('/dispatcher-login.html');
     });
 
+    renderPages();
     loadAnalytics();
   </script>
 </body>

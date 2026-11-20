@@ -236,6 +236,30 @@
     .stat[data-status="cancelled"] { --dot: var(--cancelled); }
     .stat[data-status="total"] { --dot: var(--accent); }
 
+    /* ---------- pages ---------- */
+
+    .pages-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 10px;
+    }
+    .page-link {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--bg-soft);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      color: var(--text);
+      text-decoration: none;
+      transition: border-color 0.16s ease, color 0.16s ease;
+    }
+    .page-link:hover { border-color: var(--accent); color: var(--accent); }
+    .page-link:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
+    .page-link .page-title { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    .page-link .page-path { margin-top: 2px; font-size: 9.5px; color: var(--muted); letter-spacing: 0.06em; }
+
     /* ---------- panel / table ---------- */
 
     .panel {
@@ -782,6 +806,16 @@
   <main>
     <section id="stats" class="stats" aria-label="Booking summary"></section>
 
+    <section class="panel" aria-labelledby="pages-heading">
+      <div class="panel-head">
+        <div>
+          <h2 id="pages-heading">Available pages</h2>
+          <span class="muted small">Dispatcher app and login pages</span>
+        </div>
+      </div>
+      <div id="pages-body" class="pages-grid" aria-live="polite"></div>
+    </section>
+
     <section class="panel" aria-labelledby="telemetry-heading">
       <div class="panel-head">
         <div>
@@ -898,7 +932,23 @@
     const REFRESH_INTERVAL_MS = 30000;
     const ACTIVE_STATUSES = new Set(['assigned', 'en_route', 'arrived', 'passenger_aboard']);
 
+    const PAGES = [
+      { path: '/', title: 'Home', purpose: 'Public home, booking intake and information hub.' },
+      { path: '/dashboard.html', title: 'Dispatcher dashboard', purpose: 'Live booking board, telemetry and dispatch tools.' },
+      { path: '/financial.html', title: 'Financial performance', purpose: 'Revenue, utilization and driver contribution reporting.' },
+      { path: '/booking.html', title: 'Bookings intake', purpose: 'Fast client booking intake form.' },
+      { path: '/client.html', title: 'Client portal', purpose: 'Client self-service portal for trips and receipts.' },
+      { path: '/client-login.html', title: 'Client login', purpose: 'Sign in for the client portal.' },
+      { path: '/dispatcher-login.html', title: 'Dispatcher login', purpose: 'Dispatcher sign-in (admin and agents).' },
+      { path: '/driver.html', title: 'Driver portal', purpose: 'Chauffeur job management and status updates.' },
+      { path: '/admin.html', title: 'Administrator console', purpose: 'Administrator tools for the dispatcher team.' },
+      { path: '/forgot-password.html', title: 'Forgot password', purpose: 'Password recovery entry point.' },
+      { path: '/login.html', title: 'Login', purpose: 'General login page.' },
+      { path: '/reset-password.html', title: 'Reset password', purpose: 'Set a new password after requesting a reset.' },
+    ];
+
     const tbody = document.getElementById('bookings-body');
+    const pagesBody = document.getElementById('pages-body');
     const statsEl = document.getElementById('stats');
     const countEl = document.getElementById('booking-count');
     const lastUpdatedEl = document.getElementById('last-updated');
@@ -1240,6 +1290,28 @@
       statsEl.replaceChildren(
         makeStatCard('total', 'Total rides', counts.total),
         ...STATUSES.map((status) => makeStatCard(status, formatStatus(status), counts[status]))
+      );
+    }
+
+    function renderPages() {
+      pagesBody.replaceChildren(
+        ...PAGES.map(({ path, title, purpose }) => {
+          const link = document.createElement('a');
+          link.className = 'page-link';
+          link.href = path;
+          link.title = purpose;
+
+          const titleEl = document.createElement('span');
+          titleEl.className = 'page-title';
+          titleEl.textContent = title;
+
+          const pathEl = document.createElement('span');
+          pathEl.className = 'page-path';
+          pathEl.textContent = path;
+
+          link.append(titleEl, pathEl);
+          return link;
+        })
       );
     }
 
@@ -1776,6 +1848,7 @@
     });
 
     renderStats();
+    renderPages();
     renderState('Loading bookings', 'Fetching the latest reservations…');
 
     setInterval(() => {
