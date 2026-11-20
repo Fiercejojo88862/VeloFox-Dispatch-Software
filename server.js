@@ -23,7 +23,18 @@ const DISPATCHER_INVITE_CODE = process.env.DISPATCHER_INVITE_CODE || '';
 const AUTH_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_MAX_ATTEMPTS = 8;
 const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
+const LOGIN_CODE_TTL_MS = 10 * 60 * 1000;
+const LOGIN_CODE_MAX_ATTEMPTS = 5;
+const INVITE_CODE_HASH_KEY = 'dispatcher_invite_code_hash';
 const APP_BASE_URL = (process.env.APP_BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+
+// Optional allowlist: dispatcher emails that are always administrators.
+const ADMIN_EMAILS = new Set(
+  String(process.env.DISPATCHER_ADMIN_EMAILS || '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean)
+);
 
 const VEHICLE_TYPES = ['sedan', 'suv', 'sprinter', 'limousine'];
 const VEHICLE_CAPACITIES = Object.freeze({ sedan: 3, suv: 6, sprinter: 15, limousine: 16 });
@@ -87,6 +98,9 @@ app.use(async (req, res, next) => {
 app.get('/dashboard.html', requirePageRole('dispatcher', '/dispatcher-login.html'), (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
+app.get('/admin.html', requirePageAdmin(), (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
 app.get('/client.html', requirePageRole('client', '/client-login.html'), (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'client.html'));
 });
@@ -141,16 +155,23 @@ function parseCookies(header = '') {
 async function getAuthenticatedUser(req) {
   const token = parseCookies(req.headers.cookie)[SESSION_COOKIE];
   if (!token) return null;
-  const user = await repo.findSessionUser(hashResetToken(token));
-  if (!user) {
-    await repo.deleteSession(hashResetToken(token));
+  const tokenHash = hashResetToken(token);
+  const user = await repo.findSessionUser(tokenHash);
+  if (!user || user.disabledAt) {
+    await repo.deleteSession(tokenHash);
     return null;
   }
   return user;
 }
 
 function publicUser(user) {
-  return { id: user.id, name: user.name, email: user.email, role: user.role };
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    isAdmin: Boolean(user.isAdmin),
+  };
 }
 
 async function createSession(res, user) {
@@ -190,6 +211,30 @@ function requirePageRole(role, loginPath) {
   };
 }
 
+function requireApiAdmin() {
+  return async (req, res, next) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user) return res.status(401).json({ error: 'Sign in is required.' });
+    if (user.role !== 'dispatcher' || !user.isAdmin) {
+      return res.status(403).json({ error: 'Administrator access is required.' });
+    }
+    req.authUser = user;
+    next();
+  };
+}
+
+function requirePageAdmin() {
+  return async (req, res, next) => {
+    const user = await getAuthenticatedUser(req);
+    if (!user || user.role !== 'dispatcher') {
+      return res.redirect(303, `/dispatcher-login.html?next=${encodeURIComponent(req.originalUrl)}`);
+    }
+    if (!user.isAdmin) return res.redirect(303, '/dashboard.html');
+    req.authUser = user;
+    next();
+  };
+}
+
 function authAttemptKey(req, role, email) {
   return `${req.ip || 'local'}:${role}:${email}`;
 }
@@ -210,6 +255,76 @@ function recordAuthFailure(key) {
   } else {
     current.count += 1;
   }
+}
+
+function hashLoginCode(salt, role, email, code) {
+  return crypto.createHash('sha256').update(`${salt}:${role}:${email}:${code}`).digest('hex');
+}
+
+function generateLoginCode() {
+  return String(crypto.randomInt(0, 1_000_000)).padStart(6, '0');
+}
+
+function normalizeLoginCode(value) {
+  return typeof value === 'string' ? value.replace(/\s+/g, '') : '';
+}
+
+/**
+ * The dispatcher access code is either the hash an administrator rotated into
+ * app_settings or, until the first rotation, DISPATCHER_INVITE_CODE from the
+ * environment. Returns true/false, or null when no code is configured at all.
+ */
+async function inviteCodeMatches(submitted) {
+  const storedHash = await repo.getSetting(INVITE_CODE_HASH_KEY);
+  if (storedHash) return safeStringEqual(hashResetToken(String(submitted)), storedHash);
+  if (DISPATCHER_INVITE_CODE) return safeStringEqual(String(submitted), DISPATCHER_INVITE_CODE);
+  return null;
+}
+
+/**
+ * Delivers a one-time sign-in code. Email goes through Resend when
+ * RESEND_API_KEY and MAIL_FROM are configured; otherwise the code is printed to
+ * the server console (the local terminal, or the deployment logs on Vercel).
+ */
+async function deliverLoginCode(email, code) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.MAIL_FROM;
+  const minutes = Math.round(LOGIN_CODE_TTL_MS / 60_000);
+
+  if (apiKey && from) {
+    try {
+      const response = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from,
+          to: [email],
+          subject: 'Your VeloFox sign-in code',
+          text: `Your VeloFox sign-in code is ${code}. It expires in ${minutes} minutes. If you did not request it, ignore this message.`,
+        }),
+      });
+      if (!response.ok) throw new Error(`mail provider responded ${response.status}`);
+      return 'email';
+    } catch (error) {
+      console.error('[VeloFox login code] email delivery failed:', error.message);
+    }
+  }
+
+  console.log(`[VeloFox login code] ${email}: ${code} (expires in ${minutes} minutes)`);
+  return 'console';
+}
+
+async function audit(req, action, target = null, detail = null) {
+  await repo.recordAudit({
+    actorId: req.authUser ? req.authUser.id : null,
+    actorEmail: req.authUser ? req.authUser.email : null,
+    action,
+    target,
+    detail,
+  });
 }
 
 function validateAccountPayload(body, { requireInviteCode = false } = {}) {
@@ -583,21 +698,23 @@ app.post('/api/auth/register', async (req, res) => {
     return res.status(400).json({ error: 'role must be client or dispatcher.' });
   }
 
-  if (role === 'dispatcher' && !DISPATCHER_INVITE_CODE) {
-    return res.status(503).json({
-      error: 'Dispatcher registration is not configured. An administrator must set DISPATCHER_INVITE_CODE.',
-    });
-  }
-
   const inviteAttemptKey = authAttemptKey(req, 'dispatcher-registration', 'invite-code');
   if (role === 'dispatcher' && isAuthRateLimited(inviteAttemptKey)) {
     return res.status(429).json({ error: 'Too many access-code attempts. Try again in 15 minutes.' });
   }
 
   const errors = validateAccountPayload(req.body, { requireInviteCode: role === 'dispatcher' });
-  if (role === 'dispatcher' && errors.length === 0 && !safeStringEqual(req.body.inviteCode, DISPATCHER_INVITE_CODE)) {
-    recordAuthFailure(inviteAttemptKey);
-    errors.push('The dispatcher access code is invalid.');
+  if (role === 'dispatcher' && errors.length === 0) {
+    const inviteMatches = await inviteCodeMatches(req.body.inviteCode);
+    if (inviteMatches === null) {
+      return res.status(503).json({
+        error: 'Dispatcher registration is not configured. An administrator must set DISPATCHER_INVITE_CODE.',
+      });
+    }
+    if (!inviteMatches) {
+      recordAuthFailure(inviteAttemptKey);
+      errors.push('The dispatcher access code is invalid.');
+    }
   }
   if (errors.length > 0) return res.status(400).json({ error: 'Registration failed.', details: errors });
 
@@ -620,7 +737,24 @@ app.post('/api/auth/register', async (req, res) => {
     throw error;
   }
 
-  if (role === 'dispatcher') authAttempts.delete(inviteAttemptKey);
+  if (role === 'dispatcher') {
+    // The first dispatcher on a fresh database becomes the administrator, and
+    // DISPATCHER_ADMIN_EMAILS can pre-authorise others. Without this nobody
+    // could ever reach the console.
+    const bootstrap = ADMIN_EMAILS.has(email) || (await repo.countActiveAdmins()) === 0;
+    if (bootstrap) {
+      await repo.setDispatcherAdmin(user.id, true);
+      user.isAdmin = true;
+      await repo.recordAudit({
+        actorEmail: email,
+        action: 'account.bootstrap_admin',
+        target: email,
+        detail: { reason: 'first dispatcher account' },
+      });
+    }
+    authAttempts.delete(inviteAttemptKey);
+  }
+
   await createSession(res, user);
   res.status(201).json({ user: publicUser(user) });
 });
@@ -645,6 +779,10 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(401).json({ error: 'Email or password is incorrect.' });
   }
 
+  if (user.disabledAt) {
+    return res.status(403).json({ error: 'This account has been suspended. Contact a VeloFox administrator.' });
+  }
+
   authAttempts.delete(attemptKey);
   await createSession(res, user);
   res.json({ user: publicUser(user) });
@@ -659,6 +797,84 @@ app.get('/api/auth/session', async (req, res) => {
 app.post('/api/auth/logout', async (req, res) => {
   await clearSession(req, res);
   res.status(204).end();
+});
+
+/**
+ * Passwordless sign-in, step 1: issue a six-digit code for an existing account.
+ * The response never reveals whether the address is registered.
+ */
+app.post('/api/auth/request-code', async (req, res) => {
+  const role = req.body && req.body.role;
+  const email = normalizeEmail(req.body && req.body.email);
+  if (!['client', 'dispatcher'].includes(role) || !isNonEmptyString(email, 254)
+    || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'A valid role and email address are required.' });
+  }
+
+  const attemptKey = authAttemptKey(req, `${role}-code-request`, email);
+  const genericResponse = { message: 'If that email belongs to an account, a six-digit code is on its way.' };
+  if (isAuthRateLimited(attemptKey)) return res.status(202).json(genericResponse);
+  recordAuthFailure(attemptKey);
+
+  const user = await repo.findUser(role, email);
+  if (!user || user.disabledAt) return res.status(202).json(genericResponse);
+
+  const code = generateLoginCode();
+  const salt = crypto.randomBytes(16).toString('hex');
+  await repo.replaceLoginCode({
+    role,
+    email,
+    codeHash: hashLoginCode(salt, role, email, code),
+    codeSalt: salt,
+    expiresAt: new Date(Date.now() + LOGIN_CODE_TTL_MS),
+  });
+  const channel = await deliverLoginCode(email, code);
+  await repo.recordAudit({
+    actorEmail: email,
+    action: 'login.code_issued',
+    target: email,
+    detail: { role, channel },
+  });
+
+  res.status(202).json(genericResponse);
+});
+
+/** Passwordless sign-in, step 2: exchange the code for a session. */
+app.post('/api/auth/verify-code', async (req, res) => {
+  const role = req.body && req.body.role;
+  const email = normalizeEmail(req.body && req.body.email);
+  const code = normalizeLoginCode(req.body && req.body.code);
+  if (!['client', 'dispatcher'].includes(role) || !isNonEmptyString(email, 254) || !/^\d{6}$/.test(code)) {
+    return res.status(400).json({ error: 'A valid email address and six-digit code are required.' });
+  }
+
+  const attemptKey = authAttemptKey(req, `${role}-code-verify`, email);
+  if (isAuthRateLimited(attemptKey)) {
+    return res.status(429).json({ error: 'Too many code attempts. Request a new code later.' });
+  }
+
+  const record = await repo.findActiveLoginCode(role, email);
+  if (!record || record.attempts >= LOGIN_CODE_MAX_ATTEMPTS) {
+    recordAuthFailure(attemptKey);
+    return res.status(400).json({ error: 'That code is invalid or has expired. Request a new one.' });
+  }
+  if (!safeStringEqual(hashLoginCode(record.codeSalt, role, email, code), record.codeHash)) {
+    await repo.incrementLoginCodeAttempts(record.id);
+    recordAuthFailure(attemptKey);
+    return res.status(400).json({ error: 'That code is invalid or has expired. Request a new one.' });
+  }
+
+  const user = await repo.findUser(role, email);
+  if (!user || user.disabledAt) {
+    return res.status(403).json({ error: 'This account cannot sign in. Contact a VeloFox administrator.' });
+  }
+
+  await repo.consumeLoginCode(record.id);
+  await repo.deleteLoginCodesFor(role, email);
+  authAttempts.delete(attemptKey);
+  await createSession(res, user);
+  await repo.recordAudit({ actorEmail: email, action: 'login.code_used', target: email, detail: { role } });
+  res.json({ user: publicUser(user) });
 });
 
 app.post('/api/auth/forgot-password', async (req, res) => {
@@ -730,6 +946,192 @@ app.post('/api/auth/reset-password', async (req, res) => {
   });
   authAttempts.delete(attemptKey);
   res.json({ message: 'Password updated. Sign in with your new password.' });
+});
+
+/* ---------------------------- administrator API ---------------------------- */
+
+app.get('/api/admin/accounts', requireApiAdmin(), async (req, res) => {
+  const accounts = await repo.listAccounts();
+  res.json({
+    accounts,
+    counts: {
+      dispatchers: accounts.filter((account) => account.role === 'dispatcher').length,
+      clients: accounts.filter((account) => account.role === 'client').length,
+      administrators: accounts.filter((account) => account.isAdmin).length,
+      disabled: accounts.filter((account) => account.disabled).length,
+    },
+  });
+});
+
+app.post('/api/admin/accounts', requireApiAdmin(), async (req, res) => {
+  const errors = validateAccountPayload(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: 'Account could not be created.', details: errors });
+  }
+
+  const email = normalizeEmail(req.body.email);
+  const password = hashPassword(req.body.password);
+
+  let created;
+  try {
+    created = await repo.createAccount({
+      role: 'dispatcher',
+      name: req.body.name.trim(),
+      email,
+      passwordSalt: password.salt,
+      passwordHash: password.hash,
+    });
+  } catch (error) {
+    if (error.code === '23505') {
+      return res.status(409).json({ error: 'A dispatcher account already exists for this email.' });
+    }
+    throw error;
+  }
+
+  const isAdmin = req.body.isAdmin === true;
+  if (isAdmin) await repo.setDispatcherAdmin(created.id, true);
+  await audit(req, 'account.create', email, { isAdmin });
+  res.status(201).json({ account: await repo.findAccountById(created.id) });
+});
+
+app.patch('/api/admin/accounts/:id', requireApiAdmin(), async (req, res) => {
+  const target = await repo.findAccountById(req.params.id);
+  if (!target) return res.status(404).json({ error: 'Account not found.' });
+
+  const body = isPlainObject(req.body) ? req.body : {};
+  const isSelf = target.id === req.authUser.id;
+
+  if (body.disabled !== undefined) {
+    if (typeof body.disabled !== 'boolean') return res.status(400).json({ error: 'disabled must be true or false.' });
+    if (isSelf && body.disabled) {
+      return res.status(400).json({ error: 'You cannot suspend your own account.' });
+    }
+  }
+  if (body.isAdmin !== undefined) {
+    if (typeof body.isAdmin !== 'boolean') return res.status(400).json({ error: 'isAdmin must be true or false.' });
+    if (target.role !== 'dispatcher') {
+      return res.status(400).json({ error: 'Only dispatcher accounts can be administrators.' });
+    }
+    if (isSelf && !body.isAdmin) {
+      return res.status(400).json({ error: 'You cannot remove your own administrator access.' });
+    }
+  }
+  if (body.password !== undefined && (typeof body.password !== 'string'
+    || body.password.length < 10 || body.password.length > 128)) {
+    return res.status(400).json({ error: 'Password must be between 10 and 128 characters.' });
+  }
+  if (body.name !== undefined && !isNonEmptyString(body.name, 120)) {
+    return res.status(400).json({ error: 'Name is required and must not exceed 120 characters.' });
+  }
+
+  let emailChange = null;
+  if (body.email !== undefined) {
+    const candidateEmail = normalizeEmail(body.email);
+    if (typeof candidateEmail !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidateEmail) || candidateEmail.length > 254) {
+      return res.status(400).json({ error: 'A valid work email is required.' });
+    }
+    emailChange = String(target.email || '').toLowerCase() === candidateEmail
+      ? null
+      : candidateEmail;
+    if (emailChange) {
+      const clash = await db.query(
+        'SELECT id FROM accounts WHERE role = $1 AND email = $2 AND id <> $3 LIMIT 1',
+        [target.role, emailChange, target.id]
+      );
+      if (clash.rowCount > 0) {
+        return res.status(409).json({ error: 'Another account already uses that email address.' });
+      }
+    }
+  }
+
+  const hasChange = body.disabled !== undefined || body.isAdmin !== undefined
+    || body.password !== undefined || body.name !== undefined
+    || (body.email !== undefined && emailChange !== null);
+  if (!hasChange) return res.status(400).json({ error: 'Nothing to change.' });
+
+  // Never leave the deployment without an active administrator.
+  const removesAdmin = (body.isAdmin === false && target.isAdmin)
+    || (body.disabled === true && target.isAdmin);
+  if (removesAdmin && (await repo.countActiveAdmins()) <= 1) {
+    return res.status(400).json({ error: 'At least one active administrator is required.' });
+  }
+
+  if (emailChange) await repo.updateEmail(target.id, emailChange);
+  if (body.name !== undefined) await repo.renameAccount(target.id, body.name.trim());
+  if (body.password !== undefined) {
+    const password = hashPassword(body.password);
+    await repo.updatePassword(target.id, password.salt, password.hash);
+    await repo.deleteSessionsForAccount(target.id);
+  }
+  if (body.isAdmin !== undefined) await repo.setDispatcherAdmin(target.id, body.isAdmin);
+  if (body.disabled !== undefined) {
+    await repo.setAccountDisabled(target.id, body.disabled);
+    if (body.disabled) await repo.deleteSessionsForAccount(target.id);
+  }
+
+  const action = body.disabled !== undefined
+    ? (body.disabled ? 'account.disable' : 'account.enable')
+    : body.isAdmin !== undefined
+      ? (body.isAdmin ? 'account.promote' : 'account.demote')
+      : body.password !== undefined
+        ? 'account.password_reset'
+        : body.name !== undefined
+          ? 'account.rename'
+          : 'account.email_update';
+  await audit(req, action, emailChange || target.email, {
+    emailChanged: emailChange !== null,
+    passwordReset: body.password !== undefined,
+    disabled: body.disabled,
+    isAdmin: body.isAdmin,
+    renamed: body.name !== undefined,
+  });
+
+  res.json({ account: await repo.findAccountById(target.id) });
+});
+
+app.delete('/api/admin/accounts/:id/sessions', requireApiAdmin(), async (req, res) => {
+  const target = await repo.findAccountById(req.params.id);
+  if (!target) return res.status(404).json({ error: 'Account not found.' });
+  await repo.deleteSessionsForAccount(target.id);
+  await audit(req, 'session.revoke_all', target.email);
+  res.status(204).end();
+});
+
+app.get('/api/admin/sessions', requireApiAdmin(), async (req, res) => {
+  const sessions = await repo.listActiveSessions();
+  const currentToken = parseCookies(req.headers.cookie)[SESSION_COOKIE];
+  const currentHash = currentToken ? hashResetToken(currentToken) : null;
+  res.json({
+    sessions: sessions.map((session) => ({ ...session, current: session.id === currentHash })),
+  });
+});
+
+app.delete('/api/admin/sessions/:id', requireApiAdmin(), async (req, res) => {
+  const tokenHash = String(req.params.id || '');
+  if (!/^[a-f0-9]{64}$/i.test(tokenHash)) return res.status(400).json({ error: 'Unknown session.' });
+  await repo.deleteSession(tokenHash);
+  await audit(req, 'session.revoke', tokenHash.slice(0, 12));
+  res.status(204).end();
+});
+
+/**
+ * Rotates the dispatcher access code. The new code is returned exactly once and
+ * only its SHA-256 hash is stored, so it cannot be recovered later.
+ */
+app.post('/api/admin/invite-code', requireApiAdmin(), async (req, res) => {
+  const code = crypto.randomBytes(24).toString('base64url');
+  await repo.setSetting(INVITE_CODE_HASH_KEY, hashResetToken(code));
+  await audit(req, 'invite.rotate', 'dispatcher-access-code');
+  res.json({
+    code,
+    message: 'Copy this code now. Only its hash is stored, so it cannot be shown again.',
+  });
+});
+
+app.get('/api/admin/audit', requireApiAdmin(), async (req, res) => {
+  const requested = Number(req.query.limit);
+  const limit = Number.isFinite(requested) ? Math.min(200, Math.max(1, Math.trunc(requested))) : 50;
+  res.json({ entries: await repo.listAudit(limit) });
 });
 
 app.get('/api/bookings', requireApiRole('dispatcher'), async (req, res) => {
@@ -1119,12 +1521,12 @@ app.use((err, req, res, next) => {
 /* -------------------------------- start --------------------------------- */
 
 if (require.main === module) {
-  if (!DISPATCHER_INVITE_CODE) {
-    console.warn('Dispatcher registration is disabled: set DISPATCHER_INVITE_CODE in .env.');
-  }
-
   db.ensureSchema()
-    .then(() => {
+    .then(async () => {
+      const rotatedCode = await repo.getSetting(INVITE_CODE_HASH_KEY);
+      if (!DISPATCHER_INVITE_CODE && !rotatedCode) {
+        console.warn('Dispatcher registration is disabled: set DISPATCHER_INVITE_CODE in .env, or rotate a code from /admin.html.');
+      }
       app.listen(PORT, () => {
         console.log(`VeloFox Dispatch API listening on http://localhost:${PORT}`);
       });
@@ -1144,9 +1546,12 @@ module.exports.testables = {
   buildAnalyticsSummary,
   canTransitionStatus,
   getDriver,
+  generateLoginCode,
+  hashLoginCode,
   hashPassword,
   hashResetToken,
   normalizeDriverId,
+  normalizeLoginCode,
   safeStringEqual,
   validateAccountPayload,
   verifyPassword,
