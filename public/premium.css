@@ -301,7 +301,7 @@ html[data-theme="light"] .page-booking .topbar.is-scrolled {
    -------------------------------------------------------------------------- */
 
 .hero-lux {
-  background-position: center calc(52% + var(--hero-shift, 0px));
+  background-position: center calc(58% + var(--hero-shift, 0px));
 }
 
 .hero-lux__status {
