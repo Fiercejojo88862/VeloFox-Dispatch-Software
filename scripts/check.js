@@ -25,6 +25,7 @@ const REQUIRED_FILES = [
   'public/client.html',
   'public/theme.css',
   'public/assets/fleet/cadillac-escalade.webp',
+  'public/assets/fleet/cadillac-escalade-stretch.webp',
   'public/assets/fleet/mercedes-sprinter.webp',
 ];
 
