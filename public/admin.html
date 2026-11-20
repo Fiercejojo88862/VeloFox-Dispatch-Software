@@ -381,6 +381,34 @@
     </section>
   </main>
 
+  <div id="account-modal" class="modal-overlay" hidden>
+    <form id="edit-form" class="modal" novalidate>
+      <div class="modal-head">
+        <div>
+          <h3>Edit account</h3>
+          <p>Update the full name, work email, or temporary password for this dispatcher.</p>
+        </div>
+        <button type="button" class="btn btn-sm" id="edit-close">Close</button>
+      </div>
+      <div>
+        <label for="edit-name">Full name</label>
+        <input id="edit-name" name="name" type="text" maxlength="120" autocomplete="off" required>
+      </div>
+      <div>
+        <label for="edit-email">Work email</label>
+        <input id="edit-email" name="email" type="email" maxlength="254" autocomplete="off" required>
+      </div>
+      <div>
+        <label for="edit-password">Temporary password (optional)</label>
+        <input id="edit-password" name="password" type="password" minlength="10" maxlength="128" autocomplete="new-password">
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-sm" id="edit-cancel">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">Save changes</button>
+      </div>
+    </form>
+  </div>
+
   <script>
     'use strict';
 
@@ -712,33 +740,5 @@
         window.location.replace('/dispatcher-login.html?next=%2Fadmin.html');
       });
   </script>
-
-  <div id="account-modal" class="modal-overlay" hidden>
-    <form id="edit-form" class="modal" novalidate>
-      <div class="modal-head">
-        <div>
-          <h3>Edit account</h3>
-          <p>Update the full name, work email, or temporary password for this dispatcher.</p>
-        </div>
-        <button type="button" class="btn btn-sm" id="edit-close">Close</button>
-      </div>
-      <div>
-        <label for="edit-name">Full name</label>
-        <input id="edit-name" name="name" type="text" maxlength="120" autocomplete="off" required>
-      </div>
-      <div>
-        <label for="edit-email">Work email</label>
-        <input id="edit-email" name="email" type="email" maxlength="254" autocomplete="off" required>
-      </div>
-      <div>
-        <label for="edit-password">Temporary password (optional)</label>
-        <input id="edit-password" name="password" type="password" minlength="10" maxlength="128" autocomplete="new-password">
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-sm" id="edit-cancel">Cancel</button>
-        <button type="submit" class="btn btn-primary btn-sm">Save changes</button>
-      </div>
-    </form>
-  </div>
 </body>
 </html>
