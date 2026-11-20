@@ -101,6 +101,9 @@ app.get('/dashboard.html', requirePageRole('dispatcher', '/dispatcher-login.html
 app.get('/admin.html', requirePageAdmin(), (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
 });
+app.get('/financial.html', requirePageRole('dispatcher', '/dispatcher-login.html'), (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'financial.html'));
+});
 app.get('/client.html', requirePageRole('client', '/client-login.html'), (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'client.html'));
 });
