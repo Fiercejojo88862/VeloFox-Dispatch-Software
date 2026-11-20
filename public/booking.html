@@ -4,8 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Client Booking Portal — VeloFox Dispatch</title>
+  <meta name="description" content="Request a chauffeured ride with VeloFox Dispatch. Choose your vehicle class, pickup time, and passenger details.">
+  <meta name="theme-color" content="#0b0b0b">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" as="image" href="/assets/fleet/luxury-sedan.webp">
+  <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/cormorant-garamond-latin.woff2" crossorigin>
   <link rel="stylesheet" href="/theme.css">
   <script src="/js/theme.js"></script>
+  <script>document.documentElement.classList.add('has-premium');</script>
   <style>
     :root {
       color-scheme: dark;
@@ -32,6 +38,7 @@
       margin: 0;
       min-height: 100vh;
       background:
+        radial-gradient(900px 520px at 84% 2%, rgba(197, 160, 89, 0.055), transparent 62%),
         radial-gradient(1100px 620px at 50% -25%, rgba(255, 255, 255, 0.045), transparent 62%),
         var(--bg);
       color: var(--text);
@@ -138,18 +145,6 @@
       align-items: center;
       gap: 14px;
       flex-wrap: wrap;
-    }
-
-    .tag {
-      font-size: 9.5px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      padding: 4px 8px;
-      border-radius: 2px;
-      background: transparent;
-      color: var(--green);
-      box-shadow: inset 0 0 0 1px rgba(147, 179, 154, 0.45);
     }
 
     .lead { margin: 0 0 32px; color: var(--muted); font-size: 16px; max-width: 58ch; }
@@ -510,9 +505,9 @@
       padding: clamp(56px, 8vw, 100px) clamp(16px, 4vw, 48px) clamp(48px, 6vw, 76px);
       border-bottom: 1px solid var(--line);
       background-color: #060606;
-      background-image: url("https://images.pexels.com/photos/1467591/pexels-photo-1467591.jpeg?auto=compress&cs=tinysrgb&w=1800");
+      background-image: url("/assets/fleet/luxury-sedan.webp");
       background-size: cover;
-      background-position: center 58%;
+      background-position: center 52%;
       background-repeat: no-repeat;
     }
 
@@ -697,8 +692,9 @@
       .form-foot .btn { width: 100%; justify-content: center; }
     }
   </style>
+  <link rel="stylesheet" href="/premium.css">
 </head>
-<body>
+<body class="page-booking">
   <header class="topbar">
     <a class="brand" href="/">
       <div class="mark" aria-hidden="true">VF</div>
@@ -709,27 +705,34 @@
     </a>
     <nav class="topnav" aria-label="Site">
       <a href="/">Home</a>
-      <a href="/login.html">Enterprise Login</a>
+      <a href="#our-fleet">Fleet</a>
+      <a href="/login.html">Sign in</a>
     </nav>
   </header>
 
   <section class="hero-lux" aria-labelledby="portal-heading">
+    <span class="hero-lux__status">
+      <span class="status-dot" aria-hidden="true"></span>
+      Booking open · 24/7 dispatch
+    </span>
     <div class="hero-lux__inner">
       <span class="eyebrow">Client portal</span>
-      <h1 id="portal-heading">Reserve your chauffeur <span class="tag">Booking open</span></h1>
+      <h1 id="portal-heading">Reserve your <em>chauffeur</em></h1>
       <p class="lead">
         Tell us where you need to be and when. A dispatcher reviews every request and confirms
         your vehicle and chauffeur before pickup.
       </p>
       <div class="hero-lux__actions">
-        <a class="btn btn-primary" href="#booking-form">Start a reservation</a>
-        <a class="btn" href="#our-fleet">Compare the fleet</a>
+        <a class="btn btn-primary" href="#booking-form" data-magnetic>
+          Begin a reservation <span class="arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="btn" href="#our-fleet" data-magnetic>Compare the fleet</a>
       </div>
     </div>
   </section>
 
   <main>
-    <div class="layout">
+    <div class="layout reveal">
       <section class="panel" aria-labelledby="form-heading">
         <h2 id="form-heading">Reservation details</h2>
 
@@ -909,7 +912,7 @@
     </div>
 
     <section class="fleet-showcase" id="our-fleet" aria-labelledby="our-fleet-heading">
-      <div class="fleet-head">
+      <div class="fleet-head reveal">
         <div>
           <span class="eyebrow">Our fleet</span>
           <h2 id="our-fleet-heading">Choose your vehicle</h2>
@@ -918,67 +921,75 @@
             submitting.
           </p>
         </div>
-        <a class="link" href="#booking-form">Back to the form →</a>
+        <a class="link" href="#booking-form">Back to the form <span class="arrow" aria-hidden="true">→</span></a>
       </div>
 
       <div class="fleet-grid">
-        <article class="fleet-card" data-vehicle="sedan">
+        <article class="fleet-card reveal" data-vehicle="sedan" data-spotlight data-tilt style="--i: 0">
           <div class="fleet-card__media">
             <img
               src="/assets/fleet/luxury-sedan.webp"
               alt="Black Mercedes-Benz S-Class luxury sedan at a premium garage entrance"
-              width="1200" height="800" loading="lazy" decoding="async">
+              width="1200" height="800" loading="lazy" decoding="async" data-tilt-target>
           </div>
           <div class="fleet-card__body">
             <span class="fleet-card__cap">Up to 3 passengers</span>
             <h3>Luxury Sedan</h3>
             <p>Quiet, leather-trimmed Mercedes S-Class comfort for airport transfers and executive meetings.</p>
-            <button class="fleet-select" type="button" data-select-vehicle="sedan">Select</button>
+            <button class="fleet-select" type="button" data-select-vehicle="sedan">
+              Reserve <span class="arrow" aria-hidden="true">→</span>
+            </button>
           </div>
         </article>
 
-        <article class="fleet-card" data-vehicle="suv">
+        <article class="fleet-card reveal" data-vehicle="suv" data-spotlight data-tilt style="--i: 1">
           <div class="fleet-card__media">
             <img
               src="/assets/fleet/cadillac-escalade.webp"
               alt="Black Cadillac Escalade luxury SUV at a premium garage entrance"
-              width="1200" height="800" loading="lazy" decoding="async">
+              width="1200" height="800" loading="lazy" decoding="async" data-tilt-target>
           </div>
           <div class="fleet-card__body">
             <span class="fleet-card__cap">Up to 6 passengers</span>
             <h3>Cadillac Escalade</h3>
             <p>Raised seating and generous cargo room for families, ski bags, and extra luggage.</p>
-            <button class="fleet-select" type="button" data-select-vehicle="suv">Select</button>
+            <button class="fleet-select" type="button" data-select-vehicle="suv">
+              Reserve <span class="arrow" aria-hidden="true">→</span>
+            </button>
           </div>
         </article>
 
-        <article class="fleet-card" data-vehicle="sprinter">
+        <article class="fleet-card reveal" data-vehicle="sprinter" data-spotlight data-tilt style="--i: 2">
           <div class="fleet-card__media">
             <img
               src="/assets/fleet/mercedes-sprinter.webp"
               alt="Black full-size Mercedes-Benz Sprinter high-roof passenger van"
-              width="1200" height="800" loading="lazy" decoding="async">
+              width="1200" height="800" loading="lazy" decoding="async" data-tilt-target>
           </div>
           <div class="fleet-card__body">
             <span class="fleet-card__cap">Up to 15 passengers</span>
             <h3>Mercedes Sprinter</h3>
             <p>Captain chairs and a roomy cabin built for group travel and corporate shuttles.</p>
-            <button class="fleet-select" type="button" data-select-vehicle="sprinter">Select</button>
+            <button class="fleet-select" type="button" data-select-vehicle="sprinter">
+              Reserve <span class="arrow" aria-hidden="true">→</span>
+            </button>
           </div>
         </article>
 
-        <article class="fleet-card" data-vehicle="limousine">
+        <article class="fleet-card reveal" data-vehicle="limousine" data-spotlight data-tilt style="--i: 3">
           <div class="fleet-card__media">
             <img
               src="/assets/fleet/cadillac-escalade-stretch.webp"
               alt="Black Cadillac Escalade stretch limousine at a premium garage entrance"
-              width="1200" height="800" loading="lazy" decoding="async">
+              width="1200" height="800" loading="lazy" decoding="async" data-tilt-target>
           </div>
           <div class="fleet-card__body">
             <span class="fleet-card__cap">Up to 16 passengers</span>
             <h3>Stretch Limousine</h3>
             <p>Formal arrivals, weddings, and evenings out with a dedicated chauffeur.</p>
-            <button class="fleet-select" type="button" data-select-vehicle="limousine">Select</button>
+            <button class="fleet-select" type="button" data-select-vehicle="limousine">
+              Reserve <span class="arrow" aria-hidden="true">→</span>
+            </button>
           </div>
         </article>
       </div>
@@ -1332,5 +1343,6 @@
       form.addEventListener('reset', () => window.setTimeout(() => highlight(null), 0));
     })();
   </script>
+  <script src="/js/premium.js"></script>
 </body>
 </html>

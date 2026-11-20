@@ -1,0 +1,581 @@
+/* ==========================================================================
+   VeloFox premium layer
+   Typographic refinements and shared micro-interactions. This file is loaded
+   after each page's own styles so it can elevate the existing components
+   without changing their markup contracts.
+   ========================================================================== */
+
+html { scroll-behavior: smooth; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+
+::selection {
+  background: var(--accent, var(--gold, #c5a059));
+  color: var(--accent-ink, #0b0b0b);
+}
+
+/* Fine film grain keeps the flat dark surfaces from looking synthetic. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  opacity: 0.032;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  mix-blend-mode: soft-light;
+}
+
+html[data-theme="light"] body::after {
+  opacity: 0.018;
+  mix-blend-mode: multiply;
+}
+
+/* --------------------------------------------------------------------------
+   Display typography
+   -------------------------------------------------------------------------- */
+
+.page-home .hero-lux h1,
+.page-booking .hero-lux h1,
+.page-home .fleet-head h2,
+.page-booking .fleet-head h2,
+.page-home .section-head h2,
+.intro h1,
+.auth-card h2,
+.driver-panel h2,
+.role-card h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.012em;
+}
+
+.page-home .hero-lux h1 {
+  font-size: clamp(48px, 7.2vw, 88px);
+  line-height: 0.96;
+  max-width: 22ch;
+}
+
+.page-booking .hero-lux h1 {
+  font-size: clamp(40px, 5.8vw, 64px);
+  line-height: 1;
+}
+
+.hero-lux h1 em {
+  font-style: italic;
+  color: var(--accent-bright);
+}
+
+.page-home .fleet-head h2,
+.page-home .section-head h2 {
+  font-size: clamp(30px, 3.6vw, 44px);
+  line-height: 1.05;
+}
+
+.page-booking .fleet-head h2 {
+  font-size: clamp(26px, 3.2vw, 36px);
+  line-height: 1.08;
+}
+
+.brand-mark,
+.brand-copy .brand-name {
+  font-family: var(--font-display);
+  letter-spacing: 0.03em;
+}
+
+.section-head {
+  margin-bottom: 26px;
+}
+
+.section-head h2 {
+  margin: 10px 0 0;
+}
+
+.section-head .eyebrow {
+  margin-bottom: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Header and reading progress
+   -------------------------------------------------------------------------- */
+
+.page-home .topbar,
+.page-booking .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  transition:
+    background 0.35s var(--ease-luxe),
+    box-shadow 0.35s var(--ease-luxe),
+    border-color 0.35s var(--ease-luxe);
+}
+
+.page-home .topbar.is-scrolled,
+.page-booking .topbar.is-scrolled {
+  background: rgba(9, 9, 9, 0.94);
+  box-shadow: 0 20px 44px -28px rgba(0, 0, 0, 0.95);
+}
+
+html[data-theme="light"] .page-home .topbar.is-scrolled,
+html[data-theme="light"] .page-booking .topbar.is-scrolled {
+  box-shadow: 0 20px 44px -30px rgba(60, 45, 24, 0.42);
+}
+
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+  flex-wrap: wrap;
+}
+
+.topbar-nav a {
+  position: relative;
+  padding: 6px 0;
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color 0.25s var(--ease-luxe);
+}
+
+.topbar-nav a::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 1px;
+  background: var(--accent);
+  transform: scaleX(0);
+  transform-origin: right center;
+  transition: transform 0.35s var(--ease-luxe);
+}
+
+.topbar-nav a:hover,
+.topbar-nav a:focus-visible {
+  color: var(--text);
+}
+
+.topbar-nav a:hover::after,
+.topbar-nav a:focus-visible::after {
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+
+.scroll-progress {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 60;
+  height: 2px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s var(--ease-luxe);
+}
+
+.scroll-progress.is-active {
+  opacity: 1;
+}
+
+.scroll-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--accent) 22%, var(--accent-bright));
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+
+.btn,
+.fleet-select,
+.continue-button,
+.primary-button,
+.button,
+.submit,
+.theme-toggle {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  translate: var(--magnet-x, 0px) var(--magnet-y, 0px);
+  transition:
+    background 0.25s var(--ease-luxe),
+    border-color 0.25s var(--ease-luxe),
+    color 0.25s var(--ease-luxe),
+    box-shadow 0.3s var(--ease-luxe),
+    translate 0.25s var(--ease-spring),
+    transform 0.12s ease;
+}
+
+.btn::after,
+.fleet-select::after,
+.continue-button::after,
+.primary-button::after,
+.button::after,
+.submit::after,
+.theme-toggle::after {
+  content: "";
+  position: absolute;
+  top: -50%;
+  bottom: -50%;
+  left: -70%;
+  width: 55%;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    transparent 12%,
+    var(--sheen, rgba(197, 160, 89, 0.2)) 50%,
+    transparent 88%
+  );
+  opacity: 0;
+  transform: translateX(-40%) rotate(8deg);
+  transition:
+    transform 0.7s var(--ease-luxe),
+    opacity 0.3s var(--ease-luxe);
+}
+
+.btn-primary,
+.continue-button,
+.primary-button,
+.button--gold,
+.submit {
+  --sheen: rgba(255, 255, 255, 0.38);
+}
+
+.btn:hover::after,
+.fleet-select:hover::after,
+.continue-button:hover::after,
+.primary-button:hover::after,
+.button:hover::after,
+.submit:hover::after,
+.theme-toggle:hover::after {
+  opacity: 1;
+  transform: translateX(360%) rotate(8deg);
+}
+
+.btn:active,
+.fleet-select:active,
+.continue-button:active,
+.primary-button:active,
+.button:active,
+.submit:active,
+.theme-toggle:active {
+  transform: scale(0.985);
+}
+
+.btn:disabled::after,
+.fleet-select:disabled::after,
+.continue-button:disabled::after,
+.primary-button:disabled::after,
+.submit:disabled::after {
+  display: none;
+}
+
+.btn .arrow,
+.fleet-select .arrow,
+.nav-cta .arrow,
+.link .arrow {
+  display: inline-block;
+  transition: transform 0.3s var(--ease-luxe);
+}
+
+.btn:hover .arrow,
+.fleet-select:hover .arrow,
+.nav-card:hover .nav-cta .arrow,
+.link:hover .arrow {
+  transform: translateX(4px);
+}
+
+/* --------------------------------------------------------------------------
+   Hero
+   -------------------------------------------------------------------------- */
+
+.hero-lux {
+  background-position: center calc(52% + var(--hero-shift, 0px));
+}
+
+.hero-lux__status {
+  position: absolute;
+  top: clamp(20px, 3vw, 32px);
+  right: clamp(20px, 4vw, 48px);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 14px;
+  border: 1px solid rgba(244, 241, 234, 0.14);
+  border-radius: 999px;
+  background: rgba(8, 8, 8, 0.46);
+  backdrop-filter: blur(8px);
+  color: #cfc8bb;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+}
+
+.hero-lux__status .status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 0 rgba(147, 179, 154, 0.55);
+  animation: vf-pulse 2.8s ease-out infinite;
+}
+
+@keyframes vf-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(147, 179, 154, 0.45); }
+  45% { box-shadow: 0 0 0 5px rgba(147, 179, 154, 0); }
+}
+
+@media (max-width: 760px) {
+  .hero-lux__status { display: none; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-lux__inner > * {
+    animation: vf-rise 0.95s var(--ease-luxe) both;
+  }
+
+  .hero-lux__inner > :nth-child(1) { animation-delay: 0.05s; }
+  .hero-lux__inner > :nth-child(2) { animation-delay: 0.14s; }
+  .hero-lux__inner > :nth-child(3) { animation-delay: 0.23s; }
+  .hero-lux__inner > :nth-child(4) { animation-delay: 0.32s; }
+  .hero-lux__inner > :nth-child(5) { animation-delay: 0.41s; }
+}
+
+@keyframes vf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Scroll reveal
+   -------------------------------------------------------------------------- */
+
+html.has-premium .reveal {
+  opacity: 0;
+  translate: 0 22px;
+  transition:
+    opacity 0.9s var(--ease-luxe),
+    translate 0.9s var(--ease-luxe);
+  transition-delay: calc(var(--i, 0) * 90ms);
+}
+
+html.has-premium .reveal.is-visible {
+  opacity: 1;
+  translate: 0 0;
+}
+
+/* --------------------------------------------------------------------------
+   Cards: cursor spotlight, image tilt, gold edge
+   -------------------------------------------------------------------------- */
+
+[data-spotlight] {
+  position: relative;
+}
+
+[data-spotlight]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    340px circle at var(--mx, 50%) var(--my, 0%),
+    rgba(197, 160, 89, 0.16),
+    transparent 66%
+  );
+  opacity: 0;
+  transition: opacity 0.35s var(--ease-luxe);
+}
+
+[data-spotlight]:hover::before {
+  opacity: 1;
+}
+
+[data-spotlight] > * {
+  position: relative;
+  z-index: 1;
+}
+
+.fleet-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 2;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  transform: scaleX(0);
+  transform-origin: center;
+  transition: transform 0.55s var(--ease-luxe);
+}
+
+.fleet-card:hover::after {
+  transform: scaleX(1);
+}
+
+.fleet-card[data-tilt] .fleet-card__media img {
+  transform: scale(1.045) translate3d(var(--tilt-x, 0px), var(--tilt-y, 0px), 0);
+  transition:
+    transform 0.4s var(--ease-luxe),
+    filter 0.4s var(--ease-luxe);
+}
+
+.fleet-card[data-tilt]:hover .fleet-card__media img {
+  transform: scale(1.07) translate3d(var(--tilt-x, 0px), var(--tilt-y, 0px), 0);
+}
+
+.nav-index {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  z-index: 1;
+  color: rgba(197, 160, 89, 0.24);
+  font-family: var(--font-display);
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  transition: color 0.35s var(--ease-luxe);
+}
+
+.nav-card:hover .nav-index {
+  color: rgba(197, 160, 89, 0.55);
+}
+
+/* --------------------------------------------------------------------------
+   Demo disclosure
+   -------------------------------------------------------------------------- */
+
+.demo-drawer summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  list-style: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transition: color 0.25s var(--ease-luxe);
+}
+
+.demo-drawer summary::-webkit-details-marker { display: none; }
+
+.demo-drawer summary::after {
+  content: "+";
+  color: var(--accent);
+  font-size: 13px;
+  line-height: 1;
+  transition: transform 0.3s var(--ease-luxe);
+}
+
+.demo-drawer[open] summary::after {
+  transform: rotate(45deg);
+}
+
+.demo-drawer summary:hover,
+.demo-drawer summary:focus-visible {
+  color: var(--accent-bright);
+}
+
+.demo-drawer__body {
+  display: grid;
+  gap: 14px;
+  margin-top: 14px;
+  padding: 18px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius, 4px);
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+}
+
+.demo-drawer__body p {
+  margin: 0;
+  max-width: 46ch;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+/* --------------------------------------------------------------------------
+   Anchors and focus
+   -------------------------------------------------------------------------- */
+
+#our-fleet,
+#booking-form,
+#form-heading {
+  scroll-margin-top: 96px;
+}
+
+#form-heading {
+  scroll-margin-top: 110px;
+}
+
+@media (max-width: 640px) {
+  #our-fleet,
+  #booking-form {
+    scroll-margin-top: 124px;
+  }
+
+  #form-heading {
+    scroll-margin-top: 140px;
+  }
+}
+
+:where(a, button, summary, input, select, textarea):focus-visible {
+  outline-color: var(--accent, var(--gold, #c5a059));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  html.has-premium .reveal {
+    opacity: 1 !important;
+    translate: none !important;
+  }
+
+  .scroll-progress,
+  .demo-drawer {
+    display: none !important;
+  }
+}
+
+@media (hover: none) {
+  .btn::after,
+  .fleet-select::after,
+  .continue-button::after,
+  .primary-button::after,
+  .button::after,
+  .submit::after,
+  .theme-toggle::after {
+    display: none;
+  }
+}

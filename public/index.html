@@ -3,9 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>VeloFox Dispatch</title>
+  <title>VeloFox Dispatch — Luxury Chauffeur Service</title>
+  <meta name="description" content="Chauffeur-driven airport transfers, executive travel, and special occasions across New York and New Jersey. Request a ride in under a minute.">
+  <meta name="theme-color" content="#0b0b0b">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" as="image" href="/assets/fleet/luxury-sedan.webp">
+  <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/cormorant-garamond-latin.woff2" crossorigin>
   <link rel="stylesheet" href="/theme.css">
   <script src="/js/theme.js"></script>
+  <script>document.documentElement.classList.add('has-premium');</script>
   <style>
     :root {
       color-scheme: dark;
@@ -32,6 +38,7 @@
       margin: 0;
       min-height: 100vh;
       background:
+        radial-gradient(900px 520px at 84% 2%, rgba(197, 160, 89, 0.055), transparent 62%),
         radial-gradient(1100px 620px at 50% -25%, rgba(255, 255, 255, 0.045), transparent 62%),
         var(--bg);
       color: var(--text);
@@ -108,9 +115,9 @@
       padding: clamp(60px, 9vw, 112px) clamp(16px, 4vw, 48px) clamp(52px, 7vw, 88px);
       border-bottom: 1px solid var(--line);
       background-color: #060606;
-      background-image: url("https://images.pexels.com/photos/1467591/pexels-photo-1467591.jpeg?auto=compress&cs=tinysrgb&w=1800");
+      background-image: url("/assets/fleet/luxury-sedan.webp");
       background-size: cover;
-      background-position: center 58%;
+      background-position: center 52%;
       background-repeat: no-repeat;
     }
 
@@ -121,7 +128,8 @@
       z-index: -1;
       background:
         linear-gradient(96deg, rgba(6, 6, 6, 0.95) 0%, rgba(6, 6, 6, 0.86) 34%, rgba(6, 6, 6, 0.5) 62%, rgba(6, 6, 6, 0.72) 100%),
-        linear-gradient(180deg, rgba(6, 6, 6, 0.72) 0%, rgba(6, 6, 6, 0.08) 40%, rgba(6, 6, 6, 0.86) 100%);
+        linear-gradient(180deg, rgba(6, 6, 6, 0.72) 0%, rgba(6, 6, 6, 0.08) 40%, rgba(6, 6, 6, 0.86) 100%),
+        linear-gradient(270deg, rgba(197, 160, 89, 0.08), transparent 48%);
     }
 
     .hero-lux__inner { width: 100%; max-width: 1140px; margin: 0 auto; }
@@ -191,7 +199,7 @@
 
     .nav-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 20px;
       margin-bottom: 24px;
     }
@@ -256,52 +264,9 @@
 
     .nav-card:hover .nav-cta { color: var(--accent-bright); }
 
-    .tag {
-      font-size: 9.5px;
-      font-weight: 600;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      padding: 4px 8px;
-      border-radius: 2px;
-      background: transparent;
-      color: var(--green);
-      box-shadow: inset 0 0 0 1px rgba(147, 179, 154, 0.45);
-    }
+    .access-section { margin-bottom: 54px; }
 
-    .tag.pending {
-      color: var(--accent);
-      box-shadow: inset 0 0 0 1px rgba(197, 160, 89, 0.45);
-    }
-
-    /* ---------- demo panel ---------- */
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      border-top: 2px solid var(--accent);
-      border-radius: var(--radius);
-      padding: 26px 28px;
-      box-shadow: var(--shadow);
-    }
-
-    .panel-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-
-    .panel h2 {
-      margin: 0 0 8px;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--text);
-    }
-
-    .panel p { margin: 0; color: var(--muted); font-size: 13.5px; max-width: 60ch; }
+    /* ---------- buttons ---------- */
 
     .btn {
       appearance: none;
@@ -391,19 +356,86 @@
 
     .link:hover { color: var(--accent-bright); border-bottom-color: var(--accent-bright); }
 
-    footer {
-      margin-top: 40px;
-      padding-top: 20px;
+    /* ---------- footer ---------- */
+
+    .site-footer {
+      margin-top: 56px;
+      padding-top: 28px;
       border-top: 1px solid var(--line);
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
-      gap: 16px;
+      gap: 28px;
       flex-wrap: wrap;
-      font-size: 10.5px;
+    }
+
+    .site-footer__brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .mark--sm {
+      width: 38px;
+      height: 38px;
+      font-size: 13px;
+    }
+
+    .site-footer__name {
+      display: block;
+      font-size: 11.5px;
+      font-weight: 500;
       letter-spacing: 0.16em;
       text-transform: uppercase;
+    }
+
+    .site-footer__sub {
+      display: block;
+      margin-top: 3px;
       color: var(--muted);
+      font-size: 9.5px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .site-footer__links {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      flex-wrap: wrap;
+    }
+
+    .site-footer__links a {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      padding-bottom: 2px;
+      transition: color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .site-footer__links a:hover {
+      color: var(--accent-bright);
+      border-bottom-color: var(--accent);
+    }
+
+    .site-footer__meta {
+      display: grid;
+      gap: 10px;
+      justify-items: start;
+      color: var(--muted);
+      font-size: 9.5px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .site-footer__meta .btn {
+      padding: 10px 16px;
+      font-size: 10px;
     }
 
     /* ---------- fleet ---------- */
@@ -539,11 +571,6 @@
       .fleet-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
 
-    @media (max-width: 760px) {
-      .nav-grid { grid-template-columns: minmax(0, 1fr); }
-      .panel-head { flex-direction: column; }
-    }
-
     @media (max-width: 640px) {
       .topbar { flex-direction: column; align-items: flex-start; }
       .topbar-actions { width: 100%; justify-content: space-between; }
@@ -551,11 +578,13 @@
       .hero-lux__facts { gap: 18px 28px; }
       .fleet-grid { grid-template-columns: minmax(0, 1fr); }
       .fleet-head .link { margin-top: 0; }
-    }  </style>
+    }
+  </style>
+  <link rel="stylesheet" href="/premium.css">
 </head>
-<body>
+<body class="page-home">
   <header class="topbar">
-    <a class="brand" href="/" title="Back to home">
+    <a class="brand" href="/" title="VeloFox Dispatch home">
       <div class="mark" aria-hidden="true">VF</div>
       <div>
         <div class="brand-name">VeloFox Dispatch</div>
@@ -563,73 +592,93 @@
       </div>
     </a>
     <div class="topbar-actions">
-      <a class="btn" href="/login.html">Enterprise Login</a>
+      <nav class="topbar-nav" aria-label="Primary">
+        <a href="#our-fleet">The fleet</a>
+        <a href="/booking.html">Reserve</a>
+        <a href="/login.html">Sign in</a>
+      </nav>
     </div>
   </header>
 
   <section class="hero-lux" aria-labelledby="hero-heading">
+    <span class="hero-lux__status">
+      <span class="status-dot" aria-hidden="true"></span>
+      Dispatch desk online
+    </span>
     <div class="hero-lux__inner">
       <span class="eyebrow">Luxury chauffeur service · New York &amp; New Jersey</span>
-      <h1 id="hero-heading">Where timing is everything</h1>
+      <h1 id="hero-heading">Where timing is <em>everything</em></h1>
       <p class="lead">
         Airport transfers, executive travel, and special occasions handled by professional
         chauffeurs. Request your ride in under a minute and dispatch confirms every detail.
       </p>
       <div class="hero-lux__actions">
-        <a class="btn btn-primary" href="/booking.html">Reserve a ride</a>
-        <a class="btn" href="#our-fleet">View the fleet</a>
+        <a class="btn btn-primary" href="/booking.html" data-magnetic>
+          Reserve a ride <span class="arrow" aria-hidden="true">→</span>
+        </a>
+        <a class="btn" href="#our-fleet" data-magnetic>View the fleet</a>
       </div>
       <ul class="hero-lux__facts">
         <li><strong>24/7</strong> Dispatch desk</li>
         <li><strong>EWR · JFK · LGA · TEB</strong> Airport coverage</li>
-        <li><strong>1 – 14</strong> Passengers</li>
-        <li><strong>Chauffeur-driven</strong> Sedan to Sprinter</li>
+        <li><strong>1 – 16</strong> Passengers</li>
+        <li><strong>Chauffeur-driven</strong> Sedan to limousine</li>
       </ul>
     </div>
   </section>
 
   <main>
-    <nav class="nav-grid" aria-label="Main navigation">
-      <a class="nav-card" href="/booking.html">
-        <span class="nav-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M5 17h14M6 17l1.2-4.5A2 2 0 0 1 9.1 11h5.8a2 2 0 0 1 1.9 1.5L18 17"/>
-            <circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/>
-          </svg>
-        </span>
-        <h2>Client Booking Portal <span class="tag">Live</span></h2>
-        <p>Request a ride: pickup and drop-off, date and time, vehicle class, and passenger count.</p>
-        <span class="nav-cta">Open portal →</span>
-      </a>
+    <section class="access-section" aria-labelledby="access-heading">
+      <div class="section-head reveal">
+        <span class="eyebrow">Access</span>
+        <h2 id="access-heading">Choose your entrance</h2>
+      </div>
 
-      <a class="nav-card" href="/dashboard.html">
-        <span class="nav-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="6" rx="1.5"/>
-            <rect x="3" y="14" width="8" height="6" rx="1.5"/>
-            <rect x="15" y="14" width="6" height="6" rx="1.5"/>
-          </svg>
-        </span>
-        <h2>Dispatcher Dashboard <span class="tag">Live</span></h2>
-        <p>Review every reservation, update trip status, and assign fleet vehicles to rides.</p>
-        <span class="nav-cta">Open dashboard →</span>
-      </a>
+      <nav class="nav-grid" aria-label="Main navigation">
+        <a class="nav-card reveal" href="/booking.html" data-spotlight style="--i: 0">
+          <span class="nav-index" aria-hidden="true">01</span>
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 17h14M6 17l1.2-4.5A2 2 0 0 1 9.1 11h5.8a2 2 0 0 1 1.9 1.5L18 17"/>
+              <circle cx="8" cy="17" r="1.6"/><circle cx="16" cy="17" r="1.6"/>
+            </svg>
+          </span>
+          <h2>Client Booking Portal</h2>
+          <p>Request a ride: pickup and drop-off, date and time, vehicle class, and passenger count.</p>
+          <span class="nav-cta">Begin reservation <span class="arrow" aria-hidden="true">→</span></span>
+        </a>
 
-      <a class="nav-card" href="/admin.html">
-        <span class="nav-icon" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z"/>
-            <path d="M9.5 12l2 2 3.5-4"/>
-          </svg>
-        </span>
-        <h2>Administrator Console <span class="tag">Owner</span></h2>
-        <p>Manage dispatcher accounts, active sessions, the audit log, and the dispatcher access code.</p>
-        <span class="nav-cta">Open console →</span>
-      </a>
-    </nav>
+        <a class="nav-card reveal" href="/dashboard.html" data-spotlight style="--i: 1">
+          <span class="nav-index" aria-hidden="true">02</span>
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="6" rx="1.5"/>
+              <rect x="3" y="14" width="8" height="6" rx="1.5"/>
+              <rect x="15" y="14" width="6" height="6" rx="1.5"/>
+            </svg>
+          </span>
+          <h2>Dispatcher Console</h2>
+          <p>Review every reservation, update trip status, and assign fleet vehicles to rides.</p>
+          <span class="nav-cta">Enter console <span class="arrow" aria-hidden="true">→</span></span>
+        </a>
+
+        <a class="nav-card reveal" href="/admin.html" data-spotlight style="--i: 2">
+          <span class="nav-index" aria-hidden="true">03</span>
+          <span class="nav-icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3l7 4v5c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V7l7-4z"/>
+              <path d="M9.5 12l2 2 3.5-4"/>
+            </svg>
+          </span>
+          <h2>Administrator Console</h2>
+          <p>Manage dispatcher accounts, active sessions, the audit log, and the dispatcher access code.</p>
+          <span class="nav-cta">Open console <span class="arrow" aria-hidden="true">→</span></span>
+        </a>
+      </nav>
+    </section>
 
     <section class="fleet-showcase" id="our-fleet" aria-labelledby="fleet-heading">
-      <div class="fleet-head">
+      <div class="fleet-head reveal">
         <div>
           <span class="eyebrow">Our fleet</span>
           <h2 id="fleet-heading">A vehicle for every arrival</h2>
@@ -638,89 +687,110 @@
             luggage. Choose a vehicle to carry it straight into the reservation form.
           </p>
         </div>
-        <a class="link" href="/booking.html">Reserve a ride →</a>
+        <a class="link" href="/booking.html">Reserve a ride <span class="arrow" aria-hidden="true">→</span></a>
       </div>
 
       <div class="fleet-grid">
-        <article class="fleet-card" data-vehicle="sedan">
+        <article class="fleet-card reveal" data-vehicle="sedan" data-spotlight data-tilt style="--i: 0">
           <div class="fleet-card__media">
             <img
               src="/assets/fleet/luxury-sedan.webp"
               alt="Black Mercedes-Benz S-Class luxury sedan at a premium garage entrance"
-              width="1200" height="800" loading="lazy" decoding="async">
+              width="1200" height="800" loading="lazy" decoding="async" data-tilt-target>
           </div>
           <div class="fleet-card__body">
             <span class="fleet-card__cap">Up to 3 passengers</span>
             <h3>Luxury Sedan</h3>
             <p>Quiet, leather-trimmed Mercedes S-Class comfort for airport transfers and executive meetings.</p>
-            <a class="fleet-select" href="/booking.html?vehicle=sedan#booking-form">Select</a>
+            <a class="fleet-select" href="/booking.html?vehicle=sedan#booking-form">
+              Reserve <span class="arrow" aria-hidden="true">→</span>
+            </a>
           </div>
         </article>
 
-        <article class="fleet-card" data-vehicle="suv">
+        <article class="fleet-card reveal" data-vehicle="suv" data-spotlight data-tilt style="--i: 1">
           <div class="fleet-card__media">
             <img
               src="/assets/fleet/cadillac-escalade.webp"
               alt="Black Cadillac Escalade luxury SUV at a premium garage entrance"
-              width="1200" height="800" loading="lazy" decoding="async">
+              width="1200" height="800" loading="lazy" decoding="async" data-tilt-target>
           </div>
           <div class="fleet-card__body">
             <span class="fleet-card__cap">Up to 6 passengers</span>
             <h3>Cadillac Escalade</h3>
             <p>Raised seating and generous cargo room for families, ski bags, and extra luggage.</p>
-            <a class="fleet-select" href="/booking.html?vehicle=suv#booking-form">Select</a>
+            <a class="fleet-select" href="/booking.html?vehicle=suv#booking-form">
+              Reserve <span class="arrow" aria-hidden="true">→</span>
+            </a>
           </div>
         </article>
 
-        <article class="fleet-card" data-vehicle="sprinter">
+        <article class="fleet-card reveal" data-vehicle="sprinter" data-spotlight data-tilt style="--i: 2">
           <div class="fleet-card__media">
             <img
               src="/assets/fleet/mercedes-sprinter.webp"
               alt="Black full-size Mercedes-Benz Sprinter high-roof passenger van"
-              width="1200" height="800" loading="lazy" decoding="async">
+              width="1200" height="800" loading="lazy" decoding="async" data-tilt-target>
           </div>
           <div class="fleet-card__body">
             <span class="fleet-card__cap">Up to 15 passengers</span>
             <h3>Mercedes Sprinter</h3>
             <p>Captain chairs and a roomy cabin built for group travel and corporate shuttles.</p>
-            <a class="fleet-select" href="/booking.html?vehicle=sprinter#booking-form">Select</a>
+            <a class="fleet-select" href="/booking.html?vehicle=sprinter#booking-form">
+              Reserve <span class="arrow" aria-hidden="true">→</span>
+            </a>
           </div>
         </article>
 
-        <article class="fleet-card" data-vehicle="limousine">
+        <article class="fleet-card reveal" data-vehicle="limousine" data-spotlight data-tilt style="--i: 3">
           <div class="fleet-card__media">
             <img
               src="/assets/fleet/cadillac-escalade-stretch.webp"
               alt="Black Cadillac Escalade stretch limousine at a premium garage entrance"
-              width="1200" height="800" loading="lazy" decoding="async">
+              width="1200" height="800" loading="lazy" decoding="async" data-tilt-target>
           </div>
           <div class="fleet-card__body">
             <span class="fleet-card__cap">Up to 16 passengers</span>
             <h3>Stretch Limousine</h3>
             <p>Formal arrivals, weddings, and evenings out with a dedicated chauffeur.</p>
-            <a class="fleet-select" href="/booking.html?vehicle=limousine#booking-form">Select</a>
+            <a class="fleet-select" href="/booking.html?vehicle=limousine#booking-form">
+              Reserve <span class="arrow" aria-hidden="true">→</span>
+            </a>
           </div>
         </article>
       </div>
     </section>
 
-    <section class="panel" aria-labelledby="demo-heading">
-      <div class="panel-head">
-        <div>
-          <h2 id="demo-heading">Demo data</h2>
-          <p>
-            Adds three future reservations to the database so the dashboard has rows to
-            work with. They are stored in PostgreSQL and survive server restarts.
-          </p>
-        </div>
-        <button id="seed" class="btn btn-primary" type="button">Seed demo bookings</button>
+    <footer class="site-footer">
+      <div class="site-footer__brand">
+        <span class="mark mark--sm" aria-hidden="true">VF</span>
+        <span>
+          <span class="site-footer__name">VeloFox Dispatch</span>
+          <span class="site-footer__sub">Luxury transport logistics</span>
+        </span>
       </div>
-      <div id="seed-result" class="seed-result" role="status" aria-live="polite" hidden></div>
-    </section>
 
-    <footer>
-      <span>VeloFox Dispatch Software</span>
-      <span><a class="link" href="/driver.html">Driver portal</a></span>
+      <nav class="site-footer__links" aria-label="Footer">
+        <a href="/booking.html">Reserve</a>
+        <a href="/dashboard.html">Dispatch</a>
+        <a href="/driver.html">Chauffeur portal</a>
+      </nav>
+
+      <div class="site-footer__meta">
+        <span>New York · New Jersey</span>
+        <details class="demo-drawer">
+          <summary>Demo tools</summary>
+          <div class="demo-drawer__body">
+            <p>
+              Add three sample reservations to preview the dispatcher dashboard. They are stored
+              in PostgreSQL and survive server restarts.
+            </p>
+            <button id="seed" class="btn" type="button">Seed demo bookings</button>
+            <div id="seed-result" class="seed-result" role="status" aria-live="polite" hidden></div>
+          </div>
+        </details>
+        <span>© 2026 VeloFox Dispatch</span>
+      </div>
     </footer>
   </main>
 
@@ -887,5 +957,6 @@
 
     seedBtn.addEventListener('click', seedDemoBookings);
   </script>
+  <script src="/js/premium.js"></script>
 </body>
 </html>
