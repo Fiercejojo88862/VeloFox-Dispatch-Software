@@ -27,7 +27,7 @@
         <p class="eyebrow">Restricted operations access</p>
         <h1 id="page-heading">The dispatch desk starts here.</h1>
         <p class="intro-copy">Sign in to coordinate reservations, fleet assignments, drivers, and live journey status.</p>
-        <ul class="trust-list"><li>Role-restricted dashboard</li><li>HTTP-only secured sessions</li><li>Invite-only account creation</li></ul>
+        <ul class="trust-list"><li>Role-restricted dashboard</li><li>Secure HTTPS sessions with role-based permissions</li><li>Live dispatch board with bookings and driver assignments</li><li>Access to your fleet, drivers and client bookings</li><li>Real-time alerts and operational notifications</li></ul>
       </div>
 
       <div class="auth-card">
@@ -55,7 +55,7 @@
             <div class="field"><label for="register-name">Full name</label><input id="register-name" name="name" type="text" maxlength="120" autocomplete="name" required></div>
             <div class="field"><label for="register-email">Work email</label><input id="register-email" name="email" type="email" maxlength="254" autocomplete="email" required></div>
             <div class="field"><label for="register-password">Password</label><input id="register-password" name="password" type="password" minlength="10" maxlength="128" autocomplete="new-password" required><p class="hint">Use at least 10 characters.</p></div>
-            <div class="field"><label for="invite-code">Dispatcher access code</label><input id="invite-code" name="inviteCode" type="password" maxlength="200" autocomplete="one-time-code" required></div>
+            <div class="field"><label for="invite-code">Dispatcher access code</label><input id="invite-code" name="inviteCode" type="password" maxlength="200" autocomplete="one-time-code" required><p class="hint">Use the code in your given email.</p></div>
             <button class="submit" type="submit">Create dispatcher account</button>
             <p class="form-message" role="alert" aria-live="polite"></p>
           </form>

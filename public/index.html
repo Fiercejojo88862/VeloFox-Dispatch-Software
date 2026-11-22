@@ -638,10 +638,6 @@
   </header>
 
   <section class="hero-lux" aria-labelledby="hero-heading">
-    <span class="hero-lux__status">
-      <span class="status-dot" aria-hidden="true"></span>
-      Dispatch desk online
-    </span>
     <div class="hero-lux__inner">
       <span class="eyebrow">Luxury chauffeur service · New York &amp; New Jersey</span>
       <h1 id="hero-heading">Where timing is <em>everything</em></h1>
@@ -774,7 +770,6 @@
       <div class="section-head reveal">
         <span class="eyebrow">Kind words</span>
         <h2 id="testimonials-heading">Rides people remember</h2>
-        <p>From red-eyes to weddings — every story below is a real trip the dispatch team moved.</p>
       </div>
 
       <div class="testimonial-grid">
@@ -812,7 +807,7 @@
 
     <footer class="site-footer">
       <div class="site-footer__brand">
-        <span class="mark mark--sm" aria-hidden="true">VF</span>
+        <img class="topbar-logo" src="/images/VeloFox.png" alt="VeloFox">
         <span>
           <span class="site-footer__name">VeloFox Dispatch</span>
           <span class="site-footer__sub">Luxury transport logistics</span>
@@ -827,17 +822,6 @@
 
       <div class="site-footer__meta">
         <span>New York · New Jersey</span>
-        <details class="demo-drawer">
-          <summary>Demo tools</summary>
-          <div class="demo-drawer__body">
-            <p>
-              Add three sample reservations to preview the dispatcher dashboard. They are stored
-              in PostgreSQL and survive server restarts.
-            </p>
-            <button id="seed" class="btn" type="button">Seed demo bookings</button>
-            <div id="seed-result" class="seed-result" role="status" aria-live="polite" hidden></div>
-          </div>
-        </details>
         <span>© 2026 VeloFox Dispatch</span>
       </div>
     </footer>
@@ -1004,7 +988,6 @@
       seedBtn.textContent = created.length > 0 ? 'Seed again' : 'Seed demo bookings';
     }
 
-    seedBtn.addEventListener('click', seedDemoBookings);
   </script>
   <script src="/js/premium.js"></script>
 </body>
