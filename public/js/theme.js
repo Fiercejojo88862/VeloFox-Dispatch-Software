@@ -30,19 +30,31 @@
       button.setAttribute('aria-label', `Switch to ${next} mode`);
       button.setAttribute('aria-pressed', String(theme === 'light'));
     }
+    root.dispatchEvent(new CustomEvent('velofox:theme', { detail: { theme } }));
   }
+
+  function set(theme) {
+    if (theme !== 'light' && theme !== 'dark') return;
+    try { localStorage.setItem(STORAGE_KEY, theme); } catch { /* storage unavailable */ }
+    apply(theme);
+  }
+
+  window.VeloFoxTheme = {
+    get() { return root.dataset.theme || preferredTheme(); },
+    set,
+    toggle() { set(this.get() === 'light' ? 'dark' : 'light'); },
+  };
 
   apply(preferredTheme());
 
   window.addEventListener('DOMContentLoaded', () => {
-    if (document.querySelector('.theme-toggle')) return;
+    /* Pages with the accessibility menu own the theme controls. */
+    if (document.querySelector('.a11y-menu') || document.querySelector('.theme-toggle')) return;
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'theme-toggle';
     button.addEventListener('click', () => {
-      const next = root.dataset.theme === 'light' ? 'dark' : 'light';
-      try { localStorage.setItem(STORAGE_KEY, next); } catch { /* storage unavailable */ }
-      apply(next);
+      set(root.dataset.theme === 'light' ? 'dark' : 'light');
     });
     document.body.append(button);
     apply(root.dataset.theme || preferredTheme());

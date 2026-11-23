@@ -4,10 +4,11 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b0b0b">
-  <title>VeloFox Dispatch — The Fleet</title>
+  <title data-i18n="doc.title.fleet">VeloFox Dispatch — The Fleet</title>
   <meta name="description" content="The luxury vehicle fleet backing VeloFox Dispatch — sedan, SUV, Sprinter, and stretch limousine options with Chauffeur details.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="/a11y.css">
   <script src="/js/theme.js"></script>
   <script>document.documentElement.classList.add('has-premium');</script>
   <style>
@@ -437,15 +438,15 @@
       <div class="mark" aria-hidden="true"><img class="topbar-logo" src="/images/VeloFox.png" alt="VeloFox"></div>
       <div>
         <div class="brand-name">VeloFox Dispatch</div>
-        <div class="brand-sub">The Fleet — luxury transport logistics</div>
+        <div class="brand-sub" data-i18n="fleet.brandSub">The Fleet — luxury transport logistics</div>
       </div>
     </a>
     <div class="topbar-actions">
-      <nav class="topbar-nav" aria-label="Primary">
-        <a class="nav-link" href="/">Home</a>
-        <a class="nav-link" href="/fleet.html" aria-current="page">The Fleet</a>
-        <a class="nav-link" href="/booking.html">Reserve</a>
-        <a class="nav-link" href="/login.html">Sign in</a>
+      <nav class="topbar-nav" aria-label="Primary" data-i18n-aria-label="nav.site">
+        <a class="nav-link" href="/" data-i18n="nav.home">Home</a>
+        <a class="nav-link" href="/fleet.html" aria-current="page" data-i18n="nav.fleet">The Fleet</a>
+        <a class="nav-link" href="/booking.html" data-i18n="nav.reserve">Reserve</a>
+        <a class="nav-link" href="/login.html" data-i18n="nav.signin">Sign in</a>
       </nav>
     </div>
   </header>
@@ -454,14 +455,14 @@
     <section class="fleet-showcase" aria-labelledby="fleet-heading">
       <div class="fleet-head">
         <div>
-          <span class="eyebrow">Our fleet</span>
-          <h2 id="fleet-heading">A vehicle for every arrival</h2>
-          <p>
+          <span class="eyebrow" data-i18n="fleet.eyebrow">Our fleet</span>
+          <h2 id="fleet-heading" data-i18n="fleet.title">A vehicle for every arrival</h2>
+          <p data-i18n="fleet.lead">
             Every class is Chauffeur-driven, detailed before pickup, and matched to your party and
             luggage. Choose a vehicle to carry it straight into the reservation form.
           </p>
         </div>
-        <a class="link" href="/booking.html">Reserve a ride <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="link" href="/booking.html"><span data-i18n="fleet.reserveLink">Reserve a ride</span> <span class="arrow" aria-hidden="true">→</span></a>
       </div>
 
       <div class="fleet-grid">
@@ -473,11 +474,11 @@
               width="1200" height="800" loading="lazy" decoding="async">
           </div>
           <div class="fleet-card__body">
-            <span class="fleet-card__cap">Up to 3 passengers</span>
-            <h3>Luxury Sedan</h3>
-            <p>Quiet, leather-trimmed Mercedes S-Class comfort for airport transfers and executive meetings.</p>
+            <span class="fleet-card__cap" data-i18n="fleet.cap3">Up to 3 passengers</span>
+            <h3 data-i18n="fleet.sedan">Luxury Sedan</h3>
+            <p data-i18n="fleet.sedanDesc">Quiet, leather-trimmed Mercedes S-Class comfort for airport transfers and executive meetings.</p>
             <a class="fleet-select" href="/booking.html?vehicle=sedan#booking-form">
-              Reserve <span class="arrow" aria-hidden="true">→</span>
+              <span data-i18n="fleet.reserve">Reserve</span> <span class="arrow" aria-hidden="true">→</span>
             </a>
           </div>
         </article>
@@ -490,11 +491,11 @@
               width="1200" height="800" loading="lazy" decoding="async">
           </div>
           <div class="fleet-card__body">
-            <span class="fleet-card__cap">Up to 6 passengers</span>
-            <h3>Cadillac Escalade</h3>
-            <p>Raised seating and generous cargo room for families, ski bags, and extra luggage.</p>
+            <span class="fleet-card__cap" data-i18n="fleet.cap6">Up to 6 passengers</span>
+            <h3 data-i18n="fleet.suv">Cadillac Escalade</h3>
+            <p data-i18n="fleet.suvDesc">Raised seating and generous cargo room for families, ski bags, and extra luggage.</p>
             <a class="fleet-select" href="/booking.html?vehicle=suv#booking-form">
-              Reserve <span class="arrow" aria-hidden="true">→</span>
+              <span data-i18n="fleet.reserve">Reserve</span> <span class="arrow" aria-hidden="true">→</span>
             </a>
           </div>
         </article>
@@ -507,11 +508,11 @@
               width="1200" height="800" loading="lazy" decoding="async">
           </div>
           <div class="fleet-card__body">
-            <span class="fleet-card__cap">Up to 15 passengers</span>
-            <h3>Mercedes Sprinter</h3>
-            <p>Captain chairs and a roomy cabin built for group travel and corporate shuttles.</p>
+            <span class="fleet-card__cap" data-i18n="fleet.cap15">Up to 15 passengers</span>
+            <h3 data-i18n="fleet.sprinter">Mercedes Sprinter</h3>
+            <p data-i18n="fleet.sprinterDesc">Captain chairs and a roomy cabin built for group travel and corporate shuttles.</p>
             <a class="fleet-select" href="/booking.html?vehicle=sprinter#booking-form">
-              Reserve <span class="arrow" aria-hidden="true">→</span>
+              <span data-i18n="fleet.reserve">Reserve</span> <span class="arrow" aria-hidden="true">→</span>
             </a>
           </div>
         </article>
@@ -524,11 +525,11 @@
               width="1200" height="800" loading="lazy" decoding="async">
           </div>
           <div class="fleet-card__body">
-            <span class="fleet-card__cap">Up to 16 passengers</span>
-            <h3>Stretch Limousine</h3>
-            <p>Formal arrivals, weddings, and evenings out with a dedicated Chauffeur.</p>
+            <span class="fleet-card__cap" data-i18n="fleet.cap16">Up to 16 passengers</span>
+            <h3 data-i18n="fleet.limo">Stretch Limousine</h3>
+            <p data-i18n="fleet.limoDesc">Formal arrivals, weddings, and evenings out with a dedicated Chauffeur.</p>
             <a class="fleet-select" href="/booking.html?vehicle=limousine#booking-form">
-              Reserve <span class="arrow" aria-hidden="true">→</span>
+              <span data-i18n="fleet.reserve">Reserve</span> <span class="arrow" aria-hidden="true">→</span>
             </a>
           </div>
         </article>
@@ -537,9 +538,9 @@
 
     <section class="fleet-info" aria-labelledby="fleet-info-heading">
       <div class="fleet-info__head">
-        <span class="eyebrow">Fleet at a glance</span>
-        <h2 id="fleet-info-heading">The vehicles behind every ride</h2>
-        <p>
+        <span class="eyebrow" data-i18n="fleetInfo.eyebrow">Fleet at a glance</span>
+        <h2 id="fleet-info-heading" data-i18n="fleetInfo.title">The vehicles behind every ride</h2>
+        <p data-i18n="fleetInfo.lead">
           Every class is Chauffeur-driven, detailed before pickup, and matched to your party and
           luggage. From the quiet Mercedes S-Class sedan to the stretch Limousine with a dedicated
           Chauffeur, each vehicle is built to carry a moment — on time and in style.
@@ -548,33 +549,33 @@
       <div class="fleet-info__grid">
         <div class="fleet-info__card">
           <span class="fleet-info__num">01</span>
-          <h3>Passenger capacity</h3>
+          <h3 data-i18n="fleetInfo.1.title">Passenger capacity</h3>
           <ul>
-            <li><strong>Luxury Sedan</strong> — up to 3 passengers</li>
-            <li><strong>Cadillac Escalade</strong> — up to 6 passengers</li>
-            <li><strong>Mercedes Sprinter</strong> — up to 15 passengers</li>
-            <li><strong>Stretch Limousine</strong> — up to 16 passengers</li>
+            <li data-i18n-html="fleetInfo.cap.sedan"><strong>Luxury Sedan</strong> — up to 3 passengers</li>
+            <li data-i18n-html="fleetInfo.cap.suv"><strong>Cadillac Escalade</strong> — up to 6 passengers</li>
+            <li data-i18n-html="fleetInfo.cap.sprinter"><strong>Mercedes Sprinter</strong> — up to 15 passengers</li>
+            <li data-i18n-html="fleetInfo.cap.limo"><strong>Stretch Limousine</strong> — up to 16 passengers</li>
           </ul>
         </div>
         <div class="fleet-info__card">
           <span class="fleet-info__num">02</span>
-          <h3>Service modes</h3>
+          <h3 data-i18n="fleetInfo.2.title">Service modes</h3>
           <ul>
-            <li>Point-to-point transfers and executive arrivals</li>
-            <li>Hourly charter with configurable minimums per class</li>
-            <li>Airport arrival — curbside or Meet &amp; Greet</li>
-            <li>Airport departure — with automated wait-time grace periods</li>
-            <li>Multi-stop routing and round-trip service</li>
+            <li data-i18n="fleetInfo.2.a">Point-to-point transfers and executive arrivals</li>
+            <li data-i18n="fleetInfo.2.b">Hourly charter with configurable minimums per class</li>
+            <li data-i18n="fleetInfo.2.c">Airport arrival — curbside or Meet &amp; Greet</li>
+            <li data-i18n="fleetInfo.2.d">Airport departure — with automated wait-time grace periods</li>
+            <li data-i18n="fleetInfo.2.e">Multi-stop routing and round-trip service</li>
           </ul>
         </div>
         <div class="fleet-info__card">
           <span class="fleet-info__num">03</span>
-          <h3>Chauffeur standards</h3>
+          <h3 data-i18n="fleetInfo.3.title">Chauffeur standards</h3>
           <ul>
-            <li>Uniform, professional Chauffeurs with dark-area registration</li>
-            <li>Pre-trip vehicle detailing and inspection checklists</li>
-            <li>Pet-friendly or ADA-accessible vehicles available on request</li>
-            <li>Child seats and special notes — mention them at booking</li>
+            <li data-i18n="fleetInfo.3.a">Uniform, professional Chauffeurs with dark-area registration</li>
+            <li data-i18n="fleetInfo.3.b">Pre-trip vehicle detailing and inspection checklists</li>
+            <li data-i18n="fleetInfo.3.c">Pet-friendly or ADA-accessible vehicles available on request</li>
+            <li data-i18n="fleetInfo.3.d">Child seats and special notes — mention them at booking</li>
           </ul>
         </div>
       </div>
@@ -586,21 +587,23 @@
       <img class="topbar-logo" src="/images/VeloFox.png" alt="VeloFox">
       <span>
         <span class="site-footer__name">VeloFox Dispatch</span>
-        <span class="site-footer__sub">Luxury transport logistics</span>
+        <span class="site-footer__sub" data-i18n="brand.sub">Luxury transport logistics</span>
       </span>
     </div>
 
     <nav class="site-footer__links" aria-label="Footer">
-      <a href="/booking.html">Reserve</a>
-      <a href="/dashboard.html">Dispatch</a>
-      <a href="/driver.html">Chauffeur portal</a>
-      <a href="/">Home</a>
+      <a href="/booking.html" data-i18n="footer.reserve">Reserve</a>
+      <a href="/dashboard.html" data-i18n="footer.dispatch">Dispatch</a>
+      <a href="/driver.html" data-i18n="footer.portal">Chauffeur portal</a>
+      <a href="/" data-i18n="nav.home">Home</a>
     </nav>
 
     <div class="site-footer__meta">
-      <span>New York · New Jersey</span>
-      <span>© 2026 VeloFox Dispatch</span>
+      <span data-i18n="footer.region">New York · New Jersey</span>
+      <span data-i18n="footer.copyright">© 2026 VeloFox Dispatch</span>
     </div>
   </footer>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/a11y.js"></script>
 </body>
 </html>

@@ -97,7 +97,7 @@ html[data-theme="light"] body::after {
 }
 
 /* --------------------------------------------------------------------------
-   Header and reading progress
+   Header
    -------------------------------------------------------------------------- */
 
 .page-home .topbar,
@@ -162,28 +162,6 @@ html[data-theme="light"] .page-booking .topbar.is-scrolled {
 .topbar-nav a:hover::after,
 .topbar-nav a:focus-visible::after {
   transform: scaleX(1);
-  transform-origin: left center;
-}
-
-.scroll-progress {
-  position: fixed;
-  inset: 0 0 auto;
-  z-index: 60;
-  height: 2px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.35s var(--ease-luxe);
-}
-
-.scroll-progress.is-active {
-  opacity: 1;
-}
-
-.scroll-progress span {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, var(--accent) 22%, var(--accent-bright));
-  transform: scaleX(0);
   transform-origin: left center;
 }
 
@@ -560,7 +538,6 @@ html.has-premium .reveal.is-visible {
     translate: none !important;
   }
 
-  .scroll-progress,
   .demo-drawer {
     display: none !important;
   }

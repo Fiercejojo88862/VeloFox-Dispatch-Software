@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0b0b0b">
-  <title>Enterprise Access — VeloFox Dispatch</title>
+  <title data-i18n="doc.title.login">Enterprise Access — VeloFox Dispatch</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/cormorant-garamond-latin.woff2" crossorigin>
   <link rel="stylesheet" href="/theme.css">
@@ -281,6 +281,7 @@
     }
   </style>
   <link rel="stylesheet" href="/premium.css">
+  <link rel="stylesheet" href="/a11y.css">
 </head>
 <body>
   <main class="shell">
@@ -289,17 +290,17 @@
         <span class="brand-mark" aria-hidden="true"><img class="topbar-logo" src="/images/VeloFox.png" alt="VeloFox"></span>
         <span class="brand-copy">
           <span class="brand-name">VeloFox</span>
-          <span class="brand-sub">Executive dispatch</span>
+          <span class="brand-sub" data-i18n="access.brandExec">Executive dispatch</span>
         </span>
       </a>
-      <a class="home-link" href="/">Return home</a>
+      <a class="home-link" href="/" data-i18n="access.home">Return home</a>
     </header>
 
     <section class="access" aria-labelledby="access-heading">
       <div class="intro">
-        <p class="eyebrow">Private operations gateway</p>
-        <h1 id="access-heading">VeloFox Enterprise Access</h1>
-        <p class="intro-copy">Choose your workspace to continue.</p>
+        <p class="eyebrow" data-i18n="login.eyebrow">Private operations gateway</p>
+        <h1 id="access-heading" data-i18n="login.title">VeloFox Enterprise Access</h1>
+        <p class="intro-copy" data-i18n="login.copy">Choose your workspace to continue.</p>
       </div>
 
       <div class="roles" aria-label="Choose your role">
@@ -310,10 +311,10 @@
             </svg>
           </span>
           <span>
-            <h2>Driver</h2>
-            <p>Open your active manifest, update trip progress, and share live location.</p>
+            <h2 data-i18n="login.driver">Driver</h2>
+            <p data-i18n="login.driverDesc">Open your active manifest, update trip progress, and share live location.</p>
           </span>
-          <span class="role-action"><span>Enter driver portal</span><span aria-hidden="true">→</span></span>
+          <span class="role-action"><span data-i18n="login.driverAction">Enter driver portal</span><span aria-hidden="true">→</span></span>
         </a>
 
         <a class="role-card" href="/client-login.html">
@@ -323,10 +324,10 @@
             </svg>
           </span>
           <span>
-            <h2>Client</h2>
-            <p>Reserve executive transportation and share the details of your journey.</p>
+            <h2 data-i18n="login.client">Client</h2>
+            <p data-i18n="login.clientDesc">Reserve executive transportation and share the details of your journey.</p>
           </span>
-          <span class="role-action"><span>Book transportation</span><span aria-hidden="true">→</span></span>
+          <span class="role-action"><span data-i18n="login.clientAction">Book transportation</span><span aria-hidden="true">→</span></span>
         </a>
 
         <a class="role-card" href="/dispatcher-login.html">
@@ -336,26 +337,26 @@
             </svg>
           </span>
           <span>
-            <h2>Dispatcher</h2>
-            <p>Coordinate reservations, fleet assignments, drivers, and live trip status.</p>
+            <h2 data-i18n="login.dispatcher">Dispatcher</h2>
+            <p data-i18n="login.dispatcherDesc">Coordinate reservations, fleet assignments, drivers, and live trip status.</p>
           </span>
-          <span class="role-action"><span>Open dispatch desk</span><span aria-hidden="true">→</span></span>
+          <span class="role-action"><span data-i18n="login.dispatcherAction">Open dispatch desk</span><span aria-hidden="true">→</span></span>
         </a>
       </div>
 
       <div id="driver-access" class="driver-access" aria-hidden="true">
         <div class="driver-panel">
           <div>
-            <p class="eyebrow">Driver verification</p>
-            <h2>Confirm your assignment</h2>
-            <p>Use the Driver ID issued by dispatch. Your active manifest will open automatically.</p>
+            <p class="eyebrow" data-i18n="login.verifyEyebrow">Driver verification</p>
+            <h2 data-i18n="login.verifyTitle">Confirm your assignment</h2>
+            <p data-i18n="login.verifyCopy">Use the Driver ID issued by dispatch. Your active manifest will open automatically.</p>
           </div>
           <form id="driver-form" class="driver-form" novalidate>
-            <label for="driver-id">Driver ID</label>
+            <label for="driver-id" data-i18n="login.driverId">Driver ID</label>
             <div class="input-row">
               <input id="driver-id" name="driverId" type="text" maxlength="50" placeholder="VF-1001"
                 autocomplete="username" autocapitalize="characters" required>
-              <button id="continue-button" class="continue-button" type="submit">Continue securely</button>
+              <button id="continue-button" class="continue-button" type="submit" data-i18n="login.continue">Continue securely</button>
             </div>
             <p id="driver-error" class="form-error" role="alert" aria-live="polite"></p>
           </form>
@@ -364,7 +365,7 @@
 
       <p class="security-note">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
-        Authorized VeloFox access only
+        <span data-i18n="login.security">Authorized VeloFox access only</span>
       </p>
     </section>
   </main>
@@ -435,5 +436,7 @@
       }
     });
   </script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/a11y.js"></script>
 </body>
 </html>

@@ -4,59 +4,60 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b0b0b">
-  <title>Dispatcher Access — VeloFox Dispatch</title>
+  <title data-i18n="doc.title.dispatcher">Dispatcher Access — VeloFox Dispatch</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/cormorant-garamond-latin.woff2" crossorigin>
   <link rel="stylesheet" href="/theme.css">
   <script src="/js/theme.js"></script>
   <link rel="stylesheet" href="/access.css">
   <link rel="stylesheet" href="/premium.css">
+  <link rel="stylesheet" href="/a11y.css">
 </head>
 <body data-role="dispatcher">
   <main class="shell">
     <header class="topbar">
       <a class="brand" href="/">
         <span class="brand-mark" aria-hidden="true"><img class="topbar-logo" src="/images/VeloFox.png" alt="VeloFox"></span>
-        <span class="brand-copy"><span class="brand-name">VeloFox</span><span class="brand-sub">Dispatch operations</span></span>
+        <span class="brand-copy"><span class="brand-name">VeloFox</span><span class="brand-sub" data-i18n="dp.brand">Dispatch operations</span></span>
       </a>
-      <a class="back-link" href="/login.html">All access options</a>
+      <a class="back-link" href="/login.html" data-i18n="access.backAll">All access options</a>
     </header>
 
     <section class="access-layout" aria-labelledby="page-heading">
       <div class="intro">
-        <p class="eyebrow">Restricted operations access</p>
-        <h1 id="page-heading">The dispatch desk starts here.</h1>
-        <p class="intro-copy">Sign in to coordinate reservations, fleet assignments, drivers, and live journey status.</p>
-        <ul class="trust-list"><li>Role-restricted dashboard</li><li>Secure HTTPS sessions with role-based permissions</li><li>Live dispatch board with bookings and driver assignments</li><li>Access to your fleet, drivers and client bookings</li><li>Real-time alerts and operational notifications</li></ul>
+        <p class="eyebrow" data-i18n="dp.eyebrow">Restricted operations access</p>
+        <h1 id="page-heading" data-i18n="dp.title">The dispatch desk starts here.</h1>
+        <p class="intro-copy" data-i18n="dp.copy">Sign in to coordinate reservations, fleet assignments, drivers, and live journey status.</p>
+        <ul class="trust-list"><li data-i18n="dp.trust1">Role-restricted dashboard</li><li data-i18n="dp.trust2">Secure HTTPS sessions with role-based permissions</li><li data-i18n="dp.trust3">Live dispatch board with bookings and driver assignments</li><li data-i18n="dp.trust4">Access to your fleet, drivers and client bookings</li><li data-i18n="dp.trust5">Real-time alerts and operational notifications</li></ul>
       </div>
 
       <div class="auth-card">
         <div class="tabs" role="tablist" aria-label="Dispatcher account">
-          <button class="tab is-active" type="button" data-tab="login" role="tab" aria-selected="true">Sign in</button>
-          <button class="tab" type="button" data-tab="register" role="tab" aria-selected="false">Create login</button>
+          <button class="tab is-active" type="button" data-tab="login" role="tab" aria-selected="true" data-i18n="dp.signin">Sign in</button>
+          <button class="tab" type="button" data-tab="register" role="tab" aria-selected="false" data-i18n="dp.create">Create login</button>
         </div>
 
         <section class="form-view" data-view="login">
-          <h2>Dispatcher sign in</h2>
-          <p class="form-intro">Enter your approved operations account credentials.</p>
+          <h2 data-i18n="dp.signinTitle">Dispatcher sign in</h2>
+          <p class="form-intro" data-i18n="dp.signinIntro">Enter your approved operations account credentials.</p>
           <form class="form" novalidate>
-            <div class="field"><label for="login-email">Work email</label><input id="login-email" name="email" type="email" autocomplete="email" required></div>
-            <div class="field"><span class="field-row"><label for="login-password">Password</label><a class="text-link" href="/forgot-password.html">Forgot password?</a></span><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>
-            <button class="submit" type="submit">Open dispatch dashboard</button>
+            <div class="field"><label for="login-email" data-i18n="dp.email">Work email</label><input id="login-email" name="email" type="email" autocomplete="email" required></div>
+            <div class="field"><span class="field-row"><label for="login-password" data-i18n="dp.password">Password</label><a class="text-link" href="/forgot-password.html" data-i18n="dp.forgot">Forgot password?</a></span><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>
+            <button class="submit" type="submit" data-i18n="dp.submit">Open dispatch dashboard</button>
             <p class="form-message" role="alert" aria-live="polite"></p>
           </form>
         </section>
 
         <section class="form-view" data-view="register" hidden>
-          <h2>Create dispatcher login</h2>
-          <p class="form-intro">New dispatcher accounts require the private access code issued by a VeloFox administrator.</p>
-          <p class="security-callout">For security, the code is checked only by the server and is never stored in this page. Contact your administrator if you were not issued one.</p>
+          <h2 data-i18n="dp.createTitle">Create dispatcher login</h2>
+          <p class="form-intro" data-i18n="dp.createIntro">New dispatcher accounts require the private access code issued by a VeloFox administrator.</p>
+          <p class="security-callout" data-i18n="dp.callout">For security, the code is checked only by the server and is never stored in this page. Contact your administrator if you were not issued one.</p>
           <form class="form" novalidate>
-            <div class="field"><label for="register-name">Full name</label><input id="register-name" name="name" type="text" maxlength="120" autocomplete="name" required></div>
-            <div class="field"><label for="register-email">Work email</label><input id="register-email" name="email" type="email" maxlength="254" autocomplete="email" required></div>
-            <div class="field"><label for="register-password">Password</label><input id="register-password" name="password" type="password" minlength="10" maxlength="128" autocomplete="new-password" required><p class="hint">Use at least 10 characters.</p></div>
-            <div class="field"><label for="invite-code">Dispatcher access code</label><input id="invite-code" name="inviteCode" type="password" maxlength="200" autocomplete="one-time-code" required><p class="hint">Use the code in your given email.</p></div>
-            <button class="submit" type="submit">Create dispatcher account</button>
+            <div class="field"><label for="register-name" data-i18n="dp.name">Full name</label><input id="register-name" name="name" type="text" maxlength="120" autocomplete="name" required></div>
+            <div class="field"><label for="register-email" data-i18n="dp.email">Work email</label><input id="register-email" name="email" type="email" maxlength="254" autocomplete="email" required></div>
+            <div class="field"><label for="register-password" data-i18n="dp.password">Password</label><input id="register-password" name="password" type="password" minlength="10" maxlength="128" autocomplete="new-password" required><p class="hint" data-i18n="cl.hint">Use at least 10 characters.</p></div>
+            <div class="field"><label for="invite-code" data-i18n="dp.code">Dispatcher access code</label><input id="invite-code" name="inviteCode" type="password" maxlength="200" autocomplete="one-time-code" required><p class="hint" data-i18n="dp.codeHint">Use the code in your given email.</p></div>
+            <button class="submit" type="submit" data-i18n="dp.createSubmit">Create dispatcher account</button>
             <p class="form-message" role="alert" aria-live="polite"></p>
           </form>
         </section>
@@ -64,5 +65,7 @@
     </section>
   </main>
   <script src="/account-access.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/a11y.js"></script>
 </body>
 </html>

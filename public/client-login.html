@@ -4,57 +4,58 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b0b0b">
-  <title>Client Access — VeloFox Dispatch</title>
+  <title data-i18n="doc.title.client">Client Access — VeloFox Dispatch</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/cormorant-garamond-latin.woff2" crossorigin>
   <link rel="stylesheet" href="/theme.css">
   <script src="/js/theme.js"></script>
   <link rel="stylesheet" href="/access.css">
   <link rel="stylesheet" href="/premium.css">
+  <link rel="stylesheet" href="/a11y.css">
 </head>
 <body data-role="client">
   <main class="shell">
     <header class="topbar">
       <a class="brand" href="/">
         <span class="brand-mark" aria-hidden="true"><img class="topbar-logo" src="/images/VeloFox.png" alt="VeloFox"></span>
-        <span class="brand-copy"><span class="brand-name">VeloFox</span><span class="brand-sub">Client services</span></span>
+        <span class="brand-copy"><span class="brand-name">VeloFox</span><span class="brand-sub" data-i18n="cl.brand">Client services</span></span>
       </a>
-      <a class="back-link" href="/login.html">All access options</a>
+      <a class="back-link" href="/login.html" data-i18n="access.backAll">All access options</a>
     </header>
 
     <section class="access-layout" aria-labelledby="page-heading">
       <div class="intro">
-        <p class="eyebrow">Private client access</p>
-        <h1 id="page-heading">Your journeys, thoughtfully managed.</h1>
-        <p class="intro-copy">Sign in to review recent trips, see chauffeur details, rate completed journeys, and send feedback directly to VeloFox.</p>
-        <ul class="trust-list"><li>Personal trip history</li><li>Verified driver ratings</li><li>Direct service feedback</li></ul>
+        <p class="eyebrow" data-i18n="cl.eyebrow">Private client access</p>
+        <h1 id="page-heading" data-i18n="cl.title">Your journeys, thoughtfully managed.</h1>
+        <p class="intro-copy" data-i18n="cl.copy">Sign in to review recent trips, see chauffeur details, rate completed journeys, and send feedback directly to VeloFox.</p>
+        <ul class="trust-list"><li data-i18n="cl.trust1">Personal trip history</li><li data-i18n="cl.trust2">Verified driver ratings</li><li data-i18n="cl.trust3">Direct service feedback</li></ul>
       </div>
 
       <div class="auth-card">
         <div class="tabs" role="tablist" aria-label="Client account">
-          <button class="tab is-active" type="button" data-tab="login" role="tab" aria-selected="true">Sign in</button>
-          <button class="tab" type="button" data-tab="register" role="tab" aria-selected="false">Create account</button>
+          <button class="tab is-active" type="button" data-tab="login" role="tab" aria-selected="true" data-i18n="cl.signin">Sign in</button>
+          <button class="tab" type="button" data-tab="register" role="tab" aria-selected="false" data-i18n="cl.create">Create account</button>
         </div>
 
         <section class="form-view" data-view="login">
-          <h2>Welcome back</h2>
-          <p class="form-intro">Enter the email and password connected to your VeloFox client account.</p>
+          <h2 data-i18n="cl.welcome">Welcome back</h2>
+          <p class="form-intro" data-i18n="cl.intro">Enter the email and password connected to your VeloFox client account.</p>
           <form class="form" novalidate>
-            <div class="field"><label for="login-email">Email address</label><input id="login-email" name="email" type="email" autocomplete="email" required></div>
-            <div class="field"><label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>
-            <button class="submit" type="submit">Sign in to client portal</button>
+            <div class="field"><label for="login-email" data-i18n="cl.email">Email address</label><input id="login-email" name="email" type="email" autocomplete="email" required></div>
+            <div class="field"><label for="login-password" data-i18n="cl.password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>
+            <button class="submit" type="submit" data-i18n="cl.submit">Sign in to client portal</button>
             <p class="form-message" role="alert" aria-live="polite"></p>
           </form>
         </section>
 
         <section class="form-view" data-view="register" hidden>
-          <h2>Create your account</h2>
-          <p class="form-intro">Use the same email you provide when reserving transportation so future trips appear automatically.</p>
+          <h2 data-i18n="cl.createTitle">Create your account</h2>
+          <p class="form-intro" data-i18n="cl.createIntro">Use the same email you provide when reserving transportation so future trips appear automatically.</p>
           <form class="form" novalidate>
-            <div class="field"><label for="register-name">Full name</label><input id="register-name" name="name" type="text" maxlength="120" autocomplete="name" required></div>
-            <div class="field"><label for="register-email">Email address</label><input id="register-email" name="email" type="email" maxlength="254" autocomplete="email" required></div>
-            <div class="field"><label for="register-password">Password</label><input id="register-password" name="password" type="password" minlength="10" maxlength="128" autocomplete="new-password" required><p class="hint">Use at least 10 characters.</p></div>
-            <button class="submit" type="submit">Create client account</button>
+            <div class="field"><label for="register-name" data-i18n="cl.name">Full name</label><input id="register-name" name="name" type="text" maxlength="120" autocomplete="name" required></div>
+            <div class="field"><label for="register-email" data-i18n="cl.email">Email address</label><input id="register-email" name="email" type="email" maxlength="254" autocomplete="email" required></div>
+            <div class="field"><label for="register-password" data-i18n="cl.password">Password</label><input id="register-password" name="password" type="password" minlength="10" maxlength="128" autocomplete="new-password" required><p class="hint" data-i18n="cl.hint">Use at least 10 characters.</p></div>
+            <button class="submit" type="submit" data-i18n="cl.createSubmit">Create client account</button>
             <p class="form-message" role="alert" aria-live="polite"></p>
           </form>
         </section>
@@ -62,5 +63,7 @@
     </section>
   </main>
   <script src="/account-access.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/a11y.js"></script>
 </body>
 </html>

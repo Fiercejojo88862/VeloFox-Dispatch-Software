@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Client Booking Portal — VeloFox Dispatch</title>
+  <title data-i18n="doc.title.booking">Client Booking Portal — VeloFox Dispatch</title>
   <meta name="description" content="Request a chauffeured ride with VeloFox Dispatch. Choose your vehicle class, pickup time, and passenger details.">
   <meta name="theme-color" content="#0b0b0b">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -693,6 +693,7 @@
     }
   </style>
   <link rel="stylesheet" href="/premium.css">
+  <link rel="stylesheet" href="/a11y.css">
 </head>
 <body class="page-booking">
   <header class="topbar">
@@ -700,33 +701,33 @@
       <div class="mark" aria-hidden="true"><img class="topbar-logo" src="/images/VeloFox.png" alt="VeloFox"></div>
       <div>
         <div class="brand-name">VeloFox Dispatch</div>
-        <div class="brand-sub">Luxury transport logistics</div>
+        <div class="brand-sub" data-i18n="brand.sub">Luxury transport logistics</div>
       </div>
     </a>
-    <nav class="topnav" aria-label="Site">
-      <a href="/">Home</a>
-      <a href="/fleet.html">The Fleet</a>
-      <a href="/login.html">Sign in</a>
+    <nav class="topnav" aria-label="Site" data-i18n-aria-label="nav.site">
+      <a href="/" data-i18n="nav.home">Home</a>
+      <a href="/fleet.html" data-i18n="nav.fleet">The fleet</a>
+      <a href="/login.html" data-i18n="nav.signin">Sign in</a>
     </nav>
   </header>
 
   <section class="hero-lux" aria-labelledby="portal-heading">
     <span class="hero-lux__status">
       <span class="status-dot" aria-hidden="true"></span>
-      Booking open · 24/7 dispatch
+      <span data-i18n="booking.status">Booking open · 24/7 dispatch</span>
     </span>
     <div class="hero-lux__inner">
-      <span class="eyebrow">Client portal</span>
-      <h1 id="portal-heading">Reserve your <em>chauffeur</em></h1>
-      <p class="lead">
+      <span class="eyebrow" data-i18n="booking.eyebrow">Client portal</span>
+      <h1 id="portal-heading" data-i18n-html="booking.title">Reserve your <em>chauffeur</em></h1>
+      <p class="lead" data-i18n="booking.lead">
         Tell us where you need to be and when. A dispatcher reviews every request and confirms
         your vehicle and chauffeur before pickup.
       </p>
       <div class="hero-lux__actions">
         <a class="btn btn-primary" href="#booking-form" data-magnetic>
-          Begin a reservation <span class="arrow" aria-hidden="true">→</span>
+          <span data-i18n="booking.cta1">Begin a reservation</span> <span class="arrow" aria-hidden="true">→</span>
         </a>
-        <a class="btn" href="/fleet.html" data-magnetic>Compare the fleet</a>
+        <a class="btn" href="/fleet.html" data-magnetic data-i18n="booking.cta2">Compare the fleet</a>
       </div>
     </div>
   </section>
@@ -734,84 +735,84 @@
   <main>
     <div class="layout reveal">
       <section class="panel" aria-labelledby="form-heading">
-        <h2 id="form-heading">Reservation details</h2>
+        <h2 id="form-heading" data-i18n="booking.form.heading">Reservation details</h2>
 
         <div id="banner" class="banner" role="status" aria-live="polite" hidden></div>
 
         <form id="booking-form" novalidate>
           <div class="form-grid">
             <div class="field">
-              <label for="clientName">Passenger name</label>
+              <label for="clientName" data-i18n="booking.name">Passenger name</label>
               <input id="clientName" name="clientName" type="text" maxlength="120"
-                autocomplete="name" placeholder="Full name" aria-describedby="clientName-error" required>
+                autocomplete="name" placeholder="Full name" data-i18n-placeholder="booking.ph.name" aria-describedby="clientName-error" required>
               <p class="field-error" id="clientName-error" hidden></p>
             </div>
 
             <div class="field">
-              <label for="clientEmail">Contact email</label>
+              <label for="clientEmail" data-i18n="booking.email">Contact email</label>
               <input id="clientEmail" name="clientEmail" type="email" maxlength="254"
                 autocomplete="email" placeholder="name@example.com" aria-describedby="clientEmail-error" required>
               <p class="field-error" id="clientEmail-error" hidden></p>
             </div>
 
             <div class="field full">
-              <label for="pickupLocation">Pickup location</label>
+              <label for="pickupLocation" data-i18n="booking.pickup">Pickup location</label>
               <input
                 id="pickupLocation"
                 name="pickupLocation"
                 type="text"
                 maxlength="200"
                 autocomplete="off"
-                placeholder="e.g. The Peninsula, Midtown"
+                placeholder="e.g. The Peninsula, Midtown" data-i18n-placeholder="booking.ph.pickup"
                 aria-describedby="pickupLocation-error"
                 required>
               <p class="field-error" id="pickupLocation-error" hidden></p>
             </div>
 
             <div class="field full">
-              <label for="dropoffLocation">Drop-off location</label>
+              <label for="dropoffLocation" data-i18n="booking.dropoff">Drop-off location</label>
               <input
                 id="dropoffLocation"
                 name="dropoffLocation"
                 type="text"
                 maxlength="200"
                 autocomplete="off"
-                placeholder="e.g. Teterboro Airport (TEB)"
+                placeholder="e.g. Teterboro Airport (TEB)" data-i18n-placeholder="booking.ph.dropoff"
                 aria-describedby="dropoffLocation-error"
                 required>
               <p class="field-error" id="dropoffLocation-error" hidden></p>
             </div>
 
             <div class="field">
-              <label for="pickupDateTime">Date &amp; time</label>
+              <label for="pickupDateTime" data-i18n="booking.datetime">Date &amp; time</label>
               <input
                 id="pickupDateTime"
                 name="pickupDateTime"
                 type="datetime-local"
                 aria-describedby="pickupDateTime-error pickupDateTime-hint"
                 required>
-              <p class="hint" id="pickupDateTime-hint">Local time, at least a few minutes from now.</p>
+              <p class="hint" id="pickupDateTime-hint" data-i18n="booking.hint.datetime">Local time, at least a few minutes from now.</p>
               <p class="field-error" id="pickupDateTime-error" hidden></p>
             </div>
 
             <div class="field">
-              <label for="vehicleType">Vehicle type</label>
+              <label for="vehicleType" data-i18n="booking.vehicle">Vehicle type</label>
               <select
                 id="vehicleType"
                 name="vehicleType"
                 aria-describedby="vehicleType-error"
                 required>
-                <option value="" selected disabled>Select a vehicle class</option>
-                <option value="sedan">Sedan</option>
-                <option value="suv">SUV</option>
-                <option value="sprinter">Sprinter</option>
-                <option value="limousine">Limousine</option>
+                <option value="" selected disabled data-i18n="booking.option.vehicle">Select a vehicle class</option>
+                <option value="sedan" data-i18n="booking.option.sedan">Sedan</option>
+                <option value="suv" data-i18n="booking.option.suv">SUV</option>
+                <option value="sprinter" data-i18n="booking.option.sprinter">Sprinter</option>
+                <option value="limousine" data-i18n="booking.option.limousine">Limousine</option>
               </select>
               <p class="field-error" id="vehicleType-error" hidden></p>
             </div>
 
             <div class="field">
-              <label for="passengerCount">Passengers</label>
+              <label for="passengerCount" data-i18n="booking.passengers">Passengers</label>
               <input
                 id="passengerCount"
                 name="passengerCount"
@@ -827,85 +828,85 @@
             </div>
 
             <div class="field">
-              <label for="clientPhone">Contact phone</label>
+              <label for="clientPhone" data-i18n="booking.phone">Contact phone</label>
               <input id="clientPhone" name="clientPhone" type="tel" maxlength="30"
-                autocomplete="tel" placeholder="e.g. (201) 555-0142">
+                autocomplete="tel" placeholder="e.g. (201) 555-0142" data-i18n-placeholder="booking.ph.phone">
             </div>
 
             <div class="field">
-              <label for="preferredDriverId">Preferred chauffeur</label>
+              <label for="preferredDriverId" data-i18n="booking.chauffeur">Preferred chauffeur</label>
               <select id="preferredDriverId" name="preferredDriverId">
-                <option value="">No preference</option>
+                <option value="" data-i18n="booking.option.none">No preference</option>
                 <option value="VF-1001">Marcus Vance</option>
                 <option value="VF-1002">David Sterling</option>
                 <option value="VF-1003">Elena Marquez</option>
                 <option value="VF-2004">Naomi Laurent</option>
               </select>
-              <p class="hint">Dispatch will try to honor the request when available.</p>
+              <p class="hint" data-i18n="booking.hint.chauffeur">Dispatch will try to honor the request when available.</p>
             </div>
 
             <div class="field full">
-              <label for="luggageNotes">Luggage details</label>
+              <label for="luggageNotes" data-i18n="booking.luggage">Luggage details</label>
               <textarea id="luggageNotes" name="luggageNotes" maxlength="500"
-                placeholder="Number of bags, oversized or heavy luggage, mobility equipment…"></textarea>
+                placeholder="Number of bags, oversized or heavy luggage, mobility equipment…" data-i18n-placeholder="booking.ph.luggage"></textarea>
             </div>
 
             <div class="field full">
-              <label for="beverageRequest">Beverage request</label>
+              <label for="beverageRequest" data-i18n="booking.beverage">Beverage request</label>
               <input id="beverageRequest" name="beverageRequest" type="text" maxlength="200"
-                placeholder="Still water, sparkling water, coffee, or another preference">
+                placeholder="Still water, sparkling water, coffee, or another preference" data-i18n-placeholder="booking.ph.beverage">
             </div>
 
             <div class="field full">
-              <label for="specialRequests">Special requests</label>
+              <label for="specialRequests" data-i18n="booking.special">Special requests</label>
               <textarea id="specialRequests" name="specialRequests" maxlength="1000"
-                placeholder="Accessibility needs, child seating, meet-and-greet instructions, or other details"></textarea>
+                placeholder="Accessibility needs, child seating, meet-and-greet instructions, or other details" data-i18n-placeholder="booking.ph.special"></textarea>
             </div>
           </div>
 
           <div class="form-foot">
-            <p>Submitting a request does not confirm the ride. Dispatch will follow up to confirm.</p>
-            <button id="submit-btn" class="btn btn-primary" type="submit">Request reservation</button>
+            <p data-i18n="booking.foot.note">Submitting a request does not confirm the ride. Dispatch will follow up to confirm.</p>
+            <button id="submit-btn" class="btn btn-primary" type="submit" data-i18n="booking.submit">Request reservation</button>
           </div>
         </form>
       </section>
 
       <aside class="aside" aria-label="Booking information">
         <section class="panel aside-card" aria-labelledby="process-heading">
-          <h2 id="process-heading">Reservation process</h2>
+          <h2 id="process-heading" data-i18n="booking.process.heading">Reservation process</h2>
           <ol class="process">
             <li>
               <span class="step-no" aria-hidden="true">01</span>
               <div>
-                <h3>Request logged</h3>
-                <p>Your itinerary is time-stamped and queued for dispatch review.</p>
+                <h3 data-i18n="booking.step1">Request logged</h3>
+                <p data-i18n="booking.step1Desc">Your itinerary is time-stamped and queued for dispatch review.</p>
               </div>
             </li>
             <li>
               <span class="step-no" aria-hidden="true">02</span>
               <div>
-                <h3>Dispatch review</h3>
-                <p>A dispatcher verifies routing, timing, and vehicle availability.</p>
+                <h3 data-i18n="booking.step2">Dispatch review</h3>
+                <p data-i18n="booking.step2Desc">A dispatcher verifies routing, timing, and vehicle availability.</p>
               </div>
             </li>
             <li>
               <span class="step-no" aria-hidden="true">03</span>
               <div>
-                <h3>Chauffeur assigned</h3>
-                <p>Vehicle and chauffeur details are attached to your reservation.</p>
+                <h3 data-i18n="booking.step3">Chauffeur assigned</h3>
+                <p data-i18n="booking.step3Desc">Vehicle and chauffeur details are attached to your reservation.</p>
               </div>
             </li>
           </ol>
-          <p class="aside-note">Reservations remain pending until a dispatcher confirms them.</p>
+          <p class="aside-note" data-i18n="booking.aside.note">Reservations remain pending until a dispatcher confirms them.</p>
         </section>
 
         <section class="panel aside-card" aria-labelledby="fleet-heading">
-          <h2 id="fleet-heading">Vehicle classes</h2>
+          <h2 id="fleet-heading" data-i18n="booking.classes.heading">Vehicle classes</h2>
           <dl class="fleet">
-            <div><dt>Sedan</dt><dd>Up to 3</dd></div>
-            <div><dt>SUV</dt><dd>Up to 6</dd></div>
-            <div><dt>Sprinter</dt><dd>Up to 15</dd></div>
-            <div><dt>Limousine</dt><dd>Up to 16</dd></div>
+            <div><dt data-i18n="booking.option.sedan">Sedan</dt><dd data-i18n="booking.classes.3">Up to 3</dd></div>
+            <div><dt data-i18n="booking.option.suv">SUV</dt><dd data-i18n="booking.classes.6">Up to 6</dd></div>
+            <div><dt data-i18n="booking.option.sprinter">Sprinter</dt><dd data-i18n="booking.classes.15">Up to 15</dd></div>
+            <div><dt data-i18n="booking.option.limousine">Limousine</dt><dd data-i18n="booking.classes.16">Up to 16</dd></div>
           </dl>
         </section>
       </aside>
@@ -914,14 +915,14 @@
     <section class="fleet-showcase" id="our-fleet" aria-labelledby="our-fleet-heading">
       <div class="fleet-head reveal">
         <div>
-          <span class="eyebrow">Our fleet</span>
-          <h2 id="our-fleet-heading">Choose your vehicle</h2>
-          <p>
+          <span class="eyebrow" data-i18n="booking.fleet.eyebrow">Our fleet</span>
+          <h2 id="our-fleet-heading" data-i18n="booking.fleet.title">Choose your vehicle</h2>
+          <p data-i18n="booking.fleet.lead">
             Selecting a class fills in the reservation form above — you can still change it before
             submitting.
           </p>
         </div>
-        <a class="link" href="#booking-form">Back to the form <span class="arrow" aria-hidden="true">→</span></a>
+        <a class="link" href="#booking-form"><span data-i18n="booking.fleet.back">Back to the form</span> <span class="arrow" aria-hidden="true">→</span></a>
       </div>
 
       <div class="fleet-grid">
@@ -933,9 +934,9 @@
               width="1200" height="800" loading="lazy" decoding="async" data-tilt-target>
           </div>
           <div class="fleet-card__body">
-            <span class="fleet-card__cap">Up to 3 passengers</span>
-            <h3>Luxury Sedan</h3>
-            <p>Quiet, leather-trimmed Mercedes S-Class comfort for airport transfers and executive meetings.</p>
+            <span class="fleet-card__cap" data-i18n="fleet.cap3">Up to 3 passengers</span>
+            <h3 data-i18n="fleet.sedan">Luxury Sedan</h3>
+            <p data-i18n="fleet.sedanDesc">Quiet, leather-trimmed Mercedes S-Class comfort for airport transfers and executive meetings.</p>
             <button class="fleet-select" type="button" data-select-vehicle="sedan">
               Reserve <span class="arrow" aria-hidden="true">→</span>
             </button>
@@ -950,9 +951,9 @@
               width="1200" height="800" loading="lazy" decoding="async" data-tilt-target>
           </div>
           <div class="fleet-card__body">
-            <span class="fleet-card__cap">Up to 6 passengers</span>
-            <h3>Cadillac Escalade</h3>
-            <p>Raised seating and generous cargo room for families, ski bags, and extra luggage.</p>
+            <span class="fleet-card__cap" data-i18n="fleet.cap6">Up to 6 passengers</span>
+            <h3 data-i18n="fleet.suv">Cadillac Escalade</h3>
+            <p data-i18n="fleet.suvDesc">Raised seating and generous cargo room for families, ski bags, and extra luggage.</p>
             <button class="fleet-select" type="button" data-select-vehicle="suv">
               Reserve <span class="arrow" aria-hidden="true">→</span>
             </button>
@@ -967,9 +968,9 @@
               width="1200" height="800" loading="lazy" decoding="async" data-tilt-target>
           </div>
           <div class="fleet-card__body">
-            <span class="fleet-card__cap">Up to 15 passengers</span>
-            <h3>Mercedes Sprinter</h3>
-            <p>Captain chairs and a roomy cabin built for group travel and corporate shuttles.</p>
+            <span class="fleet-card__cap" data-i18n="fleet.cap15">Up to 15 passengers</span>
+            <h3 data-i18n="fleet.sprinter">Mercedes Sprinter</h3>
+            <p data-i18n="fleet.sprinterDesc">Captain chairs and a roomy cabin built for group travel and corporate shuttles.</p>
             <button class="fleet-select" type="button" data-select-vehicle="sprinter">
               Reserve <span class="arrow" aria-hidden="true">→</span>
             </button>
@@ -984,9 +985,9 @@
               width="1200" height="800" loading="lazy" decoding="async" data-tilt-target>
           </div>
           <div class="fleet-card__body">
-            <span class="fleet-card__cap">Up to 16 passengers</span>
-            <h3>Stretch Limousine</h3>
-            <p>Formal arrivals, weddings, and evenings out with a dedicated chauffeur.</p>
+            <span class="fleet-card__cap" data-i18n="fleet.cap16">Up to 16 passengers</span>
+            <h3 data-i18n="fleet.limo">Stretch Limousine</h3>
+            <p data-i18n="fleet.limoDesc">Formal arrivals, weddings, and evenings out with a dedicated chauffeur.</p>
             <button class="fleet-select" type="button" data-select-vehicle="limousine">
               Reserve <span class="arrow" aria-hidden="true">→</span>
             </button>
@@ -996,8 +997,8 @@
     </section>
 
     <footer>
-      <span><a class="slogan" href="/" style="text-decoration: none;">Where timing is everything</a></span>
-      <span>VeloFox Dispatch Software</span>
+      <span><a class="slogan" href="/" style="text-decoration: none;" data-i18n="booking.footer.slogan">Where timing is everything</a></span>
+      <span data-i18n="booking.footer.name">VeloFox Dispatch Software</span>
     </footer>
   </main>
 
@@ -1008,6 +1009,18 @@
     const VEHICLE_TYPES = ['sedan', 'suv', 'sprinter', 'limousine'];
     const MAX_PASSENGERS = 16;
     const VEHICLE_CAPACITIES = Object.freeze({ sedan: 3, suv: 6, sprinter: 15, limousine: 16 });
+
+    function t(key, values) {
+      const strings = window.VeloFoxStrings || { en: {} };
+      const lang = document.documentElement.lang || 'en';
+      let text = strings[lang]?.[key] ?? strings.en?.[key] ?? key;
+      if (values) {
+        Object.entries(values).forEach(([name, value]) => {
+          text = text.split(`{${name}}`).join(value);
+        });
+      }
+      return text;
+    }
 
     const form = document.getElementById('booking-form');
     const banner = document.getElementById('banner');
@@ -1128,51 +1141,54 @@
       const errors = [];
 
       if (!values.clientName) {
-        errors.push({ input: clientName, message: 'Passenger name is required.' });
+        errors.push({ input: clientName, message: t('booking.err.name') });
       }
 
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.clientEmail)) {
-        errors.push({ input: clientEmail, message: 'Enter a valid contact email.' });
+        errors.push({ input: clientEmail, message: t('booking.err.email') });
       }
 
       if (!values.pickupLocation) {
-        errors.push({ input: pickupLocation, message: 'Pickup location is required.' });
+        errors.push({ input: pickupLocation, message: t('booking.err.pickup') });
       }
 
       if (!values.dropoffLocation) {
-        errors.push({ input: dropoffLocation, message: 'Drop-off location is required.' });
+        errors.push({ input: dropoffLocation, message: t('booking.err.dropoff') });
       }
 
       if (!values.pickupDateTime) {
-        errors.push({ input: pickupDateTime, message: 'Pickup date and time is required.' });
+        errors.push({ input: pickupDateTime, message: t('booking.err.datetime') });
       } else {
         const timestamp = Date.parse(values.pickupDateTime);
         if (Number.isNaN(timestamp)) {
-          errors.push({ input: pickupDateTime, message: 'Enter a valid date and time.' });
+          errors.push({ input: pickupDateTime, message: t('booking.err.datetimeInvalid') });
         } else if (timestamp <= Date.now()) {
-          errors.push({ input: pickupDateTime, message: 'Pickup must be scheduled in the future.' });
+          errors.push({ input: pickupDateTime, message: t('booking.err.datetimeFuture') });
         }
       }
 
       if (!values.vehicleType) {
-        errors.push({ input: vehicleType, message: 'Choose a vehicle class.' });
+        errors.push({ input: vehicleType, message: t('booking.err.vehicle') });
       } else if (!VEHICLE_TYPES.includes(values.vehicleType)) {
-        errors.push({ input: vehicleType, message: 'Choose one of the available vehicle classes.' });
+        errors.push({ input: vehicleType, message: t('booking.err.vehicleInvalid') });
       }
 
       if (!values.passengerCount) {
-        errors.push({ input: passengerCount, message: 'Passenger count is required.' });
+        errors.push({ input: passengerCount, message: t('booking.err.passengers') });
       } else {
         const count = Number(values.passengerCount);
         if (!Number.isInteger(count) || count < 1 || count > MAX_PASSENGERS) {
           errors.push({
             input: passengerCount,
-            message: `Enter a whole number of passengers between 1 and ${MAX_PASSENGERS}.`,
+            message: t('booking.err.passengersRange', { max: MAX_PASSENGERS }),
           });
         } else if (values.vehicleType && count > VEHICLE_CAPACITIES[values.vehicleType]) {
           errors.push({
             input: passengerCount,
-            message: `${values.vehicleType} supports up to ${VEHICLE_CAPACITIES[values.vehicleType]} passengers.`,
+            message: t('booking.err.passengersCapacity', {
+              vehicle: t(`booking.option.${values.vehicleType}`),
+              count: VEHICLE_CAPACITIES[values.vehicleType],
+            }),
           });
         }
       }
@@ -1210,7 +1226,7 @@
         errors.forEach((error) => setFieldError(error.input, error.message));
         showBanner(
           'error',
-          'Please review your reservation',
+          t('booking.banner.reviewTitle'),
           errors.map((error) => error.message),
         );
         errors[0].input.focus();
@@ -1243,8 +1259,8 @@
 
         if (!response.ok) {
           const problems = data && Array.isArray(data.details) ? data.details : [];
-          const summary = (data && data.error) || `The request could not be completed (HTTP ${response.status}).`;
-          showBanner('error', 'Reservation not submitted', problems.length > 0 ? problems : [summary]);
+          const summary = (data && data.error) || t('booking.banner.httpError', { status: response.status });
+          showBanner('error', t('booking.banner.errorTitle'), problems.length > 0 ? problems : [summary]);
           return;
         }
 
@@ -1259,26 +1275,26 @@
         if (reference) {
           const label = document.createElement('span');
           label.className = 'ref-label';
-          label.textContent = 'Reference';
+          label.textContent = t('booking.banner.reference');
 
           const code = document.createElement('code');
           code.textContent = `#${reference}`;
 
-          note.append(label, ' ', code, ' — our dispatcher will confirm shortly.');
+          note.append(label, ' ', code, ` — ${t('booking.banner.confirmShort')}`);
         } else {
-          note.textContent = 'Our dispatcher will confirm your ride shortly.';
+          note.textContent = t('booking.banner.pending');
         }
 
         showBanner(
           'success',
-          'Reservation request received',
+          t('booking.banner.successTitle'),
           [`${data.pickupLocation || values.pickupLocation} → ${data.dropoffLocation || values.dropoffLocation}`,
-            'Your trip is pending dispatcher confirmation.'],
+            t('booking.banner.pending')],
           note,
         );
       } catch {
-        showBanner('error', 'Connection problem', [
-          'We could not reach dispatch. Check your connection and try again.',
+        showBanner('error', t('booking.banner.connectionTitle'), [
+          t('booking.banner.connection'),
         ]);
       } finally {
         setSubmitting(false);
@@ -1344,5 +1360,7 @@
     })();
   </script>
   <script src="/js/premium.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/a11y.js"></script>
 </body>
 </html>

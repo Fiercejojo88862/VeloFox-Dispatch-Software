@@ -64,6 +64,22 @@ html[data-theme="light"] .topbar {
   background-color: rgba(244, 239, 229, 0.92) !important;
 }
 
+/* The sticky header picks up a dark scrolled state in premium.css; keep it
+   light so the brand mark and navigation sit on the page colour. */
+html[data-theme="light"] .page-home .topbar.is-scrolled,
+html[data-theme="light"] .page-booking .topbar.is-scrolled {
+  background-color: rgba(244, 239, 229, 0.96) !important;
+}
+
+/* The statistics band is a dark slab by default; in light mode it should read
+   as part of the page rather than a black bar. */
+html[data-theme="light"] .stats-band {
+  background: linear-gradient(180deg, #fbf8f1, #f4efe5);
+  border-color: var(--line);
+}
+
+html[data-theme="light"] .stat__value { color: var(--gold); }
+
 /* The hero is always a dark photograph, so its contents stay light in both
    themes. Without this, light mode renders dark ink over the car image. */
 html[data-theme="light"] .hero-lux,

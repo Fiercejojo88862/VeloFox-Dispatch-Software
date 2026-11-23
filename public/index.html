@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>VeloFox Dispatch — Luxury Chauffeur Service</title>
+  <title data-i18n="doc.title.home">VeloFox Dispatch — Luxury Chauffeur Service</title>
   <meta name="description" content="Chauffeur-driven airport transfers, executive travel, and special occasions across New York and New Jersey. Request a ride in under a minute.">
   <meta name="theme-color" content="#0b0b0b">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
@@ -439,7 +439,7 @@
       color: var(--accent-bright);
     }
 
-    .stat__suffix { font-size: 0.5em; }
+    .stat__suffix { margin-left: 0.1em; font-size: 0.5em; letter-spacing: 0.02em; }
 
     .stat__label {
       display: block;
@@ -616,6 +616,7 @@
 
   </style>
   <link rel="stylesheet" href="/premium.css">
+  <link rel="stylesheet" href="/a11y.css">
 </head>
 <body class="page-home">
   <header class="topbar">
@@ -623,37 +624,37 @@
       <div class="mark" aria-hidden="true"><img class="topbar-logo" src="/images/VeloFox.png" alt="VeloFox"></div>
       <div>
         <div class="brand-name">VeloFox Dispatch</div>
-        <div class="brand-sub">Luxury transport logistics</div>
+        <div class="brand-sub" data-i18n="brand.sub">Luxury transport logistics</div>
       </div>
     </a>
     <div class="topbar-actions">
-      <nav class="topbar-nav" aria-label="Primary">
-        <a href="/fleet.html">The Fleet</a>
-        <a href="/booking.html">Reserve</a>
-        <a href="/login.html">Sign in</a>
+      <nav class="topbar-nav" aria-label="Primary" data-i18n-aria-label="nav.site">
+        <a href="/fleet.html" data-i18n="nav.fleet">The fleet</a>
+        <a href="/booking.html" data-i18n="nav.reserve">Reserve</a>
+        <a href="/login.html" data-i18n="nav.signin">Sign in</a>
       </nav>
     </div>
   </header>
 
   <section class="hero-lux" aria-labelledby="hero-heading">
     <div class="hero-lux__inner">
-      <span class="eyebrow">Luxury chauffeur service · New York &amp; New Jersey</span>
-      <h1 id="hero-heading">Where timing is <em>everything</em></h1>
-      <p class="lead">
+      <span class="eyebrow" data-i18n="hero.eyebrow">Luxury chauffeur service · New York &amp; New Jersey</span>
+      <h1 id="hero-heading" data-i18n-html="hero.title">Where timing is <em>everything</em></h1>
+      <p class="lead" data-i18n="hero.lead">
         Airport transfers, executive travel, and special occasions handled by professional
         chauffeurs. Request your ride in under a minute and dispatch confirms every detail.
       </p>
       <div class="hero-lux__actions">
         <a class="btn btn-primary" href="/booking.html">
-          Reserve a ride <span class="arrow" aria-hidden="true">→</span>
+          <span data-i18n="hero.ctaPrimary">Reserve a ride</span> <span class="arrow" aria-hidden="true">→</span>
         </a>
-        <a class="btn" href="/fleet.html">View the fleet</a>
+        <a class="btn" href="/fleet.html" data-i18n="hero.ctaSecondary">View the fleet</a>
       </div>
       <ul class="hero-lux__facts">
-        <li><strong>24/7</strong> Dispatch desk</li>
-        <li><strong>EWR · JFK · LGA · TEB</strong> Airport coverage</li>
-        <li><strong>1 – 16</strong> Passengers</li>
-        <li><strong>Chauffeur-driven</strong> Sedan to limousine</li>
+        <li><strong>24/7</strong> <span data-i18n="hero.fact.dispatch">Dispatch desk</span></li>
+        <li><strong>EWR · JFK · LGA · TEB</strong> <span data-i18n="hero.fact.airports">Airport coverage</span></li>
+        <li><strong>1 – 16</strong> <span data-i18n="hero.fact.passengers">Passengers</span></li>
+        <li><strong data-i18n="hero.fact.chauffeurStrong">Chauffeur-driven</strong> <span data-i18n="hero.fact.chauffeur">Sedan to limousine</span></li>
       </ul>
     </div>
   </section>
@@ -662,98 +663,98 @@
     <section class="stats-band" aria-label="VeloFox in numbers">
       <div class="stats-band__grid">
         <div class="stat reveal" style="--i: 0">
-          <span class="stat__value"><span class="stat__count" data-count="3000">0</span><span class="stat__suffix">+</span></span>
-          <span class="stat__label">Chauffeur rides completed</span>
+          <span class="stat__value"><span class="stat__count" data-count="18400">18,400</span><span class="stat__suffix">+</span></span>
+          <span class="stat__label" data-i18n="stats.rides">Chauffeur rides completed</span>
         </div>
         <div class="stat reveal" style="--i: 1">
-          <span class="stat__value"><span class="stat__count" data-count="98">0</span><span class="stat__suffix">%</span></span>
-          <span class="stat__label">Dispatch confirmations</span>
+          <span class="stat__value"><span class="stat__count" data-count="97">97</span><span class="stat__suffix">%</span></span>
+          <span class="stat__label" data-i18n="stats.confirm">Dispatch confirmations</span>
         </div>
         <div class="stat reveal" style="--i: 2">
-          <span class="stat__value"><span class="stat__count" data-count="15">0</span><span class="stat__suffix">min</span></span>
-          <span class="stat__label">Median booking time</span>
+          <span class="stat__value"><span class="stat__count" data-count="14">14</span><span class="stat__suffix">min</span></span>
+          <span class="stat__label" data-i18n="stats.time">Median booking time</span>
         </div>
         <div class="stat reveal" style="--i: 3">
-          <span class="stat__value"><span class="stat__count" data-count="2400">0</span><span class="stat__suffix">+</span></span>
-          <span class="stat__label">Corporate clients</span>
+          <span class="stat__value"><span class="stat__count" data-count="2100">2,100</span><span class="stat__suffix">+</span></span>
+          <span class="stat__label" data-i18n="stats.corporate">Corporate accounts</span>
         </div>
       </div>
     </section>
 
     <section class="system-info" aria-labelledby="system-info-heading">
       <div class="system-info__head">
-        <span class="eyebrow">The dispatch system</span>
-        <h2 id="system-info-heading">Every ride, end to end</h2>
-        <p>VeloFox Dispatch is the logistics platform that connects clients with a Chauffeur network: instant quotes, live bookings, GPS tracking, automated payments, and Chauffeur settlement — built for the port of New York and New Jersey.</p>
+        <span class="eyebrow" data-i18n="system.eyebrow">The dispatch system</span>
+        <h2 id="system-info-heading" data-i18n="system.title">Every ride, end to end</h2>
+        <p data-i18n="system.lead">VeloFox Dispatch is the logistics platform that connects clients with a Chauffeur network: instant quotes, live bookings, GPS tracking, automated payments, and Chauffeur settlement — built for the port of New York and New Jersey.</p>
       </div>
       <div class="system-info__grid">
         <div class="system-info__card">
           <span class="system-info__num">01</span>
-          <h3>Booking layer</h3>
-          <p>Instant quotes, saved addresses (EWR, JFK, LGA, TEB), special requests, and one-click reservation from the web.</p>
+          <h3 data-i18n="system.1.title">Booking layer</h3>
+          <p data-i18n="system.1.desc">Instant quotes, saved addresses (EWR, JFK, LGA, TEB), special requests, and one-click reservation from the web.</p>
         </div>
         <div class="system-info__card">
           <span class="system-info__num">02</span>
-          <h3>Dispatch board</h3>
-          <p>Live board with vehicle and Chauffeur assignments, GPS positions, and real-time conflict detection.</p>
+          <h3 data-i18n="system.2.title">Dispatch board</h3>
+          <p data-i18n="system.2.desc">Live board with vehicle and Chauffeur assignments, GPS positions, and real-time conflict detection.</p>
         </div>
         <div class="system-info__card">
           <span class="system-info__num">03</span>
-          <h3>Fleet management</h3>
-          <p>Four vehicle classes, automated drive-time and deadhead calculations, maintenance and compliance alerts.</p>
+          <h3 data-i18n="system.3.title">Fleet management</h3>
+          <p data-i18n="system.3.desc">Four vehicle classes, automated drive-time and deadhead calculations, maintenance and compliance alerts.</p>
         </div>
         <div class="system-info__card">
           <span class="system-info__num">04</span>
-          <h3>Ride lifecycle</h3>
-          <p>Live flight and pickup monitoring, geofencing on arrival, shareable tracking links, and trip receipts.</p>
+          <h3 data-i18n="system.4.title">Ride lifecycle</h3>
+          <p data-i18n="system.4.desc">Live flight and pickup monitoring, geofencing on arrival, shareable tracking links, and trip receipts.</p>
         </div>
         <div class="system-info__card">
           <span class="system-info__num">05</span>
-          <h3>Payments and accounting</h3>
-          <p>Card vaulting, automatic wait-time and surcharge calculation, gratuities, and PDF itemized receipts.</p>
+          <h3 data-i18n="system.5.title">Payments and accounting</h3>
+          <p data-i18n="system.5.desc">Card vaulting, automatic wait-time and surcharge calculation, gratuities, and PDF itemized receipts.</p>
         </div>
         <div class="system-info__card">
           <span class="system-info__num">06</span>
-          <h3>Ride network</h3>
-          <p>Opt into the Chauffeur network or let partners farm trips out — with margin tracking and status updates back to them.</p>
+          <h3 data-i18n="system.6.title">Ride network</h3>
+          <p data-i18n="system.6.desc">Opt into the Chauffeur network or let partners farm trips out — with margin tracking and status updates back to them.</p>
         </div>
       </div>
     </section>
 
     <section class="testimonials" aria-labelledby="testimonials-heading">
       <div class="section-head reveal">
-        <span class="eyebrow">Kind words</span>
-        <h2 id="testimonials-heading">Rides people remember</h2>
+        <span class="eyebrow" data-i18n="testimonials.eyebrow">Guest book</span>
+        <h2 id="testimonials-heading" data-i18n="testimonials.title">From the back seat</h2>
       </div>
 
       <div class="testimonial-grid">
         <figure class="testimonial reveal" data-spotlight style="--i: 0">
           <blockquote>
-            <p>“Picked up our family at Newark before the stroller even cleared the trunk. Silent, leather-trimmed, and waiting before our 6:40 AM flight taxied.”</p>
+            <p data-i18n="testimonials.q1">“Picked up our family at Newark before the stroller even cleared the trunk. Silent, leather-trimmed, and waiting before our 6:40 AM flight taxied.”</p>
           </blockquote>
           <figcaption>
             <span class="testimonial__name">Sarah Mitchell</span>
-            <span class="testimonial__meta">Family trip · Newark to Hudson Yards</span>
+            <span class="testimonial__meta" data-i18n="testimonials.meta1">Family trip · Newark to Hudson Yards</span>
           </figcaption>
         </figure>
 
         <figure class="testimonial reveal" data-spotlight style="--i: 1">
           <blockquote>
-            <p>“Chartered our wedding car from the church steps to the venue. The stretch limo did half the romance by itself.”</p>
+            <p data-i18n="testimonials.q2">“Chartered our wedding car from the church steps to the venue. The stretch limo did half the romance by itself.”</p>
           </blockquote>
           <figcaption>
             <span class="testimonial__name">Daniel &amp; Priya Anand</span>
-            <span class="testimonial__meta">Wedding · Hudson County to Manhattan</span>
+            <span class="testimonial__meta" data-i18n="testimonials.meta2">Wedding · Hudson County to Manhattan</span>
           </figcaption>
         </figure>
 
         <figure class="testimonial reveal" data-spotlight style="--i: 2">
           <blockquote>
-            <p>“Three corporate stops across Manhattan in one afternoon, and our executives still landed on time. Flawless coordination.”</p>
+            <p data-i18n="testimonials.q3">“Three corporate stops across Manhattan in one afternoon, and our executives still landed on time. Flawless coordination.”</p>
           </blockquote>
           <figcaption>
             <span class="testimonial__name">Elena Ruiz</span>
-            <span class="testimonial__meta">Corporate shuttle · Manhattan</span>
+            <span class="testimonial__meta" data-i18n="testimonials.meta3">Corporate shuttle · Manhattan</span>
           </figcaption>
         </figure>
       </div>
@@ -761,44 +762,44 @@
 
     <section class="software-preview" aria-labelledby="software-heading">
       <div class="section-head reveal">
-        <span class="eyebrow">Inside the platform</span>
-        <h2 id="software-heading">Built for the people moving every ride</h2>
-        <p class="software-preview__intro">A look at the tools behind the service — from live dispatch and fleet telemetry to the chauffeur manifest and the client trip portal.</p>
+        <span class="eyebrow" data-i18n="software.eyebrow">Inside the platform</span>
+        <h2 id="software-heading" data-i18n="software.title">Built for the people moving every ride</h2>
+        <p class="software-preview__intro" data-i18n="software.lead">A look at the tools behind the service — from live dispatch and fleet telemetry to the chauffeur manifest and the client trip portal.</p>
       </div>
 
       <div class="software-grid">
         <figure class="software-shot reveal" style="--i: 0">
           <div class="software-shot__frame">
-            <img src="/assets/screenshots/dispatcher-dashboard.webp" alt="VeloFox dispatcher dashboard with live booking totals and a fleet telemetry map" width="1200" height="750" loading="lazy" decoding="async">
+            <img src="/assets/screenshots/dispatcher-dashboard.webp" data-i18n-alt="software.1.alt" alt="VeloFox dispatcher dashboard with live booking totals and a fleet telemetry map" width="1200" height="750" loading="lazy" decoding="async">
           </div>
           <figcaption>
-            <span class="software-shot__num">01 · Dispatch</span>
-            <h3>Command dashboard</h3>
-            <p>Live booking status, fleet GPS, and assignment tools in one command view.</p>
+            <span class="software-shot__num" data-i18n="software.1.num">01 · Dispatch</span>
+            <h3 data-i18n="software.1.title">Command dashboard</h3>
+            <p data-i18n="software.1.desc">Live booking status, fleet GPS, and assignment tools in one command view.</p>
           </figcaption>
         </figure>
 
         <figure class="software-shot reveal" style="--i: 1">
-          <a class="software-shot__frame" href="/driver.html" aria-label="Open the chauffeur portal">
-            <img src="/assets/screenshots/chauffeur-portal.webp" alt="VeloFox chauffeur portal showing an active trip manifest with pickup and drop-off details" width="1200" height="750" loading="lazy" decoding="async">
-            <span class="software-shot__view">Open portal →</span>
+          <a class="software-shot__frame" href="/driver.html" data-i18n-aria-label="software.2.aria" aria-label="Open the chauffeur portal">
+            <img src="/assets/screenshots/chauffeur-portal.webp" data-i18n-alt="software.2.alt" alt="VeloFox chauffeur portal showing an active trip manifest with pickup and drop-off details" width="1200" height="750" loading="lazy" decoding="async">
+            <span class="software-shot__view" data-i18n="software.view">Open portal →</span>
           </a>
           <figcaption>
-            <span class="software-shot__num">02 · Chauffeur</span>
-            <h3>Driver manifest</h3>
-            <p>Assigned trips, pickup details, and status updates synced straight to dispatch.</p>
+            <span class="software-shot__num" data-i18n="software.2.num">02 · Chauffeur</span>
+            <h3 data-i18n="software.2.title">Driver manifest</h3>
+            <p data-i18n="software.2.desc">Assigned trips, pickup details, and status updates synced straight to dispatch.</p>
           </figcaption>
         </figure>
 
         <figure class="software-shot reveal" style="--i: 2">
-          <a class="software-shot__frame" href="/client.html" aria-label="Open the client portal">
-            <img src="/assets/screenshots/client-portal.webp" alt="VeloFox client portal listing recent trips with vehicles, drivers, and route details" width="1200" height="750" loading="lazy" decoding="async">
-            <span class="software-shot__view">Open portal →</span>
+          <a class="software-shot__frame" href="/client.html" data-i18n-aria-label="software.3.aria" aria-label="Open the client portal">
+            <img src="/assets/screenshots/client-portal.webp" data-i18n-alt="software.3.alt" alt="VeloFox client portal listing recent trips with vehicles, drivers, and route details" width="1200" height="750" loading="lazy" decoding="async">
+            <span class="software-shot__view" data-i18n="software.view">Open portal →</span>
           </a>
           <figcaption>
-            <span class="software-shot__num">03 · Client</span>
-            <h3>Trip portal</h3>
-            <p>Self-service ride history, receipts, and feedback — no phone call needed.</p>
+            <span class="software-shot__num" data-i18n="software.3.num">03 · Client</span>
+            <h3 data-i18n="software.3.title">Trip portal</h3>
+            <p data-i18n="software.3.desc">Self-service ride history, receipts, and feedback — no phone call needed.</p>
           </figcaption>
         </figure>
       </div>
@@ -809,20 +810,20 @@
         <img class="topbar-logo" src="/images/VeloFox.png" alt="VeloFox">
         <span>
           <span class="site-footer__name">VeloFox Dispatch</span>
-          <span class="site-footer__sub">Luxury transport logistics</span>
+          <span class="site-footer__sub" data-i18n="brand.sub">Luxury transport logistics</span>
         </span>
       </div>
 
       <nav class="site-footer__links" aria-label="Footer">
-        <a href="/booking.html">Reserve</a>
-        <a href="/fleet.html">The Fleet</a>
-        <a href="/dashboard.html">Dispatch</a>
-        <a href="/driver.html">Chauffeur portal</a>
+        <a href="/booking.html" data-i18n="footer.reserve">Reserve</a>
+        <a href="/fleet.html" data-i18n="nav.fleet">The fleet</a>
+        <a href="/dashboard.html" data-i18n="footer.dispatch">Dispatch</a>
+        <a href="/driver.html" data-i18n="footer.portal">Chauffeur portal</a>
       </nav>
 
       <div class="site-footer__meta">
-        <span>New York · New Jersey</span>
-        <span>© 2026 VeloFox Dispatch</span>
+        <span data-i18n="footer.region">New York · New Jersey</span>
+        <span data-i18n="footer.copyright">© 2026 VeloFox Dispatch</span>
       </div>
     </footer>
   </main>
@@ -990,5 +991,7 @@
 
   </script>
   <script src="/js/premium.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/a11y.js"></script>
 </body>
 </html>

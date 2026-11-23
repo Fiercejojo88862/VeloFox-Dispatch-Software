@@ -18,26 +18,12 @@
     const topbar = document.querySelector('.topbar');
     const hero = document.querySelector('.hero-lux');
 
-    /* Thin gold reading-progress line. */
-    const progress = document.createElement('div');
-    progress.className = 'scroll-progress';
-    progress.setAttribute('aria-hidden', 'true');
-    const progressFill = document.createElement('span');
-    progress.append(progressFill);
-    document.body.append(progress);
-
     let frame = 0;
 
     function updateOnScroll() {
       if (frame) return;
       frame = window.requestAnimationFrame(() => {
         frame = 0;
-
-        const max = document.documentElement.scrollHeight - window.innerHeight;
-        const ratio = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
-
-        progressFill.style.transform = `scaleX(${ratio})`;
-        progress.classList.toggle('is-active', ratio > 0.01);
 
         if (topbar) topbar.classList.toggle('is-scrolled', window.scrollY > 8);
 
@@ -100,6 +86,15 @@
     /* Animated counters for the stats band. */
     const counters = Array.from(document.querySelectorAll('[data-count]'));
 
+    function formatCount(value) {
+      const rounded = Math.round(value);
+      try {
+        return new Intl.NumberFormat(root.lang || 'en').format(rounded);
+      } catch {
+        return String(rounded);
+      }
+    }
+
     if (counters.length > 0 && !reduceMotion.matches) {
       const counterObserver = new IntersectionObserver(
         (entries) => {
@@ -117,7 +112,7 @@
               const progress = Math.min(1, (now - start) / duration);
               const eased = 1 - Math.pow(1 - progress, 3);
               const current = target * eased;
-              el.textContent = decimals > 0 ? current.toFixed(decimals) : Math.round(current).toString();
+              el.textContent = decimals > 0 ? current.toFixed(decimals) : formatCount(current);
               if (progress < 1) window.requestAnimationFrame(step);
             };
 
@@ -130,9 +125,15 @@
       counters.forEach((el) => counterObserver.observe(el));
     } else {
       counters.forEach((el) => {
-        el.textContent = el.getAttribute('data-count') || '0';
+        el.textContent = formatCount(parseFloat(el.getAttribute('data-count') || '0'));
       });
     }
+
+    document.addEventListener('velofox:language', () => {
+      counters.forEach((el) => {
+        el.textContent = formatCount(parseFloat(el.getAttribute('data-count') || '0'));
+      });
+    });
 
     /* Image tilt inside fleet cards. */
     document.querySelectorAll('[data-tilt]').forEach((card) => {
