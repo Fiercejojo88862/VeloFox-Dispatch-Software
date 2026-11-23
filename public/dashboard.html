@@ -195,9 +195,11 @@
       background: var(--panel);
       padding: 18px 20px;
       border-top: 2px solid transparent;
+      cursor: pointer;
     }
 
     .stat[data-status] { border-top-color: rgba(197, 160, 89, 0.45); }
+    .stat:hover { background: var(--panel-hover); }
 
     .stat-label {
       display: flex;
@@ -1176,6 +1178,23 @@
       render();
     }
 
+    function openBookingsForStatus(status) {
+      if (status === 'total') {
+        setBookingsTab('active');
+        applyFilter(null);
+      } else if (TERMINAL_STATUSES.has(status)) {
+        // Completed, cancelled and dropped-off jobs live on the Completed tab.
+        setBookingsTab('completed');
+        applyFilter(null);
+      } else {
+        setBookingsTab('active');
+        applyFilter(status);
+      }
+      document
+        .querySelector('[aria-labelledby="bookings-heading"]')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     function voiceSay(text, state = 'success') {
       setVoiceStatus(text, state);
       window.VeloFoxVoice?.speak(text);
@@ -1901,6 +1920,11 @@
 
     bookingTabButtons.forEach((button) => {
       button.addEventListener('click', () => setBookingsTab(button.dataset.tab));
+    });
+
+    document.querySelectorAll('#stats .stat').forEach((card) => {
+      card.title = 'Click to view the matching jobs in the bookings panel';
+      card.addEventListener('click', () => openBookingsForStatus(card.dataset.status));
     });
 
     if (radar) {
