@@ -588,6 +588,14 @@
     .software-shot__frame:hover .software-shot__view,
     .software-shot__frame:focus-visible .software-shot__view { opacity: 1; transform: none; }
 
+    .software-shot--flip .software-shot__frame {
+      order: 2;
+      border-right: 0;
+      border-left: 1px solid var(--line);
+    }
+
+    .software-shot--flip figcaption { order: 1; }
+
     .software-shot figcaption {
       display: grid;
       align-content: center;
@@ -610,8 +618,9 @@
       .software-preview { margin-bottom: 26px; padding-top: 28px; }
       .software-shot { grid-template-columns: minmax(0, 1fr); }
       .software-shot__frame { border-right: 0; border-bottom: 1px solid var(--line); }
+      .software-shot--flip .software-shot__frame { order: 0; border-left: 0; }
       .software-shot__frame img { min-height: 0; aspect-ratio: 16 / 10; }
-      .software-shot figcaption { padding: 22px; }
+      .software-shot figcaption { order: 0; padding: 22px; }
     }
 
   </style>
@@ -779,7 +788,7 @@
           </figcaption>
         </figure>
 
-        <figure class="software-shot reveal" style="--i: 1">
+        <figure class="software-shot software-shot--flip reveal" style="--i: 1">
           <a class="software-shot__frame" href="/driver.html" data-i18n-aria-label="software.2.aria" aria-label="Open the chauffeur portal">
             <img src="/assets/screenshots/chauffeur-portal.webp" data-i18n-alt="software.2.alt" alt="VeloFox chauffeur portal showing an active trip manifest with pickup and drop-off details" width="1200" height="750" loading="lazy" decoding="async">
             <span class="software-shot__view" data-i18n="software.view">Open portal →</span>
