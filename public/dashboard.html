@@ -699,6 +699,7 @@
     .assign input { flex: 1; min-width: 0; }
     .assign .btn { flex: none; }
     .assign input::placeholder { color: var(--muted); }
+    .assign .driver-hint { font-size: 11px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     /* ---------- states ---------- */
 
@@ -945,6 +946,7 @@
       'passenger_aboard', 'dropped_off', 'completed', 'cancelled',
     ];
     const TERMINAL_STATUSES = new Set(['dropped_off', 'completed', 'cancelled']);
+    const DRIVER_ACTIVE_STATUSES = new Set(['assigned', 'en_route', 'arrived', 'passenger_aboard']);
     const STATUS_TRANSITIONS = {
       pending: ['confirmed', 'cancelled'],
       confirmed: ['assigned', 'cancelled'],
@@ -1628,12 +1630,41 @@
       driverInput.setAttribute('list', 'drivers');
       driverInput.setAttribute('aria-label', `Assign a driver to ride ${booking.id.slice(0, 8)}`);
 
+      const driverHint = document.createElement('span');
+      driverHint.className = 'driver-hint';
+      driverHint.setAttribute('aria-live', 'polite');
+      let driverLookupTimer = null;
+      driverInput.addEventListener('input', () => {
+        clearTimeout(driverLookupTimer);
+        driverHint.textContent = '';
+        const typedId = driverInput.value.trim();
+        if (!typedId) return;
+        driverLookupTimer = setTimeout(async () => {
+          if (driverInput.value.trim() !== typedId) return;
+          try {
+            const driver = await request(`/api/drivers/${encodeURIComponent(typedId)}`);
+            if (driverInput.value.trim() !== typedId) return;
+            driverHint.textContent = `${driver.name} — ${driver.id}`;
+            if (vehicleInput.value.trim()) return;
+            const manifest = await request(`/api/drivers/${encodeURIComponent(driver.id)}/manifest`);
+            const activeTrip = (manifest.trips || []).find(
+              (trip) => trip.assignedVehicle && DRIVER_ACTIVE_STATUSES.has(trip.status)
+            );
+            if (activeTrip && !vehicleInput.value.trim()) {
+              vehicleInput.value = activeTrip.assignedVehicle;
+            }
+          } catch {
+            driverHint.textContent = '';
+          }
+        }, 250);
+      });
+
       const submit = document.createElement('button');
       submit.type = 'submit';
       submit.className = 'btn btn-primary btn-sm';
       submit.textContent = 'Assign';
 
-      form.append(vehicleInput, driverInput, submit);
+      form.append(vehicleInput, driverInput, driverHint, submit);
 
       if (booking.assignedVehicle || booking.driverId) {
         const clearBtn = document.createElement('button');

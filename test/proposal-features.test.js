@@ -147,6 +147,16 @@ test('driver administration normalizes and validates driver fields', () => {
   assert.equal(invalid.errors.length, 4);
 });
 
+test('dashboard assign form shows driver name and auto-matches their vehicle', () => {
+  const page = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(page, /\.driver-hint/);
+  assert.match(page, /const driverHint = document\.createElement\('span'\)/);
+  assert.match(page, /DRIVER_ACTIVE_STATUSES = new Set\(\['assigned', 'en_route', 'arrived', 'passenger_aboard'\]\)/);
+  assert.match(page, /\/api\/drivers\/\$\{encodeURIComponent\(typedId\)\}/);
+  assert.match(page, /\/api\/drivers\/\$\{encodeURIComponent\(driver\.id\)\}\/manifest/);
+  assert.match(page, /vehicleInput\.value = activeTrip\.assignedVehicle;/);
+});
+
 test('administrators have a driver dashboard backed by the database', () => {
   const page = fs.readFileSync(path.join(ROOT, 'public', 'drivers-admin.html'), 'utf8');
   assert.match(page, /href="\/theme\.css"/);
