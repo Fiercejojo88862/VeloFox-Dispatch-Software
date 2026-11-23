@@ -690,6 +690,17 @@
     .legend-dot.is-hollow { background: transparent; border: 1px dashed rgba(197, 160, 89, 0.6); box-shadow: none; }
 
     .legend-line { width: 18px; border-top: 1px dashed var(--accent); flex: none; }
+    .legend-line.is-route { border-top-style: solid; border-top-width: 2px; }
+    .traffic-legend {
+      display: grid; gap: 4px; margin-top: 8px; padding-top: 8px;
+      border-top: 1px solid var(--line); font-size: 9px; color: var(--muted);
+    }
+    .traffic-legend[hidden] { display: none; }
+    .traffic-legend > div { display: flex; align-items: center; gap: 7px; }
+    .traffic-swatch { width: 16px; height: 3px; border-radius: 2px; flex: none; }
+    .traffic-swatch.is-fast { background: #6ea96f; }
+    .traffic-swatch.is-slow { background: #d9a741; }
+    .traffic-swatch.is-stopped { background: #d4674f; }
 
     .telemetry-legend p { margin: 6px 0 0; font-size: 10.5px; line-height: 1.6; }
     .telemetry-legend a { color: var(--accent); text-decoration: none; }
@@ -1220,7 +1231,8 @@
           <h2 id="telemetry-heading">Live telemetry</h2>
           <span id="telemetry-summary" class="muted small">Connecting to the fleet GPS feed…</span>
         </div>
-                <button id="telemetry-refresh" class="btn btn-sm" type="button" data-audio="confirm">Ping fleet</button>
+                <button id="telemetry-traffic" class="btn btn-sm" type="button" aria-pressed="false">Traffic: off</button>
+        <button id="telemetry-refresh" class="btn btn-sm" type="button" data-audio="confirm">Ping fleet</button>
         <button id="telemetry-seed" class="btn btn-sm" type="button" data-audio="confirm">Seed demo telemetry</button>
         <button id="telemetry-clear" class="btn btn-sm" type="button" aria-pressed="false" data-audio="confirm">Clear locations</button>
       </div>
@@ -1233,7 +1245,13 @@
           <div class="legend-row"><span class="legend-dot"></span> Chauffeur GPS fix</div>
           <div class="legend-row"><span class="legend-dot is-hollow"></span> Awaiting fix</div>
           <div class="legend-row"><span class="legend-line"></span> Open marker for trip details</div>
-          <p>Leaflet map using live GPS from the <a href="/driver.html">driver portal</a>. Pickup and drop-off remain private text addresses until dispatch opens the ride.</p>
+          <div class="legend-row"><span class="legend-line is-route"></span> Vehicle → pickup → drop-off</div>
+          <div id="traffic-legend" class="traffic-legend" hidden>
+            <div><span class="traffic-swatch is-fast"></span> Free flow (28+ mph)</div>
+            <div><span class="traffic-swatch is-slow"></span> Slow (10–28 mph)</div>
+            <div><span class="traffic-swatch is-stopped"></span> Stopped (&lt;10 mph)</div>
+          </div>
+          <p>Leaflet map using live GPS from the <a href="/driver.html">driver portal</a>. Dashed lines show reported routes; Traffic colors them by chauffeur speed.</p>
         </aside>
       </div>
     </section>
@@ -1449,6 +1467,8 @@
     const telemetrySummaryEl = document.getElementById('telemetry-summary');
     const telemetryRefreshBtn = document.getElementById('telemetry-refresh');
     const telemetryClearBtn = document.getElementById('telemetry-clear');
+    const telemetryTrafficBtn = document.getElementById('telemetry-traffic');
+    const trafficLegend = document.getElementById('traffic-legend');
     const telemetryMap = document.getElementById('telemetry-map');
     const calendarPreviousBtn = document.getElementById('calendar-prev');
     const calendarTodayBtn = document.getElementById('calendar-today');
@@ -2255,10 +2275,12 @@
     const radar = window.VeloFoxTelemetryMap
       ? window.VeloFoxTelemetryMap.create({
         container: telemetryMap,
-        onSummary: ({ drivers, reporting, activeTrips, totalPings, updatedAt, cleared }) => {
+        onSummary: ({ drivers, reporting, activeTrips, totalPings, updatedAt, cleared, routes, trafficMode }) => {
           telemetrySummaryEl.textContent = [
             `${cleared ? 0 : reporting} of ${drivers} chauffeurs reporting`,
             `${activeTrips} active ${activeTrips === 1 ? 'trip' : 'trips'}`,
+            routes ? `${routes} ${routes === 1 ? 'route' : 'routes'} drawn` : null,
+            trafficMode ? 'fleet traffic view' : null,
             `${totalPings} pings logged`,
             updatedAt ? `updated ${updatedAt.toLocaleTimeString()}` : null,
             cleared ? 'locations hidden for this tab' : null,
@@ -3334,6 +3356,14 @@
         else radar.resume();
         telemetryClearBtn.setAttribute('aria-pressed', String(clearing));
         telemetryClearBtn.textContent = clearing ? 'Resume locations' : 'Clear locations';
+      });
+      telemetryTrafficBtn?.addEventListener('click', () => {
+        const enabled = telemetryTrafficBtn.getAttribute('aria-pressed') !== 'true';
+        radar.setTrafficMode(enabled);
+        telemetryTrafficBtn.setAttribute('aria-pressed', String(enabled));
+        telemetryTrafficBtn.textContent = enabled ? 'Traffic: on' : 'Traffic: off';
+        telemetryTrafficBtn.classList.toggle('is-active', enabled);
+        if (trafficLegend) trafficLegend.hidden = !enabled;
       });
     } else {
       telemetrySummaryEl.textContent = 'Telemetry module unavailable.';
