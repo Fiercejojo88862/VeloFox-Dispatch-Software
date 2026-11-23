@@ -422,6 +422,7 @@
 
     .quote-bar-section { margin-bottom: 44px; }
     .quote-bar {
+      margin: 0 auto;
       background: var(--panel);
       border: 1px solid var(--line);
       border-left: 2px solid var(--accent);
@@ -439,6 +440,36 @@
       background: var(--bg); color: var(--text); border-radius: 6px;
     }
     .quote-bar__form input:focus, .quote-bar__form select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 1px rgba(197, 160, 89, 0.35); }
+
+    .pricing-section { margin-bottom: 44px; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .pricing-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+    .pricing-card--featured { border-color: var(--accent); }
+    .pricing-card__num { font-size: 10px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+    .pricing-card__name { margin: 8px 0 6px; font-size: 15px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
+    .pricing-card__price { margin: 0 0 14px; font-size: 15px; font-weight: 600; color: var(--text); }
+    .pricing-card__features { margin: 0 0 14px; padding: 0 0 0 16px; color: var(--muted); font-size: 12px; }
+    .pricing-card__features li { margin: 4px 0; }
+    .pricing-card__cta {
+      display: inline-block;
+      padding: 10px 14px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+    }
+    .pricing-card__cta:hover { border-color: var(--accent); color: var(--accent); }
+    .pricing-sub { margin: 0 0 22px; font-size: 14px; color: var(--muted); max-width: 60ch; }
 
     .stats-band {
       border-top: 1px solid var(--line);
@@ -689,6 +720,50 @@
         <li><strong>1 – 16</strong> <span data-i18n="hero.fact.passengers">Passengers</span></li>
         <li><strong data-i18n="hero.fact.chauffeurStrong">Chauffeur-driven</strong> <span data-i18n="hero.fact.chauffeur">Sedan to limousine</span></li>
       </ul>
+    </div>
+  </section>
+
+  <section class="pricing-section" aria-labelledby="pricing-heading">
+    <div class="section-head reveal">
+      <span class="eyebrow">Pricing tiers</span>
+      <h2 id="pricing-heading">Simple tiers — scale with your fleet</h2>
+      <p class="pricing-sub">Three plans for every size — from pay-as-you-go rides to enterprise fleet integrations.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <span class="pricing-card__num">01</span>
+        <h3 class="pricing-card__name">Dispatcher</h3>
+        <p class="pricing-card__price">Pay per completed ride</p>
+        <ul class="pricing-card__features">
+          <li>Live dispatch board</li>
+          <li>Bookings from web &amp; API</li>
+          <li>Basic reporting</li>
+        </ul>
+        <a class="pricing-card__cta" href="/booking.html">Book your first ride</a>
+      </div>
+      <div class="pricing-card pricing-card--featured">
+        <span class="pricing-card__num">02</span>
+        <h3 class="pricing-card__name">Pro</h3>
+        <p class="pricing-card__price">Monthly — pay-as-you-go free trial available</p>
+        <ul class="pricing-card__features">
+          <li>Unlimited bookings</li>
+          <li>Priority dispatch &amp; driver sign-on</li>
+          <li>Phone &amp; email support</li>
+          <li>Advanced fleet filters</li>
+        </ul>
+        <a class="pricing-card__cta" href="/login.html">Start your trial</a>
+      </div>
+      <div class="pricing-card">
+        <span class="pricing-card__num">03</span>
+        <h3 class="pricing-card__name">Enterprise</h3>
+        <p class="pricing-card__price">Custom — fleet integrations &amp; SLAs</p>
+        <ul class="pricing-card__features">
+          <li>Dedicated account manager</li>
+          <li>Integrations (SSO, calendars, APIs)</li>
+          <li>SLAs, training &amp; data export</li>
+        </ul>
+        <a class="pricing-card__cta" href="/legal.html">Talk to sales</a>
+      </div>
     </div>
   </section>
 
