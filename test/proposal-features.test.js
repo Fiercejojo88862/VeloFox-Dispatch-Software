@@ -7,9 +7,12 @@ const test = require('node:test');
 const {
   canTransitionStatus,
   canViewPageDirectory,
+  hashDriverAccessCode,
   normalizeDriverFields,
   validateBooking,
+  verifyDriverAccessCode,
 } = require('../server').testables;
+const { findConflicts, serviceWindow } = require('../lib/dispatch');
 
 const ROOT = path.join(__dirname, '..');
 
@@ -426,7 +429,7 @@ test('cancelled KPI shows reason breakdown and filters by reason', () => {
   assert.match(schema, /'test_demo', 'client_cancelled', 'no_show'/);
 
   const dbFile = fs.readFileSync(path.join(ROOT, 'lib', 'db.js'), 'utf8');
-  assert.match(dbFile, /schema-v7-cancellation-reasons/);
+  assert.match(dbFile, /schema-v8-driver-access/);
 
   const repo = fs.readFileSync(path.join(ROOT, 'lib', 'repository.js'), 'utf8');
   assert.match(repo, /cancellationReason: row\.cancellation_reason/);
@@ -500,4 +503,51 @@ test('dispatch command console understands plain-English actions', () => {
   assert.match(dash, /intent\.type === 'send_text'/);
   assert.match(dash, /intent\.type === 'ping_fleet'/);
   assert.match(dash, /intent\.type === 'reason_filter'/);
+});
+
+test('chauffeur access codes are salted scrypt hashes', () => {
+  const first = hashDriverAccessCode('velofox-dispatch-1001', 'test-salt');
+  const repeat = hashDriverAccessCode('velofox-dispatch-1001', 'test-salt');
+  assert.equal(first.salt, 'test-salt');
+  assert.match(first.hash, /^[a-f0-9]{128}$/);
+  assert.equal(first.hash, repeat.hash);
+
+  const driver = { accessCodeSalt: first.salt, accessCodeHash: first.hash };
+  assert.equal(verifyDriverAccessCode('velofox-dispatch-1001', driver), true);
+  assert.equal(verifyDriverAccessCode('wrong-code', driver), false);
+  assert.equal(verifyDriverAccessCode('velofox-dispatch-1001', { ...driver, accessCodeSalt: 'other' }), false);
+});
+
+test('dispatch conflicts flag overlapping chauffeur and vehicle assignments', () => {
+  const later = {
+    id: '11111111-1111-1111-1111-111111111111',
+    status: 'assigned',
+    pickupDateTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+    driverId: 'VF-1001',
+    assignedVehicle: 'Executive Sedan 01',
+  };
+  const earlier = {
+    id: '22222222-2222-2222-2222-222222222222',
+    status: 'confirmed',
+    pickupDateTime: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    driverId: 'VF-1001',
+    assignedVehicle: 'Executive Sedan 01',
+  };
+
+  const conflicts = findConflicts([earlier, later], later, {
+    driverId: 'VF-1001', assignedVehicle: 'Executive Sedan 01', excludeId: later.id,
+  });
+  assert.deepEqual(conflicts.map((ride) => ride.id), [earlier.id]);
+
+  const clean = findConflicts([{ ...earlier, status: 'cancelled' }], later, {
+    driverId: 'VF-1001', excludeId: later.id,
+  });
+  assert.equal(clean.length, 0);
+});
+
+test('service windows include travel time and turnaround', () => {
+  const booking = { pickupDateTime: new Date(Date.now() + 30 * 60 * 1000).toISOString() };
+  const window = serviceWindow(booking);
+  assert.ok(window);
+  assert.ok(window.end > window.start + 90 * 60 * 1000);
 });

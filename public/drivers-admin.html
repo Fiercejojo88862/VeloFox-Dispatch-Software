@@ -354,6 +354,51 @@
         edit.setAttribute('aria-label', `Edit ${driver.name}`);
         edit.addEventListener('click', () => openEditor(driver));
         actions.append(edit);
+
+        const code = document.createElement('button');
+        code.type = 'button';
+        code.className = 'btn btn-sm';
+        code.textContent = driver.hasAccessCode ? 'Rotate code' : 'Issue code';
+        code.setAttribute('aria-label', `${driver.hasAccessCode ? 'Rotate' : 'Issue'} access code for ${driver.name}`);
+        code.addEventListener('click', async () => {
+          code.disabled = true;
+          try {
+            const data = await api(`/api/admin/drivers/${encodeURIComponent(driver.id)}/access-code`, {
+              method: 'POST',
+              body: JSON.stringify({}),
+            });
+            window.prompt(`Access code for ${driver.name} (shown once — save it now):`, data.accessCode);
+            notify(`Access code issued for ${driver.name}. Existing chauffeur sessions were signed out.`);
+            await load();
+          } catch (error) {
+            notify(error.message, 'error');
+          } finally {
+            code.disabled = false;
+          }
+        });
+        actions.append(code);
+
+        if (driver.hasAccessCode) {
+          const revoke = document.createElement('button');
+          revoke.type = 'button';
+          revoke.className = 'btn btn-sm';
+          revoke.textContent = 'Revoke';
+          revoke.setAttribute('aria-label', `Revoke access code for ${driver.name}`);
+          revoke.addEventListener('click', async () => {
+            if (!window.confirm(`Revoke the chauffeur access code for ${driver.name}?`)) return;
+            revoke.disabled = true;
+            try {
+              await api(`/api/admin/drivers/${encodeURIComponent(driver.id)}/revoke-access`, { method: 'POST' });
+              notify(`Access revoked for ${driver.name}.`);
+              await load();
+            } catch (error) {
+              notify(error.message, 'error');
+            } finally {
+              revoke.disabled = false;
+            }
+          });
+          actions.append(revoke);
+        }
         row.append(actions);
         driversBody.append(row);
       });

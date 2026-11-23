@@ -98,3 +98,25 @@ values are baked into the deployment.
 - Bookings without a quote receive a vehicle-class default fare so the reporting
   view is never blank.
 
+
+## Chauffeur access codes and assignment conflicts
+
+Chauffeurs sign in with their Driver ID plus a private access code. Codes are
+issued or rotated from `/drivers-admin.html` (or automatically generated when a
+chauffeur self-registers), stored only as salted scrypt hashes, and delivered as
+an HTTP-only `velofox_driver` cookie backed by the `driver_sessions` table. A
+chauffeur session can only read that chauffeur's own manifest and advance that
+chauffeur's own rides; dispatcher accounts keep access to the dispatch desk.
+
+- `POST /api/driver/login`, `GET /api/driver/session`, `POST /api/driver/logout`
+- `POST /api/admin/drivers/:id/access-code`,
+  `POST /api/admin/drivers/:id/revoke-access`
+
+Assigning a chauffeur or vehicle that overlaps another open ride's service
+window returns `409` with the conflicting rides. The dispatch board asks for
+confirmation and retries with `force: true`; direct API clients can do the same.
+The scheduling rules live in `lib/dispatch.js` and are covered by tests.
+
+Booking search and CSV export are available above the bookings table. Ride
+lifecycle emails (request received, chauffeur assigned, en route, completed,
+cancelled) use the same Resend configuration as sign-in codes.

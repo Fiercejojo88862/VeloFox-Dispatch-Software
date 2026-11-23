@@ -356,8 +356,13 @@
             <div class="input-row">
               <input id="driver-id" name="driverId" type="text" maxlength="50" placeholder="VF-1001"
                 autocomplete="username" autocapitalize="characters" required>
-              <button id="continue-button" class="continue-button" type="submit" data-i18n="login.continue">Continue securely</button>
             </div>
+            <label for="driver-code">Access code</label>
+            <div class="input-row">
+              <input id="driver-code" name="accessCode" type="password" maxlength="64"
+                placeholder="Code from dispatch" autocomplete="one-time-code" required>
+            </div>
+            <button id="continue-button" class="continue-button" type="submit" data-i18n="login.continue">Continue securely</button>
             <p id="driver-error" class="form-error" role="alert" aria-live="polite"></p>
           </form>
         </div>
@@ -377,6 +382,7 @@
     const driverAccess = document.getElementById('driver-access');
     const driverForm = document.getElementById('driver-form');
     const driverIdInput = document.getElementById('driver-id');
+    const driverCodeInput = document.getElementById('driver-code');
     const continueButton = document.getElementById('continue-button');
     const driverError = document.getElementById('driver-error');
 
@@ -396,11 +402,15 @@
       return response.json().catch(() => null);
     }
 
-    async function verifyDriver(driverId) {
-      const response = await fetch(`/api/drivers/${encodeURIComponent(driverId)}`);
+    async function driverLogin(driverId, accessCode) {
+      const response = await fetch('/api/driver/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driverId, accessCode }),
+      });
       const data = await readJson(response);
       if (!response.ok) {
-        throw new Error((data && data.error) || 'Unable to verify this Driver ID.');
+        throw new Error((data && data.error) || 'Unable to sign in to the driver portal.');
       }
       return data;
     }
@@ -413,6 +423,7 @@
     driverForm.addEventListener('submit', async (event) => {
       event.preventDefault();
       const driverId = driverIdInput.value.trim().toUpperCase();
+      const accessCode = driverCodeInput.value.trim();
       driverError.textContent = '';
 
       if (!driverId) {
@@ -420,13 +431,18 @@
         driverIdInput.focus();
         return;
       }
+      if (!accessCode) {
+        driverError.textContent = 'Enter the access code issued by dispatch.';
+        driverCodeInput.focus();
+        return;
+      }
 
       continueButton.disabled = true;
       continueButton.textContent = 'Verifying…';
       try {
-        const driver = await verifyDriver(driverId);
-        sessionStorage.setItem('velofoxDriverId', driver.id);
-        sessionStorage.setItem('velofoxDriverName', driver.name);
+        const data = await driverLogin(driverId, accessCode);
+        sessionStorage.setItem('velofoxDriverId', data.driver.id);
+        sessionStorage.setItem('velofoxDriverName', data.driver.name);
         window.location.assign('/driver.html');
       } catch (error) {
         driverError.textContent = error.message;

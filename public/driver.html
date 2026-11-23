@@ -573,12 +573,15 @@
       <div class="login-card">
         <p class="eyebrow">Secure driver access</p>
         <h1 id="login-heading">Your manifest, ready when you are.</h1>
-        <p>Enter your assigned Driver ID to review today’s trips and share live journey progress with dispatch.</p>
+        <p>Enter your assigned Driver ID and access code to review today’s trips and share live journey progress with dispatch.</p>
 
         <form id="login-form" novalidate>
           <label for="driver-id">Driver ID</label>
           <input id="driver-id" class="input" name="driverId" type="text" maxlength="50"
             placeholder="VF-1001" autocomplete="username" autocapitalize="characters" required>
+          <label for="driver-code">Access code</label>
+          <input id="driver-code" class="input" name="accessCode" type="password" maxlength="64"
+            placeholder="Code from dispatch" autocomplete="one-time-code" required>
           <button id="login-button" class="primary-button" type="submit">Open my manifest</button>
           <p id="login-error" class="form-note" role="alert" aria-live="polite"></p>
         </form>
@@ -712,6 +715,7 @@
     const portalView = document.getElementById('portal-view');
     const loginForm = document.getElementById('login-form');
     const driverIdInput = document.getElementById('driver-id');
+    const driverCodeInput = document.getElementById('driver-code');
     const loginButton = document.getElementById('login-button');
     const loginError = document.getElementById('login-error');
     const logoutButton = document.getElementById('logout');
@@ -1252,29 +1256,43 @@
 
     document.getElementById('job-notice-close')?.addEventListener('click', () => dismissJobNotice());
 
-    async function login(driverId) {
-      activeDriverId = driverId.trim().toUpperCase();
+    async function login(driverId, accessCode) {
+      const requestedId = driverId.trim().toUpperCase();
       lastDispatchPingAt = null;
       loginButton.disabled = true;
       loginError.textContent = '';
       try {
+        const data = accessCode
+          ? await request('/api/driver/login', {
+            method: 'POST',
+            body: JSON.stringify({ driverId: requestedId, accessCode }),
+          })
+          : await request('/api/driver/session');
+        activeDriverId = data.driver.id;
         await loadManifest();
         sessionStorage.setItem('velofoxDriverId', activeDriverId);
+        sessionStorage.setItem('velofoxDriverName', data.driver.name || '');
         loginView.classList.add('is-hidden');
         portalView.classList.add('is-active');
         logoutButton.hidden = false;
         startLocationSharing();
         startManifestPoll();
+        void loadManifest({ quiet: true });
       } catch (error) {
         activeDriverId = '';
         loginError.textContent = error.message;
-        driverIdInput.focus();
+        driverCodeInput.focus();
       } finally {
         loginButton.disabled = false;
       }
     }
 
-    function logout() {
+    async function logout() {
+      try {
+        await request('/api/driver/logout', { method: 'POST' });
+      } catch (error) {
+        console.warn('Driver sign-out failed:', error.message);
+      }
       sessionStorage.removeItem('velofoxDriverId');
       sessionStorage.removeItem('velofoxDriverName');
       window.clearInterval(manifestTimer);
@@ -1302,12 +1320,18 @@
     loginForm.addEventListener('submit', (event) => {
       event.preventDefault();
       const driverId = driverIdInput.value.trim();
+      const accessCode = driverCodeInput.value.trim();
       if (!driverId) {
         loginError.textContent = 'Enter your Driver ID to continue.';
         driverIdInput.focus();
         return;
       }
-      void login(driverId);
+      if (!accessCode) {
+        loginError.textContent = 'Enter your access code to continue.';
+        driverCodeInput.focus();
+        return;
+      }
+      void login(driverId, accessCode);
     });
 
     registerForm.addEventListener('submit', async (event) => {
@@ -1326,10 +1350,11 @@
         const createdId = data.driver.id;
         registerForm.reset();
         driverIdInput.value = createdId;
+        if (data.accessCode) driverCodeInput.value = data.accessCode;
         showToast(data.action === 'reactivated'
           ? 'Welcome back — your profile is active again.'
-          : 'You are in the fleet. Opening your manifest…');
-        await login(createdId);
+          : 'You are in the fleet. Your access code is filled in below — save it now.');
+        await login(createdId, data.accessCode || driverCodeInput.value.trim());
       } catch (error) {
         registerError.textContent = error.message;
       } finally {
@@ -1379,10 +1404,16 @@
     logoutButton.addEventListener('click', logout);
 
     const savedDriverId = sessionStorage.getItem('velofoxDriverId');
-    if (savedDriverId) {
-      driverIdInput.value = savedDriverId;
-      void login(savedDriverId);
-    }
+    if (savedDriverId) driverIdInput.value = savedDriverId;
+    void (async () => {
+      try {
+        const session = await request('/api/driver/session');
+        driverIdInput.value = session.driver.id;
+        await login(session.driver.id, '');
+      } catch (error) {
+        // No active chauffeur session — leave the sign-in form visible.
+      }
+    })();
   </script>
 </body>
 </html>

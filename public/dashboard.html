@@ -795,6 +795,19 @@
     .filter-chip:hover { background: rgba(197, 160, 89, 0.18); }
     .filter-chip[hidden] { display: none; }
 
+    .booking-tools { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+    .booking-tools input {
+      width: 232px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      background: var(--panel-raised, rgba(255, 255, 255, 0.04));
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+    }
+    .booking-tools input::placeholder { color: var(--muted); }
+
     /* ---------- booking tabs ---------- */
 
     .tab-strip {
@@ -1226,6 +1239,12 @@
       <div class="panel-head">
         <h2 id="bookings-heading">Bookings</h2>
         <span id="booking-count" class="muted small"></span>
+        <div class="booking-tools">
+          <label class="sr-only" for="booking-search">Search bookings</label>
+          <input id="booking-search" type="search" maxlength="120" autocomplete="off"
+            placeholder="Search rides, clients, drivers…">
+          <button id="export-bookings" class="btn btn-sm" type="button">Export CSV</button>
+        </div>
       </div>
       <div class="voice-bar" role="group" aria-label="Dispatch command console">
         <form id="voice-form" class="voice-form" novalidate>
@@ -1432,6 +1451,8 @@
     const commandHintEl = document.getElementById('command-hint');
     const commandLogEl = document.getElementById('command-log');
     const filterChip = document.getElementById('filter-chip');
+    const bookingSearchInput = document.getElementById('booking-search');
+    const exportBookingsBtn = document.getElementById('export-bookings');
     const telemetrySummaryEl = document.getElementById('telemetry-summary');
     const telemetryRefreshBtn = document.getElementById('telemetry-refresh');
     const telemetryClearBtn = document.getElementById('telemetry-clear');
@@ -1466,6 +1487,7 @@
     let hasLoadedOnce = false;
     let activeFilter = null;
     let activeReasonFilter = null;
+    let bookingSearch = '';
     let bookingsTab = 'active';
     let dashboardLayoutKey = null;
     let dashboardTourKey = null;
@@ -1838,10 +1860,12 @@
       }
 
       if (!response.ok) {
-        throw new ApiError(
+        const error = new ApiError(
           (data && data.error) || `Request failed with status ${response.status}.`,
           (data && Array.isArray(data.details)) ? data.details : []
         );
+        if (data && Array.isArray(data.conflicts)) error.conflicts = data.conflicts;
+        throw error;
       }
 
       return data;
@@ -1983,6 +2007,12 @@
           body: JSON.stringify(payload),
         });
       } catch (error) {
+        if (Array.isArray(error.conflicts) && error.conflicts.length > 0 && payload.force !== true) {
+          const overwrite = window.confirm(
+            `This assignment overlaps ${error.conflicts.length} open ride${error.conflicts.length === 1 ? '' : 's'}. Overwrite?`
+          );
+          if (overwrite) return patchBooking(id, { ...payload, force: true });
+        }
         window.VeloFoxAudio?.play('error');
         throw error;
       }
@@ -3306,6 +3336,19 @@
         ? `${visible.length} of ${tabVisible.length} rides`
         : `${tabVisible.length} ${tabVisible.length === 1 ? 'ride' : 'rides'}`;
 
+      if (bookingSearch) {
+        const needle = bookingSearch.toLocaleLowerCase();
+        visible = visible.filter((booking) => [
+          booking.id,
+          booking.clientName,
+          booking.driverId,
+          booking.assignedVehicle,
+          booking.pickupLocation,
+          booking.dropoffLocation,
+          booking.status,
+        ].some((value) => String(value || '').toLocaleLowerCase().includes(needle)));
+      }
+
       if (visible.length === 0) {
         if (tabVisible.length === 0 && bookings.length === 0) {
           renderState(
@@ -3363,9 +3406,44 @@
       setTimeout(() => toast.remove(), 6000);
     }
 
+    function exportBookingsCsv() {
+      const headers = [
+        'Ride', 'Client', 'Email', 'Pickup', 'Dropoff', 'Pickup time',
+        'Vehicle type', 'Status', 'Driver', 'Assigned vehicle', 'Passengers',
+      ];
+      const escapeCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+      const rows = bookings.map((booking) => [
+        booking.id,
+        booking.clientName,
+        booking.clientEmail,
+        booking.pickupLocation,
+        booking.dropoffLocation,
+        booking.pickupDateTime,
+        booking.vehicleType,
+        booking.status,
+        booking.driverId,
+        booking.assignedVehicle,
+        booking.passengerCount,
+      ].map(escapeCell).join(','));
+      const csv = [headers.map(escapeCell).join(','), ...rows].join('\r\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `velofox-bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    }
+
     /* ------------------------------ boot ------------------------------ */
 
     refreshBtn.addEventListener('click', () => loadBookings());
+    bookingSearchInput?.addEventListener('input', () => {
+      bookingSearch = bookingSearchInput.value.trim();
+      render();
+    });
+    exportBookingsBtn?.addEventListener('click', exportBookingsCsv);
     window.VeloFoxAudio?.attachMuteToggle(document.getElementById('sound-toggle'));
 
     voiceForm.addEventListener('submit', (event) => {

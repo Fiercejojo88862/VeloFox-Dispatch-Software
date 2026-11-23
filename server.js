@@ -4,6 +4,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const express = require('express');
 const pricing = require('./lib/pricing');
+const dispatch = require('./lib/dispatch');
 const db = require('./lib/db');
 const repo = require('./lib/repository');
 
@@ -19,6 +20,10 @@ const MAX_SPECIAL_REQUESTS_LENGTH = 1000;
 const MAX_PHONE_LENGTH = 30;
 const SESSION_COOKIE = 'velofox_session';
 const SESSION_TTL_MS = Math.max(1, Number(process.env.SESSION_TTL_HOURS) || 12) * 60 * 60 * 1000;
+const DRIVER_SESSION_COOKIE = 'velofox_driver';
+const DRIVER_SESSION_TTL_MS = Math.max(1, Number(process.env.DRIVER_SESSION_TTL_HOURS) || 12) * 60 * 60 * 1000;
+const DRIVER_FALLBACK_ACCESS_CODE = process.env.DRIVER_FALLBACK_ACCESS_CODE || '';
+const MAX_ACCESS_CODE_LENGTH = 64;
 const DISPATCHER_INVITE_CODE = process.env.DISPATCHER_INVITE_CODE || '';
 const AUTH_WINDOW_MS = 15 * 60 * 1000;
 const AUTH_MAX_ATTEMPTS = 8;
@@ -237,6 +242,51 @@ async function clearSession(req, res) {
   res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`);
 }
 
+/* -------------------------- chauffeur sign-in ---------------------------- */
+
+function hashDriverAccessCode(code, salt = crypto.randomBytes(16).toString('hex')) {
+  const hash = crypto.scryptSync(code, salt, 64).toString('hex');
+  return { salt, hash };
+}
+
+function verifyDriverAccessCode(code, driver) {
+  if (!driver || !driver.accessCodeHash) return false;
+  const candidate = crypto.scryptSync(code, driver.accessCodeSalt, 64);
+  const expected = Buffer.from(driver.accessCodeHash, 'hex');
+  return candidate.length === expected.length && crypto.timingSafeEqual(candidate, expected);
+}
+
+async function getAuthenticatedDriver(req) {
+  const token = parseCookies(req.headers.cookie)[DRIVER_SESSION_COOKIE];
+  if (!token) return null;
+  const driver = await repo.findDriverSession(hashResetToken(token));
+  if (!driver) {
+    await repo.deleteDriverSession(hashResetToken(token));
+    return null;
+  }
+  return driver;
+}
+
+async function createDriverSession(res, driver) {
+  const token = crypto.randomBytes(32).toString('base64url');
+  await repo.createDriverSession(
+    hashResetToken(token),
+    driver.id,
+    new Date(Date.now() + DRIVER_SESSION_TTL_MS)
+  );
+  const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
+  res.setHeader(
+    'Set-Cookie',
+    `${DRIVER_SESSION_COOKIE}=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.floor(DRIVER_SESSION_TTL_MS / 1000)}${secure}`
+  );
+}
+
+async function clearDriverSession(req, res) {
+  const token = parseCookies(req.headers.cookie)[DRIVER_SESSION_COOKIE];
+  if (token) await repo.deleteDriverSession(hashResetToken(token));
+  res.setHeader('Set-Cookie', `${DRIVER_SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`);
+}
+
 function requireApiRole(role) {
   return async (req, res, next) => {
     const user = await getAuthenticatedUser(req);
@@ -375,6 +425,32 @@ async function sendDriverJobEmail(booking) {
     "Sign in to your driver portal to review and start.",
   ].filter(Boolean).join("\n");
   await sendEmail(email, 'New job dispatched — VeloFox', text);
+}
+
+const CLIENT_EMAIL_COPY = {
+  booking_received: ['Ride request received', 'Thanks for booking with VeloFox. Dispatch is confirming your chauffeur.'],
+  assigned: ['Your chauffeur is assigned', 'A VeloFox chauffeur has been assigned to your ride.'],
+  en_route: ['Your chauffeur is en route', 'Your VeloFox chauffeur is on the way to your pickup.'],
+  completed: ['Your ride is complete', 'Thanks for riding with VeloFox. We hope to see you again.'],
+  cancelled: ['Your ride was cancelled', 'Your VeloFox ride has been cancelled. Contact dispatch with questions.'],
+};
+
+async function sendClientRideEmail(booking, event) {
+  const copy = CLIENT_EMAIL_COPY[event];
+  if (!copy || !booking?.clientEmail) return;
+  const when = booking.pickupDateTime
+    ? `Pickup · ${new Date(booking.pickupDateTime).toLocaleString()}`
+    : '';
+  const text = [
+    copy[1],
+    '',
+    `Ride ${String(booking.id).slice(0, 8)}`,
+    when,
+    `${booking.pickupLocation} → ${booking.dropoffLocation}`,
+    '',
+    'VeloFox Dispatch',
+  ].filter(Boolean).join('\n');
+  await sendEmail(booking.clientEmail, `${copy[0]} — VeloFox`, text);
 }
 
 /**
@@ -1392,7 +1468,16 @@ app.post('/api/driver/profile', async (req, res) => {
     });
     await refreshDriverRegistry(true);
     await audit(req, `driver.self_${action}`, driver.id, { name: driver.name });
-    res.status(201).json({ driver, action });
+
+    // New chauffeurs automatically receive a private access code so they can
+    // open their manifest without waiting for dispatch to issue one manually.
+    let accessCode = '';
+    if (!driver.hasAccessCode) {
+      accessCode = crypto.randomBytes(9).toString('base64url').slice(0, 12);
+      const { salt, hash } = hashDriverAccessCode(accessCode);
+      await repo.setDriverAccessCode(driver.id, salt, hash);
+    }
+    res.status(201).json({ driver, action, accessCode });
   } catch (error) {
     if (error.code === '23505') return res.status(409).json({ error: `Driver ID "${value.id}" is already registered.` });
     throw error;
@@ -1803,6 +1888,83 @@ app.post('/api/drivers/:driverId/email', requireApiRole('dispatcher'), async (re
   return res.json({ driver: { ...driver, email: result.email } });
 });
 
+/* ------------------------ chauffeur access API ------------------------- */
+
+app.post('/api/driver/login', async (req, res) => {
+  const body = isPlainObject(req.body) ? req.body : {};
+  const driverId = normalizeDriverId(body.driverId ?? body.id);
+  const accessCode = typeof body.accessCode === 'string' ? body.accessCode.trim() : '';
+  const attemptKey = authAttemptKey(req, 'driver', driverId || 'unknown');
+
+  if (!isNonEmptyString(driverId, MAX_DRIVER_ID_LENGTH) || !isNonEmptyString(accessCode, MAX_ACCESS_CODE_LENGTH)) {
+    return res.status(400).json({ error: 'A Driver ID and access code are required.' });
+  }
+  if (isAuthRateLimited(attemptKey)) {
+    return res.status(429).json({ error: 'Too many access-code attempts. Try again in 15 minutes.' });
+  }
+
+  const driver = await repo.getDriverAuthRecord(driverId);
+  const valid = driver
+    ? (driver.hasAccessCode
+      ? verifyDriverAccessCode(accessCode, driver)
+      : Boolean(DRIVER_FALLBACK_ACCESS_CODE) && safeStringEqual(accessCode, DRIVER_FALLBACK_ACCESS_CODE))
+    : false;
+
+  if (!valid) {
+    if (driver) await repo.recordDriverAuthFailure(driver.id);
+    recordAuthFailure(attemptKey);
+    const remaining = Math.max(0, AUTH_MAX_ATTEMPTS - (authAttempts.get(attemptKey)?.count || 0));
+    if (remaining === 0) {
+      return res.status(429).json({ error: 'Too many access-code attempts. Try again in 15 minutes.' });
+    }
+    return res.status(401).json({ error: 'The Driver ID or access code is incorrect.', remaining });
+  }
+
+  authAttempts.delete(attemptKey);
+  await repo.resetDriverAuthFailures(driver.id);
+  await repo.recordDriverLogin(driver.id);
+  await createDriverSession(res, driver);
+  res.json({ driver: { id: driver.id, name: driver.name, lastLoginAt: driver.lastLoginAt } });
+});
+
+app.get('/api/driver/session', async (req, res) => {
+  const driver = await getAuthenticatedDriver(req);
+  if (!driver) return res.status(401).json({ error: 'Chauffeur sign in is required.' });
+  res.json({ driver: { id: driver.id, name: driver.name, lastLoginAt: driver.lastLoginAt } });
+});
+
+app.post('/api/driver/logout', async (req, res) => {
+  await clearDriverSession(req, res);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/drivers/:id/access-code', requireApiAdmin(), async (req, res) => {
+  const driverId = normalizeDriverId(req.params.id);
+  const driver = await repo.getDriverRecord(driverId);
+  if (!driver) return res.status(404).json({ error: 'Driver not found.' });
+
+  const supplied = isPlainObject(req.body) ? req.body.accessCode : undefined;
+  if (supplied !== undefined && !isNonEmptyString(supplied, MAX_ACCESS_CODE_LENGTH)) {
+    return res.status(400).json({ error: 'An access code must be 1 to 64 characters.' });
+  }
+  const accessCode = supplied || crypto.randomBytes(9).toString('base64url').slice(0, 12);
+  const { salt, hash } = hashDriverAccessCode(accessCode);
+  await repo.setDriverAccessCode(driverId, salt, hash);
+  await repo.deleteDriverSessionsFor(driverId);
+  await audit(req, 'driver.access_code_issued', driverId);
+  res.json({ driverId, accessCode });
+});
+
+app.post('/api/admin/drivers/:id/revoke-access', requireApiAdmin(), async (req, res) => {
+  const driverId = normalizeDriverId(req.params.id);
+  const driver = await repo.getDriverRecord(driverId);
+  if (!driver) return res.status(404).json({ error: 'Driver not found.' });
+  await repo.clearDriverAccessCode(driverId);
+  await repo.deleteDriverSessionsFor(driverId);
+  await audit(req, 'driver.access_code_revoked', driverId);
+  res.json({ ok: true });
+});
+
 app.get('/api/drivers/:driverId', (req, res) => {
   const driverId = normalizeDriverId(req.params.driverId);
 
@@ -1823,6 +1985,18 @@ app.get('/api/drivers/:driverId/manifest', async (req, res) => {
 
   if (!isNonEmptyString(driverId, MAX_DRIVER_ID_LENGTH)) {
     return res.status(400).json({ error: 'A valid Driver ID is required.' });
+  }
+
+  const driverSession = await getAuthenticatedDriver(req);
+  if (driverSession) {
+    if (driverSession.id !== driverId) {
+      return res.status(403).json({ error: 'This chauffeur session cannot view that manifest.' });
+    }
+  } else {
+    const dispatcher = await getAuthenticatedUser(req);
+    if (!dispatcher || dispatcher.role !== 'dispatcher') {
+      return res.status(401).json({ error: 'Chauffeur sign in is required.' });
+    }
   }
 
   const driver = getDriver(driverId);
@@ -1857,6 +2031,7 @@ app.post('/api/bookings', async (req, res) => {
     clientName: clientUser?.name || value.clientName,
   });
 
+  await sendClientRideEmail(booking, 'booking_received');
   res.status(201).json(booking);
 });
 
@@ -1871,7 +2046,7 @@ app.patch('/api/bookings/:id', async (req, res) => {
     return res.status(400).json({ error: 'Request body must be a JSON object.' });
   }
 
-  const allowedFields = ['status', 'assignedVehicle', 'driverId', 'luggageNotes', 'driverLocation', 'pricing', 'cancellationReason'];
+  const allowedFields = ['status', 'assignedVehicle', 'driverId', 'luggageNotes', 'driverLocation', 'pricing', 'cancellationReason', 'force'];
   const receivedFields = Object.keys(req.body);
   const unknownFields = receivedFields.filter((field) => !allowedFields.includes(field));
 
@@ -1890,13 +2065,27 @@ app.patch('/api/bookings/:id', async (req, res) => {
   }
 
   const requestedStatus = typeof req.body.status === 'string' ? req.body.status.trim().toLowerCase() : null;
-  const dispatcherOnlyUpdate = receivedFields.some((field) => ['assignedVehicle', 'driverId', 'luggageNotes', 'pricing', 'cancellationReason'].includes(field))
-    || (requestedStatus !== null && !['en_route', 'arrived', 'passenger_aboard', 'dropped_off', 'completed'].includes(requestedStatus));
+  const driverProgressStatuses = ['en_route', 'arrived', 'passenger_aboard', 'dropped_off', 'completed'];
+  const dispatcherOnlyUpdate = receivedFields.some((field) => ['assignedVehicle', 'driverId', 'luggageNotes', 'pricing', 'cancellationReason', 'force'].includes(field))
+    || (requestedStatus !== null && !driverProgressStatuses.includes(requestedStatus));
   if (dispatcherOnlyUpdate) {
     const authenticatedUser = await getAuthenticatedUser(req);
     if (!authenticatedUser) return res.status(401).json({ error: 'Dispatcher sign in is required for this update.' });
     if (authenticatedUser.role !== 'dispatcher') {
       return res.status(403).json({ error: 'Only dispatcher accounts can make this update.' });
+    }
+  } else {
+    const driverSession = await getAuthenticatedDriver(req);
+    if (driverSession) {
+      if (booking.driverId !== driverSession.id) {
+        return res.status(403).json({ error: 'This chauffeur session cannot update that ride.' });
+      }
+    } else {
+      const authenticatedUser = await getAuthenticatedUser(req);
+      if (!authenticatedUser) return res.status(401).json({ error: 'Sign in is required for this update.' });
+      if (authenticatedUser.role !== 'dispatcher') {
+        return res.status(403).json({ error: 'Only dispatcher accounts can make this update.' });
+      }
     }
   }
 
@@ -1912,6 +2101,10 @@ app.patch('/api/bookings/:id', async (req, res) => {
     } else {
       changes.status = status;
     }
+  }
+
+  if (Object.hasOwn(req.body, 'force') && typeof req.body.force !== 'boolean') {
+    errors.push('force must be a boolean when provided.');
   }
 
   if (Object.hasOwn(req.body, 'cancellationReason')) {
@@ -1994,12 +2187,44 @@ app.patch('/api/bookings/:id', async (req, res) => {
     changes.cancellationReason = null;
   }
 
+  // A chauffeur or vehicle cannot be double-booked across overlapping service
+  // windows. Dispatchers can still force an override from the board.
+  if ((Object.hasOwn(changes, 'driverId') || Object.hasOwn(changes, 'assignedVehicle')) && req.body.force !== true) {
+    const allBookings = await repo.listBookings();
+    const conflicts = dispatch.findConflicts(allBookings, booking, {
+      driverId: Object.hasOwn(changes, 'driverId') ? changes.driverId : undefined,
+      assignedVehicle: Object.hasOwn(changes, 'assignedVehicle') ? changes.assignedVehicle : undefined,
+      excludeId: booking.id,
+    });
+    if (conflicts.length > 0) {
+      return res.status(409).json({
+        error: `This assignment overlaps ${conflicts.length} open ride${conflicts.length === 1 ? '' : 's'}.`,
+        conflicts: conflicts.map((ride) => ({
+          id: ride.id,
+          clientName: ride.clientName,
+          pickupDateTime: ride.pickupDateTime,
+          driverId: ride.driverId,
+          assignedVehicle: ride.assignedVehicle,
+          status: ride.status,
+        })),
+      });
+    }
+  }
+
   const updated = await repo.updateBooking(booking.id, changes);
 
   if (changes.driverId !== null) {
     await sendDriverJobEmail(updated);
     await sendDriverSMS(updated);
   }
+
+  const clientEvent = {
+    assigned: 'assigned',
+    en_route: 'en_route',
+    completed: 'completed',
+    cancelled: 'cancelled',
+  }[changes.status];
+  if (clientEvent) await sendClientRideEmail(updated, clientEvent);
 
   if (changes.driverLocation) {
     await repo.recordTelemetry({
@@ -2073,6 +2298,7 @@ module.exports.testables = {
   getDriver,
   normalizeDriverFields,
   generateLoginCode,
+  hashDriverAccessCode,
   hashLoginCode,
   hashPassword,
   hashResetToken,
@@ -2083,4 +2309,5 @@ module.exports.testables = {
   verifyPassword,
   validateBooking,
   validateDriverLocation,
+  verifyDriverAccessCode,
 };

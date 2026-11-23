@@ -64,7 +64,32 @@ COMMENT ON TABLE drivers IS 'Chauffeur identities used to retrieve assigned trip
 -- Existing databases gain the soft-delete column when this schema is re-applied.
 ALTER TABLE drivers ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
 ALTER TABLE drivers ADD COLUMN IF NOT EXISTS email varchar(254);
+
+-- Private access codes let chauffeurs sign in to their own manifest. Only a
+-- salted scrypt hash is stored; the plaintext is shown once when issued.
+ALTER TABLE drivers ADD COLUMN IF NOT EXISTS access_code_salt char(32);
+ALTER TABLE drivers ADD COLUMN IF NOT EXISTS access_code_hash char(128);
+ALTER TABLE drivers ADD COLUMN IF NOT EXISTS access_code_attempts integer NOT NULL DEFAULT 0;
+ALTER TABLE drivers ADD COLUMN IF NOT EXISTS access_code_attempt_at timestamptz;
+ALTER TABLE drivers ADD COLUMN IF NOT EXISTS access_code_updated_at timestamptz;
+ALTER TABLE drivers ADD COLUMN IF NOT EXISTS last_login_at timestamptz;
 CREATE INDEX IF NOT EXISTS drivers_deleted_at_idx ON drivers (deleted_at);
+
+-- Chauffeur sessions are separate from dispatcher sessions so a driver cookie
+-- can never grant access to the dispatch desk (or vice versa).
+CREATE TABLE IF NOT EXISTS driver_sessions (
+    token_hash  char(64) PRIMARY KEY,
+    driver_id   varchar(50) NOT NULL,
+    expires_at  timestamptz NOT NULL,
+    created_at  timestamptz NOT NULL DEFAULT now(),
+
+    CONSTRAINT driver_sessions_driver_fkey
+        FOREIGN KEY (driver_id) REFERENCES drivers (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+COMMENT ON TABLE driver_sessions IS 'Chauffeur portal sessions; only the SHA-256 hash of the cookie token is stored.';
+CREATE INDEX IF NOT EXISTS driver_sessions_driver_idx ON driver_sessions (driver_id);
+CREATE INDEX IF NOT EXISTS driver_sessions_expires_at_idx ON driver_sessions (expires_at);
 
 -- Driver portal submissions are kept as a permanent history. Deleting a driver
 -- profile only soft-deletes the driver row; these records are never removed.
