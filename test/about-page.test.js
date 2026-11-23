@@ -17,7 +17,7 @@ test('about page is linked from the public site and loads shared controllers', (
   assert.match(about, /<script src="\/js\/i18n\.js"><\/script>/);
   assert.match(about, /<script src="\/js\/a11y\.js"><\/script>/);
   assert.match(about, /<a class="nav-link" href="\/about\.html" aria-current="page"/);
-  assert.match(about, /src="\/assets\/about\/Mercedes\.webp"/);
+  assert.match(about, /src="\/assets\/about\/Benz2\.webp"/);
   assert.match(about, /2004 Mercedes S-Class/);
   assert.doesNotMatch(about, /about-figure__credit/);
 

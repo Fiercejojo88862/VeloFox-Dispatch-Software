@@ -35,7 +35,7 @@ const REQUIRED_FILES = [
   'public/assets/fonts/cormorant-garamond-latin-italic.woff2',
   'public/assets/fleet/cadillac-escalade.webp',
   'public/assets/fleet/cadillac-escalade-stretch.webp',
-  'public/assets/about/Mercedes.webp',
+  'public/assets/about/Benz2.webp',
   'public/assets/fleet/mercedes-sprinter.webp',
   'public/assets/screenshots/dispatcher-dashboard.webp',
   'public/assets/screenshots/chauffeur-portal.webp',
