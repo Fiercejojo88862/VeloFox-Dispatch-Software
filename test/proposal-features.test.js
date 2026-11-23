@@ -244,6 +244,21 @@ test('driver assignment accepts an ID or name without a default-name menu', () =
   assert.match(page, /No driver matches that ID or name\./);
 });
 
+test('driver assignment uses a filtered VeloFox combobox instead of Firefox autocomplete', () => {
+  const page = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(page, /driverInput\.autocomplete = 'off'/);
+  assert.match(page, /driverInput\.setAttribute\('role', 'combobox'\)/);
+  assert.match(page, /driverSuggestions\.setAttribute\('role', 'listbox'\)/);
+  assert.match(page, /label\.textContent = 'VeloFox drivers'/);
+  assert.match(page, /function matchingDrivers\(reference = ''\)/);
+  assert.match(page, /driver\.name\.toLowerCase\(\)\.includes\(needle\)/);
+  assert.match(page, /driver\.id\.toLowerCase\(\)\.includes\(needle\)/);
+  assert.match(page, /event\.key === 'ArrowDown'/);
+  assert.match(page, /chooseDriverSuggestion\(visibleDriverSuggestions\[activeDriverSuggestion\]\)/);
+  assert.match(page, /document\.body\.append\(driverSuggestions\)/);
+  assert.match(page, /driverSuggestions\.style\.left/);
+});
+
 test('driver portal shows a day-grouped calendar and dispatcher shows a compact month grid at the top', () => {
   const driver = fs.readFileSync(path.join(ROOT, 'public', 'driver.html'), 'utf8');
   assert.match(driver, /id="calendar"/);
@@ -394,4 +409,41 @@ test('dispatcher exception center surfaces unassigned, late and cancelled rides'
   assert.match(dash, /Cancelled ride · \$\{ride\}/);
   assert.match(dash, /Last-minute change · \$\{ride\}/);
   assert.match(dash, /renderAlerts\(\);/);
+});
+
+test('dispatcher layout widens the board and pairs telemetry with bookings', () => {
+  const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(dash, /max-width: 1600px/);
+  assert.match(dash, /grid-template-columns: minmax\(360px, 0\.8fr\) minmax\(0, 1\.5fr\)/);
+  assert.match(dash, /main > #telemetry-panel \{ grid-column: 1; \}/);
+  assert.match(dash, /main > #bookings-panel \{ grid-column: 2; \}/);
+  assert.doesNotMatch(dash, /max-width: 1400px/);
+});
+
+test('cancelled KPI shows reason breakdown and filters by reason', () => {
+  const schema = fs.readFileSync(path.join(ROOT, 'schema.sql'), 'utf8');
+  assert.match(schema, /cancellation_reason text/);
+  assert.match(schema, /'test_demo', 'client_cancelled', 'no_show'/);
+
+  const dbFile = fs.readFileSync(path.join(ROOT, 'lib', 'db.js'), 'utf8');
+  assert.match(dbFile, /schema-v7-cancellation-reasons/);
+
+  const repo = fs.readFileSync(path.join(ROOT, 'lib', 'repository.js'), 'utf8');
+  assert.match(repo, /cancellationReason: row\.cancellation_reason/);
+  assert.match(repo, /push\('cancellation_reason', changes\.cancellationReason\)/);
+
+  const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
+  assert.match(server, /'pricing', 'cancellationReason'/);
+  assert.match(server, /test_demo, client_cancelled, no_show, or null/);
+
+  const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(dash, /const CANCEL_REASONS = \{/);
+  assert.match(dash, /Test\/Demo/);
+  assert.match(dash, /Client Cancelled/);
+  assert.match(dash, /No-Show/);
+  assert.match(dash, /id="reason-popover" class="reason-popover" hidden/);
+  assert.match(dash, /function openReasonPopover\(anchor\)/);
+  assert.match(dash, /function applyReasonFilter\(reason\)/);
+  assert.match(dash, /function pickCancellationReason\(booking\)/);
+  assert.match(dash, /card\.dataset\.status === 'cancelled'\) openReasonPopover\(card\)/);
 });

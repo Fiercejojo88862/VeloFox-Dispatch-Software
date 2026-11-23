@@ -128,6 +128,31 @@
     .comm-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
     .notify-btn { padding: 4px 8px; font-size: 9px; }
 
+    /* ---------- cancellation reasons ---------- */
+    .reason-popover {
+      position: fixed; z-index: 70; width: 240px; padding: 6px;
+      background: var(--panel); border: 1px solid var(--line-strong);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .reason-popover[hidden] { display: none; }
+    .reason-popover-head {
+      padding: 8px 10px 6px; font-size: 9px; font-weight: 600;
+      letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted);
+    }
+    .reason-option {
+      display: flex; width: 100%; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 9px 10px; border: 0; border-radius: 2px;
+      background: transparent; color: var(--text); font: inherit; font-size: 11px;
+      cursor: pointer; text-align: left;
+    }
+    .reason-option:hover { background: var(--panel-hover); color: var(--accent); }
+    .reason-option.is-active { color: var(--accent); background: rgba(197, 160, 89, 0.1); }
+    .reason-option-count {
+      font-size: 10px; font-weight: 600; color: var(--muted);
+      background: var(--bg-soft); padding: 2px 7px; border-radius: 999px;
+    }
+    .stat[data-status="cancelled"] { position: relative; }
+
     /* ---------- exception center ---------- */
     .alerts-wrap { position: relative; }
     .alerts-bell { position: relative; }
@@ -287,10 +312,25 @@
     .small { font-size: 11px; letter-spacing: 0.06em; }
 
     main {
-      max-width: 1400px;
+      max-width: 1600px;
       margin: 0 auto;
       padding: clamp(20px, 3vw, 36px) clamp(16px, 3.4vw, 44px) 80px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 24px;
+      align-items: start;
     }
+    main > [data-dashboard-section] { grid-column: 1 / -1; }
+    main > #telemetry-panel,
+    main > #bookings-panel { grid-column: auto; }
+    @media (min-width: 1300px) {
+      main {
+        grid-template-columns: minmax(360px, 0.8fr) minmax(0, 1.5fr);
+      }
+      main > #telemetry-panel { grid-column: 1; }
+      main > #bookings-panel { grid-column: 2; }
+    }
+    main > .panel + .panel { margin-top: 0; }
 
     /* ---------- customizable dashboard ---------- */
 
@@ -942,6 +982,31 @@
       max-width: 112px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
       font-size: 10px; color: var(--accent-bright); pointer-events: none;
     }
+    .driver-suggestions {
+      position: fixed; z-index: 10020;
+      max-height: 230px; overflow-y: auto; padding: 4px;
+      background: var(--panel); border: 1px solid var(--accent);
+      border-radius: 4px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.72);
+    }
+    .driver-suggestions[hidden] { display: none; }
+    .driver-suggestions-label {
+      padding: 6px 8px; color: var(--accent); font-size: 8px; font-weight: 700;
+      letter-spacing: 0.16em; text-transform: uppercase;
+    }
+    .driver-suggestion {
+      width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px;
+      padding: 9px 10px; border: 0; border-radius: 2px;
+      background: transparent; color: var(--text); text-align: left; cursor: pointer;
+    }
+    .driver-suggestion:hover,
+    .driver-suggestion[aria-selected="true"] { background: rgba(197, 160, 89, 0.16); }
+    .driver-suggestion-name { font-size: 12px; font-weight: 600; }
+    .driver-suggestion-id { color: var(--accent-bright); font-size: 10px; }
+    .driver-suggestion-status {
+      grid-column: 1 / -1; color: var(--muted); font-size: 8px;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .driver-suggestions-empty { padding: 12px 10px; color: var(--muted); font-size: 11px; }
 
     /* ---------- states ---------- */
 
@@ -1248,6 +1313,25 @@
     </form>
   </div>
 
+  <div id="cancel-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-labelledby="cancel-modal-title">
+      <div class="modal-head">
+        <h2 id="cancel-modal-title">Why is this ride being cancelled?</h2>
+        <button id="cancel-modal-close" class="btn btn-ghost btn-sm" type="button" aria-label="Close">✕</button>
+      </div>
+      <p class="muted small" id="cancel-modal-ride"></p>
+      <div class="modal-grid" id="cancel-reason-grid"></div>
+      <div class="modal-actions">
+        <button class="btn" type="button" data-cancel-close>Keep ride</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="reason-popover" class="reason-popover" hidden>
+    <div class="reason-popover-head">Cancellation reasons</div>
+    <div id="reason-options"></div>
+  </div>
+
   <div id="toasts" class="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
 
   <aside id="dashboard-tour" class="dashboard-tour" role="dialog" aria-modal="true" aria-labelledby="tour-title" hidden>
@@ -1378,6 +1462,10 @@
     const bookingModal = document.getElementById('booking-modal');
     const newBookingForm = document.getElementById('new-booking-form');
     const newBookingError = document.getElementById('new-booking-error');
+    const reasonPopover = document.getElementById('reason-popover');
+    const reasonOptions = document.getElementById('reason-options');
+    const cancelModal = document.getElementById('cancel-modal');
+    const cancelReasonGrid = document.getElementById('cancel-reason-grid');
     const alertsBell = document.getElementById('alerts-bell');
     const alertsPanel = document.getElementById('alerts-panel');
     const alertsList = document.getElementById('alerts-list');
@@ -1389,6 +1477,7 @@
     let isLoading = false;
     let hasLoadedOnce = false;
     let activeFilter = null;
+    let activeReasonFilter = null;
     let bookingsTab = 'active';
     let dashboardLayoutKey = null;
     let dashboardTourKey = null;
@@ -1430,6 +1519,19 @@
       return null;
     }
 
+    function matchingDrivers(reference = '') {
+      const known = new Map();
+      DRIVER_NAMES.forEach((name, id) => known.set(id, { id, name, status: '' }));
+      rosterDriversById.forEach((driver, id) => known.set(id, driver));
+      const needle = String(reference).trim().toLowerCase();
+      return Array.from(known.values())
+        .filter((driver) => !needle
+          || driver.id.toLowerCase().includes(needle)
+          || driver.name.toLowerCase().includes(needle))
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .slice(0, 12);
+    }
+
     async function resolveDriverReference(reference) {
       const known = findKnownDriver(reference);
       if (known) return known;
@@ -1446,6 +1548,11 @@
 
     const ROSTER_STATUS_LABELS = {
       available: 'Available', on_trip: 'On Trip', offline: 'Offline', maintenance: 'Maintenance',
+    };
+    const CANCEL_REASONS = {
+      test_demo: 'Test/Demo',
+      client_cancelled: 'Client Cancelled',
+      no_show: 'No-Show',
     };
 
     function wireAssignmentDrop(element, bookingId) {
@@ -1540,6 +1647,37 @@
       } catch (error) {
         rosterSummaryEl.textContent = `Roster unavailable — ${error.message}`;
       }
+    }
+
+    function pickCancellationReason(booking) {
+      return new Promise((resolve) => {
+        document.getElementById('cancel-modal-ride').textContent =
+          `Ride ${booking.id.slice(0, 8)} · ${booking.clientName || booking.pickupLocation || 'client'}`;
+        const buttons = Object.entries(CANCEL_REASONS).map(([key, label]) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'btn';
+          button.textContent = label;
+          button.dataset.audio = 'confirm';
+          button.addEventListener('click', () => {
+            cancelModal.hidden = true;
+            resolve(key);
+          }, { once: true });
+          return button;
+        });
+        cancelReasonGrid.replaceChildren(...buttons);
+        cancelModal.hidden = false;
+
+        const close = (value) => {
+          cancelModal.hidden = true;
+          resolve(value);
+        };
+        document.getElementById('cancel-modal-close').onclick = () => close(null);
+        cancelModal.querySelector('[data-cancel-close]').onclick = () => close(null);
+        cancelModal.onclick = (event) => {
+          if (event.target === cancelModal) close(null);
+        };
+      });
     }
 
     function makeCommLink(phone, label, kind, message = '') {
@@ -1887,7 +2025,10 @@
         filterChip.hidden = true;
         return;
       }
-      const label = activeFilter === 'unassigned' ? 'Unassigned' : formatStatus(activeFilter);
+      const base = activeFilter === 'unassigned' ? 'Unassigned' : formatStatus(activeFilter);
+      const label = activeReasonFilter
+        ? `${base} · ${CANCEL_REASONS[activeReasonFilter] || 'Unspecified'}`
+        : base;
       filterChip.hidden = false;
       filterChip.textContent = `Filter: ${label} ✕`;
       filterChip.title = 'Clear the ride filter';
@@ -1896,8 +2037,71 @@
 
     function applyFilter(status) {
       activeFilter = status || null;
+      if (status !== 'cancelled') activeReasonFilter = null;
       updateFilterChip();
       render();
+    }
+
+    function applyReasonFilter(reason) {
+      activeReasonFilter = reason || null;
+      activeFilter = 'cancelled';
+      bookingsTab = 'completed';
+      bookingTabButtons.forEach((button) => {
+        button.classList.toggle('is-active', button.dataset.tab === 'completed');
+        button.setAttribute('aria-selected', String(button.dataset.tab === 'completed'));
+      });
+      reasonPopover.hidden = true;
+      updateFilterChip();
+      render();
+    }
+
+    function cancellationCounts() {
+      const counts = { test_demo: 0, client_cancelled: 0, no_show: 0, unknown: 0 };
+      bookings.filter((booking) => booking.status === 'cancelled').forEach((booking) => {
+        if (Object.hasOwn(counts, booking.cancellationReason)) counts[booking.cancellationReason] += 1;
+        else counts.unknown += 1;
+      });
+      return counts;
+    }
+
+    function openReasonPopover(anchor) {
+      const counts = cancellationCounts();
+      const options = Object.entries(CANCEL_REASONS).map(([key, label]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `reason-option${activeReasonFilter === key ? ' is-active' : ''}`;
+        button.innerHTML = `<span></span><span class="reason-option-count"></span>`;
+        button.querySelector('span').textContent = label;
+        button.querySelector('.reason-option-count').textContent = String(counts[key]);
+        button.addEventListener('click', () => applyReasonFilter(key));
+        return button;
+      });
+      const unknown = document.createElement('button');
+      unknown.type = 'button';
+      unknown.className = `reason-option${activeReasonFilter === 'unknown' ? ' is-active' : ''}`;
+      unknown.innerHTML = `<span></span><span class="reason-option-count"></span>`;
+      unknown.querySelector('span').textContent = 'Unspecified';
+      unknown.querySelector('.reason-option-count').textContent = String(counts.unknown);
+      unknown.addEventListener('click', () => applyReasonFilter('unknown'));
+      options.push(unknown);
+
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'reason-option';
+      clear.textContent = 'Show all cancellations';
+      clear.addEventListener('click', () => {
+        activeReasonFilter = null;
+        reasonPopover.hidden = true;
+        applyFilter('cancelled');
+      });
+      options.push(clear);
+      reasonOptions.replaceChildren(...options);
+
+      const rect = anchor.getBoundingClientRect();
+      reasonPopover.hidden = false;
+      const width = 240;
+      reasonPopover.style.left = `${Math.min(rect.left, window.innerWidth - width - 12)}px`;
+      reasonPopover.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 240)}px`;
     }
 
     function setBookingsTab(tab) {
@@ -2094,10 +2298,26 @@
         counts[status] = bookings.filter((booking) => booking.status === status).length;
       });
 
+      const reasonCounts = cancellationCounts();
+      const reasonTooltip = [
+        `${reasonCounts.test_demo} Test/Demo`,
+        `${reasonCounts.client_cancelled} Client Cancelled`,
+        `${reasonCounts.no_show} No-Show`,
+        `${reasonCounts.unknown} Unspecified`,
+      ].join(' · ');
+
       const layoutTools = statsEl.querySelector(':scope > .layout-tools');
       statsEl.replaceChildren(
         makeStatCard('total', 'Total rides', counts.total),
-        ...STATUSES.map((status) => makeStatCard(status, formatStatus(status), counts[status]))
+        ...STATUSES.map((status) => {
+          const card = makeStatCard(status, formatStatus(status), counts[status]);
+          if (status === 'cancelled') {
+            card.classList.add('has-reasons');
+            card.title = `Cancellation reasons — ${reasonTooltip}`;
+            card.setAttribute('aria-label', `${counts.cancelled} cancelled rides. ${reasonTooltip}. Select to filter by reason.`);
+          }
+          return card;
+        })
       );
       if (layoutTools) statsEl.append(layoutTools);
     }
@@ -2347,9 +2567,20 @@
         const nextStatus = select.value;
         if (nextStatus === booking.status) return;
 
+        let cancellationReason;
+        if (nextStatus === 'cancelled') {
+          cancellationReason = await pickCancellationReason(booking);
+          if (!cancellationReason) {
+            select.value = booking.status;
+            return;
+          }
+        }
+
         select.disabled = true;
         try {
-          const updated = await patchBooking(booking.id, { status: nextStatus });
+          const payload = { status: nextStatus };
+          if (cancellationReason) payload.cancellationReason = cancellationReason;
+          const updated = await patchBooking(booking.id, payload);
           showToast(`Ride ${updated.id.slice(0, 8)} marked as ${formatStatus(nextStatus)}.`, 'success');
         } catch (error) {
           select.value = booking.status;
@@ -2517,6 +2748,7 @@
     function makeAssignForm(booking) {
       const form = document.createElement('form');
       form.className = 'assign';
+      form.autocomplete = 'off';
 
       const vehicleKey = typeof booking.vehicleType === 'string' ? booking.vehicleType.trim().toLowerCase() : '';
       const fleetOptions = [...(FLEET_BY_CLASS[vehicleKey] || [])];
@@ -2545,11 +2777,23 @@
       driverInput.maxLength = 50;
       driverInput.placeholder = 'Driver ID or name';
       driverInput.value = booking.driverId || '';
+      driverInput.autocomplete = 'off';
+      driverInput.spellcheck = false;
+      driverInput.setAttribute('autocorrect', 'off');
+      driverInput.setAttribute('role', 'combobox');
+      driverInput.setAttribute('aria-autocomplete', 'list');
+      driverInput.setAttribute('aria-expanded', 'false');
       driverInput.setAttribute('aria-label', `Assign a driver by ID or name to ride ${booking.id.slice(0, 8)}`);
       const driverNameEl = document.createElement('span');
       driverNameEl.className = 'driver-name';
       driverNameEl.setAttribute('aria-live', 'polite');
       if (booking.driverId) driverNameEl.textContent = getDriverName(booking.driverId);
+      const driverSuggestions = document.createElement('div');
+      driverSuggestions.id = `driver-suggestions-${booking.id.replace(/[^a-z0-9]/gi, '')}`;
+      driverSuggestions.className = 'driver-suggestions';
+      driverSuggestions.setAttribute('role', 'listbox');
+      driverSuggestions.hidden = true;
+      driverInput.setAttribute('aria-controls', driverSuggestions.id);
       driverField.append(driverInput, driverNameEl);
 
       let driverLookupTimer = null;
@@ -2567,9 +2811,101 @@
         }).catch(() => { /* driver manifest is optional here */ });
       };
 
+      let visibleDriverSuggestions = [];
+      let activeDriverSuggestion = -1;
+
+      const closeDriverSuggestions = () => {
+        driverSuggestions.hidden = true;
+        driverSuggestions.remove();
+        driverInput.setAttribute('aria-expanded', 'false');
+        driverInput.removeAttribute('aria-activedescendant');
+        activeDriverSuggestion = -1;
+      };
+
+      const chooseDriverSuggestion = (driver) => {
+        driverInput.value = driver.name;
+        driverInput.dataset.selectedDriverId = driver.id;
+        driverNameEl.textContent = `${driver.name} — ${driver.id}`;
+        closeDriverSuggestions();
+        suggestVehicleFor(driver.id);
+        driverInput.focus();
+      };
+
+      const setActiveDriverSuggestion = (index) => {
+        if (!visibleDriverSuggestions.length) return;
+        activeDriverSuggestion = (index + visibleDriverSuggestions.length) % visibleDriverSuggestions.length;
+        const options = Array.from(driverSuggestions.querySelectorAll('[role="option"]'));
+        options.forEach((option, optionIndex) => {
+          const selected = optionIndex === activeDriverSuggestion;
+          option.setAttribute('aria-selected', String(selected));
+          if (selected) {
+            driverInput.setAttribute('aria-activedescendant', option.id);
+            option.scrollIntoView({ block: 'nearest' });
+          }
+        });
+      };
+
+      const renderDriverSuggestions = () => {
+        visibleDriverSuggestions = matchingDrivers(driverInput.value);
+        activeDriverSuggestion = -1;
+        const label = document.createElement('div');
+        label.className = 'driver-suggestions-label';
+        label.textContent = 'VeloFox drivers';
+        if (!visibleDriverSuggestions.length) {
+          const empty = document.createElement('div');
+          empty.className = 'driver-suggestions-empty';
+          empty.textContent = 'No matching drivers';
+          driverSuggestions.replaceChildren(label, empty);
+        } else {
+          const options = visibleDriverSuggestions.map((driver, index) => {
+            const option = document.createElement('button');
+            option.type = 'button';
+            option.id = `${driverSuggestions.id}-option-${index}`;
+            option.className = 'driver-suggestion';
+            option.setAttribute('role', 'option');
+            option.setAttribute('aria-selected', 'false');
+
+            const name = document.createElement('span');
+            name.className = 'driver-suggestion-name';
+            name.textContent = driver.name;
+            const id = document.createElement('span');
+            id.className = 'driver-suggestion-id';
+            id.textContent = driver.id;
+            option.append(name, id);
+            if (driver.status) {
+              const status = document.createElement('span');
+              status.className = 'driver-suggestion-status';
+              status.textContent = ROSTER_STATUS_LABELS[driver.status] || driver.status;
+              option.append(status);
+            }
+            option.addEventListener('mousedown', (event) => event.preventDefault());
+            option.addEventListener('click', () => chooseDriverSuggestion(driver));
+            return option;
+          });
+          driverSuggestions.replaceChildren(label, ...options);
+        }
+        if (!driverSuggestions.isConnected) document.body.append(driverSuggestions);
+        const inputRect = driverInput.getBoundingClientRect();
+        const menuWidth = Math.max(inputRect.width, 230);
+        driverSuggestions.style.width = `${menuWidth}px`;
+        driverSuggestions.style.left = `${Math.max(8, Math.min(inputRect.left, window.innerWidth - menuWidth - 8))}px`;
+        driverSuggestions.style.right = 'auto';
+        if (window.innerHeight - inputRect.bottom >= 245 || inputRect.top < 245) {
+          driverSuggestions.style.top = `${inputRect.bottom + 4}px`;
+          driverSuggestions.style.bottom = 'auto';
+        } else {
+          driverSuggestions.style.top = 'auto';
+          driverSuggestions.style.bottom = `${window.innerHeight - inputRect.top + 4}px`;
+        }
+        driverSuggestions.hidden = false;
+        driverInput.setAttribute('aria-expanded', 'true');
+      };
+
       driverInput.addEventListener('input', () => {
         clearTimeout(driverLookupTimer);
+        delete driverInput.dataset.selectedDriverId;
         driverNameEl.textContent = '';
+        renderDriverSuggestions();
         const typedReference = driverInput.value.trim();
         if (!typedReference) return;
         const knownDriver = findKnownDriver(typedReference);
@@ -2591,6 +2927,20 @@
             driverNameEl.textContent = '';
           }
         }, 250);
+      });
+      driverInput.addEventListener('focus', renderDriverSuggestions);
+      driverInput.addEventListener('blur', () => window.setTimeout(closeDriverSuggestions, 120));
+      driverInput.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          event.preventDefault();
+          if (driverSuggestions.hidden) renderDriverSuggestions();
+          setActiveDriverSuggestion(activeDriverSuggestion + (event.key === 'ArrowDown' ? 1 : -1));
+        } else if (event.key === 'Enter' && !driverSuggestions.hidden && activeDriverSuggestion >= 0) {
+          event.preventDefault();
+          chooseDriverSuggestion(visibleDriverSuggestions[activeDriverSuggestion]);
+        } else if (event.key === 'Escape') {
+          closeDriverSuggestions();
+        }
       });
 
       const submit = document.createElement('button');
@@ -2630,12 +2980,16 @@
           return;
         }
 
-        const driver = await resolveDriverReference(driverReference);
+        const selectedDriverId = driverInput.dataset.selectedDriverId;
+        const driver = selectedDriverId
+          ? findKnownDriver(selectedDriverId)
+          : await resolveDriverReference(driverReference);
         if (!driver) {
           showToast('No driver matches that ID or name.', 'error');
           driverInput.focus();
           return;
         }
+        closeDriverSuggestions();
 
         submit.disabled = true;
         vehicleSelect.disabled = true;
@@ -2827,11 +3181,16 @@
         : bookingsTab === 'completed'
           ? bookings.filter((booking) => TERMINAL_STATUSES.has(booking.status))
           : bookings.filter((booking) => !TERMINAL_STATUSES.has(booking.status));
-      const visible = activeFilter
-        ? activeFilter === 'unassigned'
-          ? tabVisible.filter((booking) => !booking.driverId)
-          : tabVisible.filter((booking) => booking.status === activeFilter)
-        : tabVisible;
+      let visible = tabVisible;
+      if (activeFilter === 'unassigned') visible = visible.filter((booking) => !booking.driverId);
+      else if (activeFilter) visible = visible.filter((booking) => booking.status === activeFilter);
+      if (activeReasonFilter) {
+        visible = visible.filter((booking) => (
+          activeReasonFilter === 'unknown'
+            ? !booking.cancellationReason
+            : booking.cancellationReason === activeReasonFilter
+        ));
+      }
 
       countEl.textContent = activeFilter
         ? `${visible.length} of ${tabVisible.length} rides`
@@ -2930,7 +3289,14 @@
 
     statsEl.addEventListener('click', (event) => {
       const card = event.target.closest('.stat[data-status]');
-      if (card) openBookingsForStatus(card.dataset.status);
+      if (!card) return;
+      if (card.dataset.status === 'cancelled') openReasonPopover(card);
+      else openBookingsForStatus(card.dataset.status);
+    });
+    document.addEventListener('click', (event) => {
+      if (!reasonPopover.hidden && !event.target.closest('#reason-popover') && !event.target.closest('.stat[data-status="cancelled"]')) {
+        reasonPopover.hidden = true;
+      }
     });
     customizeDashboardBtn.addEventListener('click', () => {
       setDashboardCustomization(!document.body.classList.contains('is-customizing'));

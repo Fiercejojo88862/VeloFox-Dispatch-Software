@@ -189,6 +189,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     luggage_notes    varchar(500),
     beverage_request varchar(200),
     special_requests varchar(1000),
+    cancellation_reason text,
     preferred_driver_id varchar(50),
     client_email     varchar(254),
     client_name      varchar(120),
@@ -215,6 +216,10 @@ CREATE TABLE IF NOT EXISTS bookings (
         CHECK (status IN (
             'pending', 'confirmed', 'assigned', 'en_route', 'arrived',
             'passenger_aboard', 'dropped_off', 'completed', 'cancelled'
+        )),
+    CONSTRAINT bookings_cancellation_reason_check
+        CHECK (cancellation_reason IS NULL OR cancellation_reason IN (
+            'test_demo', 'client_cancelled', 'no_show'
         )),
     CONSTRAINT bookings_billing_mode_check
         CHECK (billing_mode IN ('point_to_point', 'hourly')),
@@ -245,7 +250,15 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS assigned_vehicle varchar(100);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS luggage_notes varchar(500);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS beverage_request varchar(200);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS special_requests varchar(1000);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cancellation_reason text;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS preferred_driver_id varchar(50);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'bookings_cancellation_reason_check') THEN
+    ALTER TABLE bookings ADD CONSTRAINT bookings_cancellation_reason_check
+      CHECK (cancellation_reason IS NULL OR cancellation_reason IN ('test_demo', 'client_cancelled', 'no_show'));
+  END IF;
+END $$;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_email varchar(254);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_name varchar(120);
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS client_phone varchar(30);

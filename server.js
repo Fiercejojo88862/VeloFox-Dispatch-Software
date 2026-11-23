@@ -1871,7 +1871,7 @@ app.patch('/api/bookings/:id', async (req, res) => {
     return res.status(400).json({ error: 'Request body must be a JSON object.' });
   }
 
-  const allowedFields = ['status', 'assignedVehicle', 'driverId', 'luggageNotes', 'driverLocation', 'pricing'];
+  const allowedFields = ['status', 'assignedVehicle', 'driverId', 'luggageNotes', 'driverLocation', 'pricing', 'cancellationReason'];
   const receivedFields = Object.keys(req.body);
   const unknownFields = receivedFields.filter((field) => !allowedFields.includes(field));
 
@@ -1890,7 +1890,7 @@ app.patch('/api/bookings/:id', async (req, res) => {
   }
 
   const requestedStatus = typeof req.body.status === 'string' ? req.body.status.trim().toLowerCase() : null;
-  const dispatcherOnlyUpdate = receivedFields.some((field) => ['assignedVehicle', 'driverId', 'luggageNotes', 'pricing'].includes(field))
+  const dispatcherOnlyUpdate = receivedFields.some((field) => ['assignedVehicle', 'driverId', 'luggageNotes', 'pricing', 'cancellationReason'].includes(field))
     || (requestedStatus !== null && !['en_route', 'arrived', 'passenger_aboard', 'dropped_off', 'completed'].includes(requestedStatus));
   if (dispatcherOnlyUpdate) {
     const authenticatedUser = await getAuthenticatedUser(req);
@@ -1911,6 +1911,15 @@ app.patch('/api/bookings/:id', async (req, res) => {
       errors.push(`status cannot transition from ${booking.status} to ${status}.`);
     } else {
       changes.status = status;
+    }
+  }
+
+  if (Object.hasOwn(req.body, 'cancellationReason')) {
+    const reason = req.body.cancellationReason;
+    if (reason !== null && !['test_demo', 'client_cancelled', 'no_show'].includes(reason)) {
+      errors.push('cancellationReason must be one of: test_demo, client_cancelled, no_show, or null.');
+    } else {
+      changes.cancellationReason = reason;
     }
   }
 
@@ -1978,6 +1987,11 @@ app.patch('/api/bookings/:id', async (req, res) => {
     && (booking.status === 'pending' || booking.status === 'confirmed')
   ) {
     changes.status = 'assigned';
+  }
+
+  if (booking.status === 'cancelled' && changes.status && changes.status !== 'cancelled'
+    && !Object.hasOwn(changes, 'cancellationReason')) {
+    changes.cancellationReason = null;
   }
 
   const updated = await repo.updateBooking(booking.id, changes);
