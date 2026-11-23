@@ -491,7 +491,7 @@ test('dispatch command console understands plain-English actions', () => {
   assert.doesNotMatch(dash, /id="voice-toggle"|VeloFoxVoice|Speech recognition/);
   assert.match(dash, /window\.VeloFoxCommands/);
   assert.match(dash, /aria-label="Dispatch command console"/);
-  assert.match(dash, /Describe an action in plain English — I'll take care of it/);
+  assert.match(dash, /Describe an action in plain english and Velofox will execute it for you/);
   assert.match(dash, /id="command-log" class="command-log" hidden/);
   assert.match(dash, /function logCommand\(request, response, isError/);
   assert.match(dash, /context: \{ get rides\(\) \{ return bookings; \} \}/);
