@@ -17,6 +17,9 @@ test('about page is linked from the public site and loads shared controllers', (
   assert.match(about, /<script src="\/js\/i18n\.js"><\/script>/);
   assert.match(about, /<script src="\/js\/a11y\.js"><\/script>/);
   assert.match(about, /<a class="nav-link" href="\/about\.html" aria-current="page"/);
+  assert.match(about, /src="\/assets\/about\/2004-mercedes-s-class\.webp"/);
+  assert.match(about, /2004 Mercedes S-Class/);
+  assert.match(about, /about-figure__credit/);
 
   for (const page of ['index.html', 'booking.html', 'fleet.html']) {
     assert.match(read(page), /href="\/about\.html"/, `${page} should link to About us`);
@@ -48,16 +51,14 @@ test('about story is translated in all five languages', () => {
   }
 });
 
-test('fleet vehicles drive up on hover with a reduced-motion fallback', () => {
+test('fleet cards use a simple hover state without drive animations', () => {
   const fleet = read('fleet.html');
 
   for (const vehicle of ['sedan', 'suv', 'sprinter', 'limousine']) {
     assert.match(fleet, new RegExp(`data-vehicle="${vehicle}"`));
   }
 
-  assert.match(fleet, /@keyframes fleet-drive-up/);
-  assert.match(fleet, /\.fleet-card:hover \.fleet-card__media img/);
-  assert.match(fleet, /\.fleet-card:focus-within \.fleet-card__media img/);
-  assert.match(fleet, /@media \(hover: none\)/);
-  assert.match(fleet, /@media \(prefers-reduced-motion: reduce\)/);
+  assert.match(fleet, /\.fleet-card:hover \.fleet-card__media img \{\s*transform: scale\(1\.05\);/);
+  assert.doesNotMatch(fleet, /fleet-drive-up|fleet-drive-light|--drive-time/);
+  assert.doesNotMatch(fleet, /fleet-card:hover \.fleet-card__media::before/);
 });
