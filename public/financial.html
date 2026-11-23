@@ -31,6 +31,7 @@
       --en-route: #d4a15b;
       --arrived: #73b6b0;
       --aboard: #7fa6d9;
+      --dropped-off: #8ab69c;
     }
 
     .pages-grid {
@@ -324,6 +325,7 @@
     .metric.is-en_route { border-left-color: var(--en-route); }
     .metric.is-arrived { border-left-color: var(--arrived); }
     .metric.is-passenger_aboard { border-left-color: var(--aboard); }
+    .metric.is-dropped_off { border-left-color: var(--dropped-off); }
     .metric.is-completed { border-left-color: var(--completed); }
     .metric.is-cancelled { border-left-color: var(--cancelled); }
 
@@ -469,15 +471,16 @@
 
     const STATUSES = [
       'pending', 'confirmed', 'assigned', 'en_route', 'arrived',
-      'passenger_aboard', 'completed', 'cancelled',
+      'passenger_aboard', 'dropped_off', 'completed', 'cancelled',
     ];
     const STATUS_LABELS = {
       pending: 'Pending',
       confirmed: 'Confirmed',
       assigned: 'Assigned',
-      en_route: 'En Route',
+      en_route: 'On Route',
       arrived: 'On Location',
-      passenger_aboard: 'Passenger Aboard',
+      passenger_aboard: 'POB',
+      dropped_off: 'Dropped Off',
       completed: 'Completed',
       cancelled: 'Cancelled',
     };

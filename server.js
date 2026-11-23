@@ -45,10 +45,11 @@ const BOOKING_STATUSES = [
   'en_route',
   'arrived',
   'passenger_aboard',
+  'dropped_off',
   'completed',
   'cancelled',
 ];
-const TERMINAL_STATUSES = new Set(['completed', 'cancelled']);
+const TERMINAL_STATUSES = new Set(['dropped_off', 'completed', 'cancelled']);
 const ACTIVE_BOOKING_STATUSES = new Set(['assigned', 'en_route', 'arrived', 'passenger_aboard']);
 const STATUS_TRANSITIONS = {
   pending: new Set(['confirmed', 'cancelled']),
@@ -56,9 +57,11 @@ const STATUS_TRANSITIONS = {
   assigned: new Set(['en_route', 'cancelled']),
   en_route: new Set(['arrived', 'cancelled']),
   arrived: new Set(['passenger_aboard', 'cancelled']),
-  passenger_aboard: new Set(['completed', 'cancelled']),
+  passenger_aboard: new Set(['dropped_off', 'cancelled']),
+  dropped_off: new Set(['completed']),
   completed: new Set(),
-  cancelled: new Set(),
+  // A cancelled job can be reopened into any live or finished status.
+  cancelled: new Set(BOOKING_STATUSES.filter((status) => status !== 'cancelled')),
 };
 const DRIVER_REGISTRY = new Map([
   ['VF-1001', { id: 'VF-1001', name: 'Marcus Vance' }],
@@ -652,7 +655,7 @@ function buildAnalyticsSummary(rows, rangeKey, now = new Date()) {
   const assignedDrivers = new Set(
     scoped.filter((booking) => booking.driverId && !TERMINAL_STATUSES.has(booking.status)).map((booking) => booking.driverId)
   ).size;
-  const terminalCount = completed + cancelled;
+  const terminalCount = completed + cancelled + byStatus.dropped_off;
 
   return {
     generatedAt: now.toISOString(),
@@ -1483,7 +1486,7 @@ app.patch('/api/bookings/:id', async (req, res) => {
 
   const requestedStatus = typeof req.body.status === 'string' ? req.body.status.trim().toLowerCase() : null;
   const dispatcherOnlyUpdate = receivedFields.some((field) => ['assignedVehicle', 'driverId', 'luggageNotes', 'pricing'].includes(field))
-    || (requestedStatus !== null && !['en_route', 'arrived', 'passenger_aboard', 'completed'].includes(requestedStatus));
+    || (requestedStatus !== null && !['en_route', 'arrived', 'passenger_aboard', 'dropped_off', 'completed'].includes(requestedStatus));
   if (dispatcherOnlyUpdate) {
     const authenticatedUser = await getAuthenticatedUser(req);
     if (!authenticatedUser) return res.status(401).json({ error: 'Dispatcher sign in is required for this update.' });

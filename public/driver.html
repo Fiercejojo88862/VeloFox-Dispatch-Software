@@ -500,18 +500,19 @@
     const TELEMETRY_MIN_INTERVAL_MS = 8000;
     const ACTIVE_TELEMETRY_STATUSES = new Set(['assigned', 'en_route', 'arrived', 'passenger_aboard']);
     const DRIVER_STAGES = [
-      { status: 'en_route', label: 'En Route' },
+      { status: 'en_route', label: 'On Route' },
       { status: 'arrived', label: 'On Location / Arrived' },
-      { status: 'passenger_aboard', label: 'Passenger Aboard' },
-      { status: 'completed', label: 'Completed' },
+      { status: 'passenger_aboard', label: 'POB' },
+      { status: 'dropped_off', label: 'Dropped Off' },
     ];
     const STATUS_LABELS = {
       pending: 'Pending',
       confirmed: 'Confirmed',
       assigned: 'Assigned',
-      en_route: 'En Route',
+      en_route: 'On Route',
       arrived: 'On Location',
-      passenger_aboard: 'Passenger Aboard',
+      passenger_aboard: 'POB',
+      dropped_off: 'Dropped Off',
       completed: 'Completed',
       cancelled: 'Cancelled',
     };
@@ -634,9 +635,9 @@
         });
         const index = trips.findIndex((trip) => trip.id === bookingId);
         if (index >= 0) trips[index] = updated;
-        window.VeloFoxAudio?.play(status === 'completed' ? 'success' : status === 'arrived' ? 'arrive' : 'confirm');
+        window.VeloFoxAudio?.play(status === 'dropped_off' ? 'success' : status === 'arrived' ? 'arrive' : 'confirm');
         showToast(`Trip updated: ${STATUS_LABELS[status]}.`);
-        if (status === 'completed') {
+        if (status === 'dropped_off') {
           await loadManifest({ quiet: true });
         } else {
           renderManifest();

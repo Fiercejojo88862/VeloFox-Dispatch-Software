@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS bookings (
     CONSTRAINT bookings_status_check
         CHECK (status IN (
             'pending', 'confirmed', 'assigned', 'en_route', 'arrived',
-            'passenger_aboard', 'completed', 'cancelled'
+            'passenger_aboard', 'dropped_off', 'completed', 'cancelled'
         )),
     CONSTRAINT bookings_billing_mode_check
         CHECK (billing_mode IN ('point_to_point', 'hourly')),
@@ -235,7 +235,7 @@ ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check;
 ALTER TABLE bookings ADD CONSTRAINT bookings_status_check
     CHECK (status IN (
         'pending', 'confirmed', 'assigned', 'en_route', 'arrived',
-        'passenger_aboard', 'completed', 'cancelled'
+        'passenger_aboard', 'dropped_off', 'completed', 'cancelled'
     ));
 
 ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_driver_id_fkey;
@@ -253,7 +253,7 @@ ALTER TABLE bookings ADD CONSTRAINT bookings_preferred_driver_id_fkey
 COMMENT ON TABLE bookings IS 'Client ride reservations managed from the dispatcher dashboard.';
 COMMENT ON COLUMN bookings.pickup_datetime IS 'Scheduled pickup time; stored with time zone.';
 COMMENT ON COLUMN bookings.vehicle_type IS 'Requested class; vehicles.category must match once assigned.';
-COMMENT ON COLUMN bookings.status IS 'pending | confirmed | assigned | en_route | arrived | passenger_aboard | completed | cancelled.';
+COMMENT ON COLUMN bookings.status IS 'pending | confirmed | assigned | en_route | arrived | passenger_aboard | dropped_off | completed | cancelled.';
 COMMENT ON COLUMN bookings.vehicle_id IS 'Fleet vehicle assigned to the ride, or NULL while unassigned.';
 COMMENT ON COLUMN bookings.driver_id IS 'Driver ID assigned to the ride and used by the mobile manifest.';
 COMMENT ON COLUMN bookings.assigned_vehicle IS 'Human-readable fleet label displayed to the driver.';

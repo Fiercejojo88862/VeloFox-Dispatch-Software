@@ -29,6 +29,7 @@
       --en-route: #d4a15b;
       --arrived: #73b6b0;
       --aboard: #7fa6d9;
+      --dropped-off: #8ab69c;
       --completed: #93b39a;
       --cancelled: #cc8a7d;
     }
@@ -232,6 +233,7 @@
     .stat[data-status="en_route"] { --dot: var(--en-route); }
     .stat[data-status="arrived"] { --dot: var(--arrived); }
     .stat[data-status="passenger_aboard"] { --dot: var(--aboard); }
+    .stat[data-status="dropped_off"] { --dot: var(--dropped-off); }
     .stat[data-status="completed"] { --dot: var(--completed); }
     .stat[data-status="cancelled"] { --dot: var(--cancelled); }
     .stat[data-status="total"] { --dot: var(--accent); }
@@ -644,6 +646,7 @@
     .badge[data-status="en_route"] { --badge: var(--en-route); }
     .badge[data-status="arrived"] { --badge: var(--arrived); }
     .badge[data-status="passenger_aboard"] { --badge: var(--aboard); }
+    .badge[data-status="dropped_off"] { --badge: var(--dropped-off); }
     .badge[data-status="completed"] { --badge: var(--completed); }
     .badge[data-status="cancelled"] { --badge: var(--cancelled); }
 
@@ -936,25 +939,29 @@
     const API_URL = '/api/bookings';
     const STATUSES = [
       'pending', 'confirmed', 'assigned', 'en_route', 'arrived',
-      'passenger_aboard', 'completed', 'cancelled',
+      'passenger_aboard', 'dropped_off', 'completed', 'cancelled',
     ];
+    const TERMINAL_STATUSES = new Set(['dropped_off', 'completed', 'cancelled']);
     const STATUS_TRANSITIONS = {
       pending: ['confirmed', 'cancelled'],
       confirmed: ['assigned', 'cancelled'],
       assigned: ['en_route', 'cancelled'],
       en_route: ['arrived', 'cancelled'],
       arrived: ['passenger_aboard', 'cancelled'],
-      passenger_aboard: ['completed', 'cancelled'],
+      passenger_aboard: ['dropped_off', 'cancelled'],
+      dropped_off: ['completed'],
       completed: [],
-      cancelled: [],
+      // Reopen a cancelled job into any live or finished status.
+      cancelled: STATUSES.filter((status) => status !== 'cancelled'),
     };
     const STATUS_LABELS = {
       pending: 'Pending',
       confirmed: 'Confirmed',
       assigned: 'Assigned',
-      en_route: 'En Route',
+      en_route: 'On Route',
       arrived: 'On Location',
-      passenger_aboard: 'Passenger Aboard',
+      passenger_aboard: 'POB',
+      dropped_off: 'Dropped Off',
       completed: 'Completed',
       cancelled: 'Cancelled',
     };
@@ -1035,7 +1042,7 @@
     function isOverdue(booking) {
       const timestamp = Date.parse(booking.pickupDateTime);
       if (Number.isNaN(timestamp) || timestamp >= Date.now()) return false;
-      return booking.status !== 'completed' && booking.status !== 'cancelled';
+      return !TERMINAL_STATUSES.has(booking.status);
     }
 
     /* ------------------------------ API ------------------------------ */
@@ -1414,7 +1421,7 @@
         select.disabled = true;
         try {
           const updated = await patchBooking(booking.id, { status: nextStatus });
-          showToast(`Ride ${updated.id.slice(0, 8)} marked as ${nextStatus}.`, 'success');
+          showToast(`Ride ${updated.id.slice(0, 8)} marked as ${formatStatus(nextStatus)}.`, 'success');
         } catch (error) {
           select.value = booking.status;
           showToast(error.message, 'error', error.details);

@@ -22,9 +22,10 @@
   'use strict';
 
   const STATUS_PATTERNS = [
-    ['passenger_aboard', /\bpassenger (?:aboard|on\s?board)\b|\bon\s?board\b/],
-    ['en_route', /\ben\s?route\b|\bon the way\b/],
+    ['passenger_aboard', /\b(?:p\s?o\s?b|passenger (?:aboard|on\s?board))\b|\bon\s?board\b/],
+    ['en_route', /\b(?:en|on)\s?route\b|\bon the way\b/],
     ['arrived', /\barriv(?:ed|ing)\b|\bon location\b|\bon site\b/],
+    ['dropped_off', /\bdrop(?:ped)?[ -]?off\b/],
     ['completed', /\bcomplete(?:d)?\b|\bfinished\b|\bdone\b/],
     ['cancelled', /\bcancel(?:led|ed)?\b/],
     ['assigned', /\bassign(?:ed)?\b/],
@@ -36,9 +37,10 @@
     pending: 'Pending',
     confirmed: 'Confirmed',
     assigned: 'Assigned',
-    en_route: 'En Route',
+    en_route: 'On Route',
     arrived: 'On Location',
-    passenger_aboard: 'Passenger Aboard',
+    passenger_aboard: 'POB',
+    dropped_off: 'Dropped Off',
     completed: 'Completed',
     cancelled: 'Cancelled',
   };
