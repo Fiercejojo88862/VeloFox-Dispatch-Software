@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS drivers (
     id            varchar(50) PRIMARY KEY,
     display_name  varchar(120) NOT NULL,
     phone         varchar(30),
+    email         varchar(254),
     status        text NOT NULL DEFAULT 'available',
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now(),
