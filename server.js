@@ -1561,6 +1561,17 @@ app.patch('/api/bookings/:id', async (req, res) => {
     return res.status(400).json({ error: 'Validation failed.', details: errors });
   }
 
+  // Assigning a driver puts the trip into the dispatch-ready state so the
+  // driver lifecycle can begin — the driver's manifest shows the trip and
+  // the driver gets the En Route action instead of the "wait for dispatch" note.
+  if (
+    changes.driverId !== null
+    && changes.status === undefined
+    && (booking.status === 'pending' || booking.status === 'confirmed')
+  ) {
+    changes.status = 'assigned';
+  }
+
   const updated = await repo.updateBooking(booking.id, changes);
 
   if (changes.driverLocation) {
