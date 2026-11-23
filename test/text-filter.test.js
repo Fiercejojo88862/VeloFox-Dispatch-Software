@@ -16,7 +16,7 @@ test('real names with accents, hyphens and particles pass', () => {
 });
 
 test('obvious joke and keyboard-walk names are rejected', () => {
-  for (const name of ['asdf', 'qwerty', 'test', 'xxx', 'joe mama', '123456', 'aaaa', '4sdf', 'Xiao']) {
+  for (const name of ['asdf', 'qwerty', 'test', 'xxx', 'joe mama', '123456', 'aaaa', '4sdf', 'Xiao', 'asdf asdf', 'qwerty qwerty', 'asdf qwerty', 'test test test']) {
     assert.ok(checkPersonName(name, 'Name').errors.length > 0, name);
   }
 });
@@ -33,12 +33,14 @@ test('free text allows normal notes but blocks abuse and payloads', () => {
   assert.match(checkFreeText('what the fuck', 'Notes').errors.join(' '), /offensive/);
   assert.match(checkFreeText('https://troll.example', 'Notes').errors.join(' '), /links/);
   assert.match(checkFreeText('aaaaaaaaaaaaaaaaaaaa', 'Notes').errors.join(' '), /repeated/);
+  assert.match(checkFreeText('asdf asdf', 'Notes').errors.join(' '), /repeated/);
 });
 
 test('locations accept addresses but reject joke values', () => {
   assert.deepEqual(checkLocation('Newark Penn Station', 'pickupLocation').errors, []);
   assert.deepEqual(checkLocation('100 Main St, Suite 2', 'pickupLocation').errors, []);
   assert.ok(checkLocation('asdf', 'pickupLocation').errors.length > 0);
+  assert.ok(checkLocation('asdf asdf', 'pickupLocation').errors.length > 0);
   assert.ok(checkLocation('123', 'pickupLocation').errors.length > 0);
   assert.ok(checkLocation('<img src=x onerror=alert(1)>', 'pickupLocation').errors.length > 0);
 });

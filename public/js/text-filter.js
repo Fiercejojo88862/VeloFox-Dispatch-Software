@@ -10,6 +10,10 @@
     'janedoe', 'foobar', 'barfoo', 'loremipsum', 'dolorsitamet', 'anonymous',
     'noname', 'noone', 'nobody', 'dummy', 'sample', 'troll', 'hacker', 'lol', 'idk',
   ]);
+  const STRONG = new Set([
+    'asdf', 'asdfgh', 'asdfghjkl', 'qwerty', 'qwertyuiop', 'zxcv', 'zxcvbnm',
+    '123456', '1234567890', 'xxx', 'xxxx', 'xxxxx',
+  ]);
   const ABUSE = [
     'fuck', 'fucking', 'fucker', 'shit', 'bullshit', 'bitch', 'bastard',
     'asshole', 'dickhead', 'prick', 'piss', 'slut', 'whore', 'cunt',
@@ -37,6 +41,13 @@
     return ROWS.some((row) => row.includes(folded) || [...row].reverse().join('').includes(folded));
   }
 
+  function hasJokeToken(text, strongOnly) {
+    return text.split(/[\s\-_/]+/).filter(Boolean).some((token) => {
+      const folded = fold(token);
+      return (strongOnly ? STRONG.has(folded) : JOKE.has(folded)) || walk(folded);
+    });
+  }
+
   function clean(value) {
     return String(value || '').replace(INVISIBLE, '').replace(/[ \t]+/g, ' ').trim();
   }
@@ -50,6 +61,7 @@
     if (kind === 'name') {
       return !JOKE.has(folded)
         && !walk(folded)
+        && !hasJokeToken(text, false)
         && /\p{L}/u.test(text)
         && !/(.)\1{3,}/.test(folded)
         && (folded.match(/\d/g) || []).length <= 2
@@ -65,6 +77,7 @@
         && /\p{L}/u.test(text)
         && !JOKE.has(folded)
         && !walk(folded)
+        && !hasJokeToken(text, false)
         && !/(.)\1{7,}/.test(folded)
         && !SCRIPT.test(text)
         && !URL.test(text)
@@ -75,7 +88,8 @@
       && !URL.test(text)
       && !EMAIL.test(text)
       && !/(.)\1{7,}/i.test(text)
-      && !walk(folded);
+      && !walk(folded)
+      && !hasJokeToken(text, true);
   }
 
   function message(kind) {
