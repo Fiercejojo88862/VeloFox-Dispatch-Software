@@ -7,6 +7,7 @@ const pricing = require('./lib/pricing');
 const dispatch = require('./lib/dispatch');
 const db = require('./lib/db');
 const repo = require('./lib/repository');
+const textFilter = require('./lib/text-filter');
 
 const app = express();
 
@@ -131,6 +132,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json());
+app.use('/api', textFilter.sanitizeBody);
 app.use('/api', (req, res, next) => {
   // API responses include account, driver, and booking data; never cache them.
   res.setHeader('Cache-Control', 'no-store, private');
@@ -604,6 +606,7 @@ function validateAccountPayload(body, { requireInviteCode = false } = {}) {
   const email = normalizeEmail(body.email);
   const password = body.password;
   if (!isNonEmptyString(name, 120)) errors.push('Name is required and must not exceed 120 characters.');
+  errors.push(...textFilter.checkPersonName(name, 'Name').errors);
   if (!isNonEmptyString(email, 254) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.push('A valid email address is required.');
   }
@@ -687,11 +690,13 @@ function validateBooking(body) {
   if (!isNonEmptyString(pickupLocation)) {
     errors.push(`pickupLocation is required and must be a non-empty string (max ${MAX_TEXT_LENGTH} characters).`);
   }
+  errors.push(...textFilter.checkLocation(pickupLocation, 'pickupLocation').errors);
 
   const dropoffLocation = body.dropoffLocation;
   if (!isNonEmptyString(dropoffLocation)) {
     errors.push(`dropoffLocation is required and must be a non-empty string (max ${MAX_TEXT_LENGTH} characters).`);
   }
+  errors.push(...textFilter.checkLocation(dropoffLocation, 'dropoffLocation').errors);
 
   const pickupDateTime = body.pickupDateTime;
   let pickupTimestamp = NaN;
@@ -722,6 +727,7 @@ function validateBooking(body) {
   if (!isNonEmptyString(clientName, 120)) {
     errors.push('clientName is required and must not exceed 120 characters.');
   }
+  errors.push(...textFilter.checkPersonName(clientName, 'clientName').errors);
 
   const clientEmail = normalizeEmail(body.clientEmail);
   if (!isNonEmptyString(clientEmail, 254) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clientEmail)) {
@@ -745,6 +751,7 @@ function validateBooking(body) {
   } else if (typeof luggageNotes === 'string' && luggageNotes.trim().length > MAX_LUGGAGE_NOTES_LENGTH) {
     errors.push(`luggageNotes must not exceed ${MAX_LUGGAGE_NOTES_LENGTH} characters.`);
   }
+  errors.push(...textFilter.checkFreeText(luggageNotes, 'luggageNotes').errors);
 
   const beverageRequest = body.beverageRequest;
   if (beverageRequest != null && typeof beverageRequest !== 'string') {
@@ -752,6 +759,7 @@ function validateBooking(body) {
   } else if (typeof beverageRequest === 'string' && beverageRequest.trim().length > MAX_BEVERAGE_REQUEST_LENGTH) {
     errors.push(`beverageRequest must not exceed ${MAX_BEVERAGE_REQUEST_LENGTH} characters.`);
   }
+  errors.push(...textFilter.checkFreeText(beverageRequest, 'beverageRequest').errors);
 
   const specialRequests = body.specialRequests;
   if (specialRequests != null && typeof specialRequests !== 'string') {
@@ -759,6 +767,7 @@ function validateBooking(body) {
   } else if (typeof specialRequests === 'string' && specialRequests.trim().length > MAX_SPECIAL_REQUESTS_LENGTH) {
     errors.push(`specialRequests must not exceed ${MAX_SPECIAL_REQUESTS_LENGTH} characters.`);
   }
+  errors.push(...textFilter.checkFreeText(specialRequests, 'specialRequests').errors);
 
   const clientPhone = body.clientPhone;
   if (clientPhone != null && typeof clientPhone !== 'string') {
@@ -1395,6 +1404,7 @@ function normalizeDriverFields(body, existing = null) {
 
   const name = source.name === undefined ? existing?.name : (typeof source.name === 'string' ? source.name.trim() : '');
   if (!isNonEmptyString(name, 120)) errors.push('name is required and must not exceed 120 characters.');
+  errors.push(...textFilter.checkPersonName(name, 'name').errors);
 
   const rawPhone = source.phone === undefined ? existing?.phone : source.phone;
   if (rawPhone !== null && rawPhone !== undefined && typeof rawPhone !== 'string') {
@@ -1761,13 +1771,15 @@ app.post('/api/client/trips/:id/review', requireApiRole('client'), async (req, r
     return res.status(400).json({ error: 'rating must be an integer between 1 and 5.' });
   }
   if (feedback.length > 1000) return res.status(400).json({ error: 'feedback must not exceed 1000 characters.' });
+  const feedbackFilter = textFilter.checkFreeText(feedback, 'feedback');
+  if (feedbackFilter.errors.length > 0) return res.status(400).json({ error: feedbackFilter.errors[0] });
 
   const review = await repo.upsertReview({
     bookingId: booking.id,
     clientEmail: req.authUser.email,
     driverId: booking.driverId,
     rating,
-    feedback: feedback || null,
+    feedback: feedbackFilter.value || null,
   });
   res.json(review);
 });
@@ -1781,7 +1793,9 @@ app.post('/api/client/feedback', requireApiRole('client'), async (req, res) => {
   if (!message || message.length > 2000) {
     return res.status(400).json({ error: 'Feedback is required and must not exceed 2000 characters.' });
   }
-  const entry = await repo.insertFeedback({ clientEmail: req.authUser.email, category, message });
+  const messageFilter = textFilter.checkFreeText(message, 'message');
+  if (messageFilter.errors.length > 0) return res.status(400).json({ error: messageFilter.errors[0] });
+  const entry = await repo.insertFeedback({ clientEmail: req.authUser.email, category, message: messageFilter.value });
   res.status(201).json(entry);
 });
 

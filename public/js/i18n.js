@@ -356,6 +356,10 @@
       'access.backAll': 'All access options',
       'access.backSignin': 'Back to sign in',
       'access.home': 'Return home',
+      'filter.name': 'Please enter a real first and last name.',
+      'filter.text': 'Please remove links, offensive language, or repeated characters.',
+      'filter.location': 'Please enter a valid pickup or drop-off location.',
+
       'access.brandExec': 'Executive dispatch',
     },
 
@@ -713,6 +717,10 @@
       'access.backAll': 'Todas las opciones de acceso',
       'access.backSignin': 'Volver al inicio de sesión',
       'access.home': 'Volver al inicio',
+      'filter.name': 'Introduzca un nombre y apellido reales.',
+      'filter.text': 'Elimine enlaces, lenguaje ofensivo o caracteres repetidos.',
+      'filter.location': 'Introduzca una ubicación de recogida o entrega válida.',
+
       'access.brandExec': 'Despacho ejecutivo',
     },
 
@@ -1070,6 +1078,10 @@
       'access.backAll': "Toutes les options d'accès",
       'access.backSignin': 'Retour à la connexion',
       'access.home': "Retour à l'accueil",
+      'filter.name': 'Saisissez un vrai prénom et nom.',
+      'filter.text': 'Supprimez les liens, les propos offensants ou les caractères répétés.',
+      'filter.location': 'Saisissez un lieu de prise en charge ou de destination valide.',
+
       'access.brandExec': 'Répartition exécutive',
     },
 
@@ -1427,6 +1439,10 @@
       'access.backAll': 'Alle Zugangsoptionen',
       'access.backSignin': 'Zurück zur Anmeldung',
       'access.home': 'Zur Startseite',
+      'filter.name': 'Bitte einen echten Vor- und Nachnamen eingeben.',
+      'filter.text': 'Bitte Links, beleidigende Sprache oder wiederholte Zeichen entfernen.',
+      'filter.location': 'Bitte einen gültigen Abhol- oder Zielort eingeben.',
+
       'access.brandExec': 'Exekutive Disposition',
     },
 
@@ -1784,6 +1800,10 @@
       'access.backAll': '所有访问选项',
       'access.backSignin': '返回登录',
       'access.home': '返回首页',
+      'filter.name': '请输入真实的姓名。',
+      'filter.text': '请移除链接、冒犯性词语或重复字符。',
+      'filter.location': '请输入有效的上车或下车地点。',
+
       'access.brandExec': '执行调度',
     },
   };

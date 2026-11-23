@@ -16,6 +16,7 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="/theme.css">
   <script src="/js/theme.js"></script>
+  <script src="/js/text-filter.js"></script>
   <style>
     .calendar { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 16px; }
     .calendar-day { background: #141414; border: 1px solid #232323; border-radius: 12px; padding: 12px; display: grid; gap: 6px; min-width: 0; }
@@ -625,7 +626,7 @@
               placeholder="VF-3005" autocomplete="off" autocapitalize="characters" required>
             <label for="register-name">Full name</label>
             <input id="register-name" class="input profile-input" name="name" type="text" maxlength="120"
-              placeholder="Your full name" autocomplete="name" required>
+              placeholder="Your full name" autocomplete="name" data-filter="name" required>
             <label for="register-phone">Phone <span class="optional-note">(optional)</span></label>
             <input id="register-phone" class="input profile-input" name="phone" type="tel" maxlength="30"
               placeholder="(555) 010-2030" autocomplete="tel">
@@ -682,7 +683,7 @@
           </div>
           <form id="profile-form" class="profile-form" novalidate>
             <label for="profile-name">Full name</label>
-            <input id="profile-name" class="input profile-input" name="name" type="text" maxlength="120" autocomplete="name" required>
+            <input id="profile-name" class="input profile-input" name="name" type="text" maxlength="120" autocomplete="name" data-filter="name" required>
             <label for="profile-phone">Phone</label>
             <input id="profile-phone" class="input profile-input" name="phone" type="tel" maxlength="30" autocomplete="tel">
             <p id="profile-note" class="form-note" role="alert" aria-live="polite"></p>

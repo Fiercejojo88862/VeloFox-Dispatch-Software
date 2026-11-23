@@ -19,6 +19,7 @@
   <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/cormorant-garamond-latin.woff2" crossorigin>
   <link rel="stylesheet" href="/theme.css">
   <script src="/js/theme.js"></script>
+  <script src="/js/text-filter.js"></script>
   <script>document.documentElement.classList.add('has-premium');</script>
   <style>
     :root {
@@ -755,7 +756,7 @@
             <div class="field">
               <label for="clientName" data-i18n="booking.name">Passenger name</label>
               <input id="clientName" name="clientName" type="text" maxlength="120"
-                autocomplete="name" placeholder="Full name" data-i18n-placeholder="booking.ph.name" aria-describedby="clientName-error" required>
+                autocomplete="name" placeholder="Full name" data-i18n-placeholder="booking.ph.name" aria-describedby="clientName-error" data-filter="name" data-filter-block="false" required>
               <p class="field-error" id="clientName-error" hidden></p>
             </div>
 
@@ -770,6 +771,8 @@
               <label for="pickupLocation" data-i18n="booking.pickup">Pickup location</label>
               <input
                 id="pickupLocation"
+                data-filter="location"
+                data-filter-block="false"
                 name="pickupLocation"
                 type="text"
                 maxlength="200"
@@ -784,6 +787,8 @@
               <label for="dropoffLocation" data-i18n="booking.dropoff">Drop-off location</label>
               <input
                 id="dropoffLocation"
+                data-filter="location"
+                data-filter-block="false"
                 name="dropoffLocation"
                 type="text"
                 maxlength="200"
@@ -852,19 +857,19 @@
 
             <div class="field full">
               <label for="luggageNotes" data-i18n="booking.luggage">Luggage details</label>
-              <textarea id="luggageNotes" name="luggageNotes" maxlength="500"
+              <textarea id="luggageNotes" name="luggageNotes" maxlength="500" data-filter="text" data-filter-block="false"
                 placeholder="Number of bags, oversized or heavy luggage, mobility equipment…" data-i18n-placeholder="booking.ph.luggage"></textarea>
             </div>
 
             <div class="field full">
               <label for="beverageRequest" data-i18n="booking.beverage">Beverage request</label>
-              <input id="beverageRequest" name="beverageRequest" type="text" maxlength="200"
+              <input id="beverageRequest" name="beverageRequest" type="text" maxlength="200" data-filter="text" data-filter-block="false"
                 placeholder="Still water, sparkling water, coffee, or another preference" data-i18n-placeholder="booking.ph.beverage">
             </div>
 
             <div class="field full">
               <label for="specialRequests" data-i18n="booking.special">Special requests</label>
-              <textarea id="specialRequests" name="specialRequests" maxlength="1000"
+              <textarea id="specialRequests" name="specialRequests" maxlength="1000" data-filter="text" data-filter-block="false"
                 placeholder="Accessibility needs, child seating, meet-and-greet instructions, or other details" data-i18n-placeholder="booking.ph.special"></textarea>
             </div>
           </div>
@@ -1147,6 +1152,8 @@
 
       if (!values.clientName) {
         errors.push({ input: clientName, message: t('booking.err.name') });
+      } else if (window.VeloFoxFilter && !window.VeloFoxFilter.check('name', values.clientName)) {
+        errors.push({ input: clientName, message: window.VeloFoxFilter.message('name') });
       }
 
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.clientEmail)) {
@@ -1155,10 +1162,14 @@
 
       if (!values.pickupLocation) {
         errors.push({ input: pickupLocation, message: t('booking.err.pickup') });
+      } else if (window.VeloFoxFilter && !window.VeloFoxFilter.check('location', values.pickupLocation)) {
+        errors.push({ input: pickupLocation, message: window.VeloFoxFilter.message('location') });
       }
 
       if (!values.dropoffLocation) {
         errors.push({ input: dropoffLocation, message: t('booking.err.dropoff') });
+      } else if (window.VeloFoxFilter && !window.VeloFoxFilter.check('location', values.dropoffLocation)) {
+        errors.push({ input: dropoffLocation, message: window.VeloFoxFilter.message('location') });
       }
 
       if (!values.pickupDateTime) {
@@ -1196,6 +1207,14 @@
             }),
           });
         }
+      }
+
+      if (window.VeloFoxFilter) {
+        [luggageNotes, beverageRequest, specialRequests].forEach((input) => {
+          if (input.value.trim() && !window.VeloFoxFilter.check('text', input.value)) {
+            errors.push({ input, message: window.VeloFoxFilter.message('text') });
+          }
+        });
       }
 
       return errors;

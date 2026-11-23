@@ -18,6 +18,7 @@
   <link rel="preload" as="font" type="font/woff2" href="/assets/fonts/cormorant-garamond-latin.woff2" crossorigin>
   <link rel="stylesheet" href="/theme.css">
   <script src="/js/theme.js"></script>
+  <script src="/js/text-filter.js"></script>
   <link rel="stylesheet" href="/access.css">
   <link rel="stylesheet" href="/premium.css">
   <link rel="stylesheet" href="/a11y.css">
@@ -61,7 +62,7 @@
           <h2 data-i18n="cl.createTitle">Create your account</h2>
           <p class="form-intro" data-i18n="cl.createIntro">Use the same email you provide when reserving transportation so future trips appear automatically.</p>
           <form class="form" novalidate>
-            <div class="field"><label for="register-name" data-i18n="cl.name">Full name</label><input id="register-name" name="name" type="text" maxlength="120" autocomplete="name" required></div>
+            <div class="field"><label for="register-name" data-i18n="cl.name">Full name</label><input id="register-name" name="name" type="text" maxlength="120" autocomplete="name" data-filter="name" required></div>
             <div class="field"><label for="register-email" data-i18n="cl.email">Email address</label><input id="register-email" name="email" type="email" maxlength="254" autocomplete="email" required></div>
             <div class="field"><label for="register-password" data-i18n="cl.password">Password</label><input id="register-password" name="password" type="password" minlength="10" maxlength="128" autocomplete="new-password" required><p class="hint" data-i18n="cl.hint">Use at least 10 characters.</p></div>
             <button class="submit" type="submit" data-i18n="cl.createSubmit">Create client account</button>
