@@ -75,10 +75,12 @@ values are baked into the deployment.
 
 - **Interface audio** (`public/js/audio-fx.js`): Web Audio chimes for dispatch,
   arrival, completion, and errors. The topbar toggle persists the mute state.
-- **Voice commands** (`public/js/voice-command.js`): experimental Web Speech API
-  control. Say or type `assign VF-1001 to 1a2b3c4d`, `set ride 1a2b3c4d to en
-  route`, `show pending`, `how many completed`, or `help`. Chromium browsers get
-  the microphone; Firefox falls back to typed commands using the same parser.
+- **Dispatch command console** (`public/js/voice-command.js`): type an action in
+  plain English and it runs against the board. Try `assign VF-1001 to 1a2b3c4d`,
+  `set ride 1a2b3c4d to en route`, `show me all unassigned rides`,
+  `text the client on ride 1a2b3c4d that we're on the way`, `ping the fleet`,
+  or `help`. The parser runs entirely in the browser; no microphone or external
+  service is involved.
 - **Live Leaflet fleet map** (`public/js/telemetry-map.js`): plots real chauffeur
   GPS fixes from `/api/telemetry` on OpenStreetMap tiles, with trip and speed
   details in each marker.

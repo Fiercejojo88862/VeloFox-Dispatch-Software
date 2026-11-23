@@ -728,7 +728,7 @@
     .rate-grid input, .rate-grid select { min-width: 0; }
     .rate-grid .rate-wide { grid-column: 1 / -1; }
 
-    /* ---------- voice console ---------- */
+    /* ---------- dispatch command console ---------- */
 
     .voice-bar {
       display: flex;
@@ -738,50 +738,6 @@
       padding: 12px 24px;
       border-bottom: 1px solid var(--line);
       background: linear-gradient(90deg, rgba(197, 160, 89, 0.06), transparent 42%);
-    }
-
-    .voice-mic {
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
-      border: 1px solid var(--line-strong);
-      background: var(--bg-soft);
-      color: var(--text);
-      font: inherit;
-      font-weight: 600;
-      font-size: 10px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      padding: 9px 14px;
-      border-radius: 2px;
-      cursor: pointer;
-      transition: border-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
-    }
-
-    .voice-mic::before {
-      content: "";
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--accent);
-      box-shadow: 0 0 8px rgba(197, 160, 89, 0.7);
-    }
-
-    .voice-mic:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-    .voice-mic:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
-
-    .voice-mic[aria-pressed="true"] {
-      border-color: var(--accent);
-      color: var(--accent-bright);
-      box-shadow: 0 0 0 1px rgba(197, 160, 89, 0.25), 0 0 20px rgba(197, 160, 89, 0.18);
-    }
-
-    .voice-mic[aria-pressed="true"]::before { animation: micPulse 1.15s ease-in-out infinite; }
-    .voice-mic:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    @keyframes micPulse {
-      0%, 100% { transform: scale(1); opacity: 1; }
-      50% { transform: scale(1.9); opacity: 0.3; }
     }
 
     .voice-form { display: flex; gap: 8px; flex: 1 1 280px; min-width: 0; }
@@ -805,6 +761,21 @@
     .voice-status.is-listening { color: var(--accent-bright); }
     .voice-status.is-error { color: var(--cancelled); }
     .voice-status.is-success { color: var(--completed); }
+    .command-hint {
+      flex-basis: 100%; font-size: 9.5px; color: #6f6a61; letter-spacing: 0.03em;
+    }
+    .command-hint[hidden] { display: none; }
+    .command-log {
+      flex-basis: 100%; display: grid; gap: 4px; max-height: 132px; overflow-y: auto;
+      margin-top: 8px; padding: 8px 10px; border-left: 2px solid var(--accent);
+      background: rgba(197, 160, 89, 0.04); border-radius: 2px;
+    }
+    .command-log[hidden] { display: none; }
+    .command-entry { display: flex; gap: 8px; font-size: 10.5px; line-height: 1.4; }
+    .command-entry.is-request { color: var(--muted); }
+    .command-entry.is-response { color: var(--text); }
+    .command-entry.is-response.is-error { color: var(--cancelled); }
+    .command-entry-prefix { color: var(--accent); font-weight: 700; flex: none; }
 
     .filter-chip {
       border: 1px solid rgba(197, 160, 89, 0.45);
@@ -853,10 +824,6 @@
     .tab:hover { border-color: var(--accent); color: var(--accent); }
     .tab.is-active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
     .tab.is-active:hover { color: var(--accent-ink); }
-
-    @media (prefers-reduced-motion: reduce) {
-      .voice-mic[aria-pressed="true"]::before { animation: none; }
-    }
 
     td {
       padding: 18px;
@@ -1260,15 +1227,16 @@
         <h2 id="bookings-heading">Bookings</h2>
         <span id="booking-count" class="muted small"></span>
       </div>
-      <div class="voice-bar" role="group" aria-label="Voice command console">
-        <button id="voice-toggle" class="voice-mic" type="button" aria-pressed="false" aria-describedby="voice-status">Voice command</button>
+      <div class="voice-bar" role="group" aria-label="Dispatch command console">
         <form id="voice-form" class="voice-form" novalidate>
-          <label class="sr-only" for="voice-input">Dispatcher command</label>
-          <input id="voice-input" type="text" maxlength="160" autocomplete="off" spellcheck="false" placeholder='Try "assign VF-1001 to 1a2b3c4d" or "show pending"'>
-          <button class="btn btn-sm" type="submit">Run</button>
+          <label class="sr-only" for="voice-input">Describe an action in plain English</label>
+          <input id="voice-input" type="text" maxlength="200" autocomplete="off" spellcheck="true" placeholder="Describe an action in plain English — I'll take care of it">
+          <button class="btn btn-sm btn-primary" type="submit">Do it</button>
         </form>
         <button id="filter-chip" class="filter-chip" type="button" hidden></button>
-        <span id="voice-status" class="voice-status" aria-live="polite">Voice ready · type a command or tap the mic</span>
+        <span id="voice-status" class="voice-status" aria-live="polite">Ready · describe an action above</span>
+        <div id="command-hint" class="command-hint">Try “show me all unassigned rides” or “text the client on ride 1a2b3c4d that we're on the way”</div>
+        <div id="command-log" class="command-log" hidden aria-live="polite"></div>
       </div>
       <div id="bookings-tabs" class="tab-strip" role="tablist" aria-label="Booking views">
         <button class="tab is-active" type="button" data-tab="active" role="tab" aria-selected="true">Bookings</button>
@@ -1458,10 +1426,11 @@
     const lastUpdatedEl = document.getElementById('last-updated');
     const refreshBtn = document.getElementById('refresh');
     const toastsEl = document.getElementById('toasts');
-    const voiceToggleBtn = document.getElementById('voice-toggle');
     const voiceForm = document.getElementById('voice-form');
     const voiceInput = document.getElementById('voice-input');
     const voiceStatusEl = document.getElementById('voice-status');
+    const commandHintEl = document.getElementById('command-hint');
+    const commandLogEl = document.getElementById('command-log');
     const filterChip = document.getElementById('filter-chip');
     const telemetrySummaryEl = document.getElementById('telemetry-summary');
     const telemetryRefreshBtn = document.getElementById('telemetry-refresh');
@@ -2034,11 +2003,40 @@
       return 'confirm';
     }
 
-    /* --------------------------- voice commands --------------------------- */
+    /* ------------------------ command console ------------------------ */
 
     function setVoiceStatus(text, state = '') {
       voiceStatusEl.textContent = text;
       voiceStatusEl.className = state ? `voice-status is-${state}` : 'voice-status';
+    }
+
+    function logCommand(request, response, isError = false) {
+      if (!commandLogEl) return;
+      commandHintEl.hidden = true;
+      commandLogEl.hidden = false;
+      const entries = [
+        { className: 'is-request', prefix: 'You', text: request },
+        { className: `is-response${isError ? ' is-error' : ''}`, prefix: 'Done', text: response },
+      ];
+      entries.forEach((entry) => {
+        const line = document.createElement('div');
+        line.className = `command-entry ${entry.className}`;
+        const prefix = document.createElement('span');
+        prefix.className = 'command-entry-prefix';
+        prefix.textContent = entry.prefix;
+        const text = document.createElement('span');
+        text.textContent = entry.text;
+        line.append(prefix, text);
+        commandLogEl.append(line);
+      });
+      while (commandLogEl.children.length > 10) commandLogEl.firstElementChild.remove();
+      commandLogEl.scrollTop = commandLogEl.scrollHeight;
+    }
+
+    function commandSay(request, response, state = 'success') {
+      setVoiceStatus(response, state);
+      logCommand(request, response, state === 'error');
+      window.VeloFoxAudio?.play(state === 'error' ? 'error' : 'confirm');
     }
 
     function findBookingByRef(ref) {
@@ -2159,60 +2157,146 @@
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function voiceSay(text, state = 'success') {
-      setVoiceStatus(text, state);
-      window.VeloFoxVoice?.speak(text);
-    }
-
     async function executeIntent(intent, raw) {
       if (!intent) return;
+      const respond = (message, state = 'success') => {
+        commandSay(raw, message, state);
+      };
 
       if (intent.type === 'help') {
-        voiceSay('Try: assign V F 1001 to ride 1 a 2 b 3 c 4 d. Set ride 1 a 2 b 3 c 4 d to en route. Show pending. How many completed. Show all. Refresh.');
+        respond('I can change ride statuses, assign drivers, send client texts, filter and count rides, ping the fleet, toggle traffic, clear the map, open a new booking, and show alerts. Just describe what you want in plain English.');
         return;
       }
 
       if (intent.type === 'stop') {
-        voice?.stop();
-        setVoiceStatus('Voice console idle.');
+        setVoiceStatus('Ready · describe an action above');
         return;
       }
 
       if (intent.type === 'refresh') {
         await loadBookings();
-        voiceSay('Dispatch board refreshed.');
+        respond('Dispatch board refreshed.');
         return;
       }
 
       if (intent.type === 'filter') {
         applyFilter(intent.status);
-        voiceSay(intent.status
-          ? `Filtering to ${intent.status === 'unassigned' ? 'unassigned' : formatStatus(intent.status)} rides.`
+        respond(intent.status
+          ? `Showing ${intent.status === 'unassigned' ? 'unassigned' : formatStatus(intent.status).toLowerCase()} rides.`
           : 'Showing every ride.');
         return;
       }
 
+      if (intent.type === 'reason_filter') {
+        applyReasonFilter(intent.reason);
+        respond(`Showing ${CANCEL_REASONS[intent.reason] || 'cancelled'} rides.`);
+        return;
+      }
+
       if (intent.type === 'count') {
-        const total = bookings.filter((booking) => booking.status === intent.status).length;
-        voiceSay(`${total} ${formatStatus(intent.status)} ${total === 1 ? 'ride' : 'rides'}.`);
+        let total;
+        let label;
+        if (intent.reason) {
+          total = cancellationCounts()[intent.reason] || 0;
+          label = `${CANCEL_REASONS[intent.reason] || 'cancelled'} rides`;
+        } else if (intent.status === 'unassigned') {
+          total = bookings.filter((booking) => !booking.driverId && !TERMINAL_STATUSES.has(booking.status)).length;
+          label = 'unassigned rides';
+        } else {
+          total = bookings.filter((booking) => booking.status === intent.status).length;
+          label = `${formatStatus(intent.status).toLowerCase()} rides`;
+        }
+        respond(`You have ${total} ${label}.`);
+        return;
+      }
+
+      if (intent.type === 'new_booking') {
+        openBookingModal();
+        respond('New booking form is open.');
+        return;
+      }
+
+      if (intent.type === 'ping_fleet') {
+        try {
+          await request('/api/fleet/ping', { method: 'POST' });
+          radar?.refresh();
+          respond('All chauffeurs have been pinged.');
+        } catch (error) {
+          respond(error.message, 'error');
+        }
+        return;
+      }
+
+      if (intent.type === 'traffic') {
+        const enabled = intent.enabled === null
+          ? telemetryTrafficBtn.getAttribute('aria-pressed') !== 'true'
+          : intent.enabled;
+        telemetryTrafficBtn.click();
+        if ((telemetryTrafficBtn.getAttribute('aria-pressed') === 'true') !== enabled) {
+          telemetryTrafficBtn.click();
+        }
+        respond(enabled ? 'Fleet traffic view is on.' : 'Fleet traffic view is off.');
+        return;
+      }
+
+      if (intent.type === 'clear_map') {
+        const clearing = telemetryClearBtn.getAttribute('aria-pressed') !== 'true';
+        telemetryClearBtn.click();
+        respond(clearing ? 'Map locations cleared for this tab.' : 'Map locations restored.');
+        return;
+      }
+
+      if (intent.type === 'show_alerts') {
+        alertsPanel.hidden = false;
+        alertsBell.setAttribute('aria-expanded', 'true');
+        const alerts = buildAlerts();
+        respond(alerts.length ? `There are ${alerts.length} rides that need attention.` : 'No urgent exceptions right now.');
+        return;
+      }
+
+      if (intent.type === 'roster') {
+        await loadRoster();
+        const drivers = [...rosterDriversById.values()];
+        const filtered = intent.filter ? drivers.filter((driver) => driver.status === intent.filter) : drivers;
+        const onTrip = filtered.filter((driver) => driver.status === 'on_trip').length;
+        respond(`${filtered.length} chauffeurs${intent.filter ? ` ${ROSTER_STATUS_LABELS[intent.filter]?.toLowerCase() || ''}` : ''} · ${onTrip} on trip.`);
+        return;
+      }
+
+      if (intent.type === 'send_text') {
+        const booking = findBookingByRef(intent.rideRef);
+        if (!booking) {
+          respond('I could not find that ride. Try including the ride ID.', 'error');
+          return;
+        }
+        if (intent.target === 'driver') {
+          respond('Driver texts use the Call/Text links on the ride row.');
+          return;
+        }
+        if (!booking.clientPhone) {
+          respond('That ride has no client phone number on file.', 'error');
+          return;
+        }
+        const button = document.createElement('button');
+        await sendEnRouteText(booking, intent.kind, button);
+        respond(`${intent.kind === 'pob' ? 'Pickup' : 'En-route'} text sent to ${booking.clientName || 'the client'}.`);
         return;
       }
 
       if (intent.type === 'assign') {
         const booking = findBookingByRef(intent.rideRef);
         if (!booking) {
-          voiceSay(`No ride matches ${intent.rideRef}.`, 'error');
-          window.VeloFoxAudio?.play('error');
+          respond('I could not find that ride. Try including the ride ID.', 'error');
           return;
         }
         try {
           await patchBooking(booking.id, { driverId: intent.driverId });
           const label = `Ride ${booking.id.slice(0, 8)} assigned to ${intent.driverId}.`;
           showToast(label, 'success');
-          voiceSay(label);
+          respond(label);
         } catch (error) {
           showToast(error.message, 'error', error.details);
-          voiceSay(error.message, 'error');
+          respond(error.message, 'error');
         }
         return;
       }
@@ -2220,64 +2304,53 @@
       if (intent.type === 'set_status') {
         const booking = findBookingByRef(intent.rideRef);
         if (!booking) {
-          voiceSay(`No ride matches ${intent.rideRef}.`, 'error');
-          window.VeloFoxAudio?.play('error');
+          respond('I could not find that ride. Try including the ride ID.', 'error');
           return;
         }
-
         const label = formatStatus(intent.status);
         if (booking.status === intent.status) {
-          voiceSay(`Ride ${booking.id.slice(0, 8)} is already ${label}.`);
+          respond(`Ride ${booking.id.slice(0, 8)} is already ${label}.`);
           return;
         }
-
         const allowed = STATUS_TRANSITIONS[booking.status] || [];
         if (!allowed.includes(intent.status)) {
-          const message = `Ride ${booking.id.slice(0, 8)} cannot move from ${formatStatus(booking.status)} to ${label}.`;
-          showToast(message, 'error');
-          voiceSay(message, 'error');
-          window.VeloFoxAudio?.play('error');
+          respond(`Ride ${booking.id.slice(0, 8)} cannot move from ${formatStatus(booking.status)} to ${label}.`, 'error');
           return;
         }
-
+        if (intent.status === 'cancelled') {
+          const reason = await pickCancellationReason(booking);
+          if (!reason) {
+            respond('Cancellation stopped — the ride is unchanged.');
+            return;
+          }
+          try {
+            await patchBooking(booking.id, { status: intent.status, cancellationReason: reason });
+            const message = `Ride ${booking.id.slice(0, 8)} cancelled (${CANCEL_REASONS[reason]}).`;
+            showToast(message, 'success');
+            respond(message);
+          } catch (error) {
+            respond(error.message, 'error');
+          }
+          return;
+        }
         try {
           await patchBooking(booking.id, { status: intent.status });
           const message = `Ride ${booking.id.slice(0, 8)} marked ${label}.`;
           showToast(message, 'success');
-          voiceSay(message);
+          respond(message);
         } catch (error) {
-          showToast(error.message, 'error', error.details);
-          voiceSay(error.message, 'error');
+          respond(error.message, 'error');
         }
         return;
       }
 
-      setVoiceStatus(`Heard “${raw}” but no command matched. Say “help” for examples.`, 'error');
-      window.VeloFoxAudio?.play('error');
+      respond(`I did not understand “${raw}”. Type “help” to see what I can do.`, 'error');
     }
 
-    const voice = window.VeloFoxVoice
-      ? window.VeloFoxVoice.create({
+    const commandConsole = window.VeloFoxCommands
+      ? window.VeloFoxCommands.create({
+        context: { get rides() { return bookings; } },
         onIntent: (intent, raw) => executeIntent(intent, raw),
-        onTranscript: (text) => {
-          if (text) voiceInput.value = text;
-        },
-        onStateChange: ({ supported, listening, error }) => {
-          voiceToggleBtn.setAttribute('aria-pressed', String(Boolean(listening)));
-          if (!supported) return;
-
-          if (error === 'not-allowed' || error === 'service-not-allowed') {
-            setVoiceStatus('Microphone permission denied. Type a command instead.', 'error');
-          } else if (error === 'no-speech') {
-            setVoiceStatus('No speech detected. Try again or type a command.', 'error');
-          } else if (error) {
-            setVoiceStatus(`Voice error: ${error}.`, 'error');
-          } else if (listening) {
-            setVoiceStatus('Listening… speak a command.', 'listening');
-          } else {
-            setVoiceStatus('Voice idle · tap the mic or type a command.');
-          }
-        },
       })
       : null;
 
@@ -2486,6 +2559,7 @@
       { selector: '#calendar-panel', title: 'See live jobs each day on this calendar', copy: 'Use the calendar to see upcoming work, then select an event to find that ride in the booking table.' },
       { selector: '#telemetry-panel', title: 'Follow the fleet', copy: 'Live Telemetry shows reporting chauffeurs and lets dispatch ping the fleet when an update is needed.' },
       { selector: '#bookings-panel', title: 'Run every trip', copy: 'Bookings is where you assign drivers and vehicles, update ride status, and review trip details.' },
+      { selector: '.voice-bar', title: 'Describe an action in plain English', copy: 'Type what you want done — assign a driver, text a client, filter rides, ping the fleet — and it happens right here.' },
       { selector: '#customize-dashboard', title: 'Make it your dashboard', copy: 'Choose Customize, then drag sections or use the arrow controls. Your preferred order is saved automatically.' },
     ];
 
@@ -3300,24 +3374,13 @@
     refreshBtn.addEventListener('click', () => loadBookings());
     window.VeloFoxAudio?.attachMuteToggle(document.getElementById('sound-toggle'));
 
-    if (!voice || !voice.supported) {
-      voiceToggleBtn.disabled = true;
-      voiceToggleBtn.title = 'Speech recognition is unavailable in this browser. Typed commands work here.';
-      setVoiceStatus('Speech recognition unavailable here — typed commands are active.');
-    }
-
-    voiceToggleBtn.addEventListener('click', () => {
-      if (!voice || !voice.supported) return;
-      window.VeloFoxAudio?.play('listen');
-      if (!voice.toggle()) setVoiceStatus('Voice idle · tap the mic or type a command.');
-    });
-
     voiceForm.addEventListener('submit', (event) => {
       event.preventDefault();
       const raw = voiceInput.value.trim();
       if (!raw) return;
       voiceInput.value = '';
-      voice?.submit(raw);
+      setVoiceStatus('Working on it…', 'listening');
+      commandConsole?.submit(raw);
     });
 
     filterChip.addEventListener('click', () => {

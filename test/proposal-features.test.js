@@ -473,3 +473,29 @@ test('airport pickups link to live FlightAware tracking', () => {
   assert.match(dash, /flight\.href = `https:\/\/www\.flightaware\.com\/live\/flight\//);
   assert.match(dash, /flight\.className = 'flight-badge'/);
 });
+
+test('dispatch command console understands plain-English actions', () => {
+  const parser = fs.readFileSync(path.join(ROOT, 'public', 'js', 'voice-command.js'), 'utf8');
+  assert.match(parser, /VeloFox Dispatch Command Console/);
+  assert.match(parser, /type: 'reason_filter', reason/);
+  assert.match(parser, /type: 'send_text', rideRef, kind, target/);
+  assert.match(parser, /type: 'ping_fleet'/);
+  assert.match(parser, /type: 'traffic', enabled/);
+  assert.match(parser, /type: 'new_booking'/);
+  assert.match(parser, /rideRefFrom\(text, context\)/);
+  assert.match(parser, /global\.VeloFoxCommands/);
+  assert.doesNotMatch(parser, /\bAI\b|artificial intelligence|LLM|model call/i);
+  assert.doesNotMatch(parser, /SpeechRecognition|speechSynthesis|speak\(/);
+
+  const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.doesNotMatch(dash, /id="voice-toggle"|VeloFoxVoice|Speech recognition/);
+  assert.match(dash, /window\.VeloFoxCommands/);
+  assert.match(dash, /aria-label="Dispatch command console"/);
+  assert.match(dash, /Describe an action in plain English — I'll take care of it/);
+  assert.match(dash, /id="command-log" class="command-log" hidden/);
+  assert.match(dash, /function logCommand\(request, response, isError/);
+  assert.match(dash, /context: \{ get rides\(\) \{ return bookings; \} \}/);
+  assert.match(dash, /intent\.type === 'send_text'/);
+  assert.match(dash, /intent\.type === 'ping_fleet'/);
+  assert.match(dash, /intent\.type === 'reason_filter'/);
+});
