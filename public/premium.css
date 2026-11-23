@@ -521,7 +521,6 @@ html.has-premium .reveal.is-visible {
    Anchors and focus
    -------------------------------------------------------------------------- */
 
-#our-fleet,
 #booking-form,
 #form-heading {
   scroll-margin-top: 96px;
@@ -532,7 +531,6 @@ html.has-premium .reveal.is-visible {
 }
 
 @media (max-width: 640px) {
-  #our-fleet,
   #booking-form {
     scroll-margin-top: 124px;
   }
