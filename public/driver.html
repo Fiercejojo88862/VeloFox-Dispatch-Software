@@ -486,6 +486,48 @@
     @media (max-width: 720px) {
       .cards-grid { grid-template-columns: 1fr; }
     }
+    /* Large centered notice shown when dispatch pings the driver. */
+    .job-notice {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: grid;
+      place-items: center;
+      padding: 28px;
+      animation: jobNoticeIn 0.2s ease-out;
+    }
+    .job-notice[hidden] { display: none; }
+    .job-notice__card {
+      display: grid;
+      gap: 10px;
+      width: min(540px, 100%);
+      max-height: 60vh;
+      padding: 26px 30px;
+      background: var(--card);
+      border: 2px solid var(--gold);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .job-notice__eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+    .job-notice__title { margin: 0; font-size: 19px; font-weight: 700; color: #d7d3ca; letter-spacing: 0.06em; }
+    .job-notice__meta { margin: 0; font-size: 13px; color: #d7d3ca; }
+    .job-notice__close {
+      justify-self: start;
+      width: 26px;
+      height: 26px;
+      padding: 0;
+      background: transparent;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      color: var(--quiet);
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .job-notice__close:hover { color: #d7d3ca; border-color: var(--gold); }
+    @keyframes jobNoticeIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
   </style>
 </head>
 <body>
@@ -561,6 +603,15 @@
     </section>
   </main>
 
+  <div id="job-notice" class="job-notice" role="alert" aria-live="polite" hidden>
+      <div class="job-notice__card">
+        <span class="job-notice__eyebrow">New job assigned</span>
+        <h2 class="job-notice__title">New job assigned to you</h2>
+        <div class="job-notice__meta">Ride <strong id="job-notice-ref">—</strong></div>
+        <div class="job-notice__meta"><span id="job-notice-from">—</span> → <span id="job-notice-to">—</span></div>
+        <button id="job-notice-close" class="job-notice__close" type="button" aria-label="Close notice">×</button>
+      </div>
+    </div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script src="/js/audio-fx.js"></script>
@@ -609,6 +660,7 @@
     let activeDriverId = '';
     let activeDriverName = '';
     let trips = [];
+    let completedToday = 0;
     let manifestTimer = null;
     let geolocationWatchId = null;
     let latestPosition = null;
@@ -710,6 +762,7 @@
         if (index >= 0) trips[index] = updated;
         window.VeloFoxAudio?.play(status === 'dropped_off' ? 'success' : status === 'arrived' ? 'arrive' : 'confirm');
         showToast(`Trip updated: ${STATUS_LABELS[status]}.`);
+        dismissJobNotice();
         if (status === 'dropped_off') {
           await loadManifest({ quiet: true });
         } else {
@@ -824,10 +877,13 @@
         sessionStorage.setItem('velofoxDriverName', activeDriverName);
         driverName.textContent = activeDriverName.split(/\s+/)[0];
         trips = Array.isArray(data.trips) ? data.trips : [];
+        completedToday = typeof data.completedToday === 'number' ? data.completedToday : 0;
         const pingAt = data.dispatchPingAt || null;
         if (lastDispatchPingAt !== null && pingAt && pingAt !== lastDispatchPingAt) {
           showToast('Dispatch pinged you — check your manifest.');
-          window.VeloFoxAudio?.play('confirm');
+          window.VeloFoxAudio?.play('ping');
+          const pinged = trips.find((trip) => ACTIVE_TELEMETRY_STATUSES.has(trip.status));
+          if (pinged) showJobNotice(pinged);
         }
         lastDispatchPingAt = pingAt;
         setConnection('api', 'online', 'Connected');
@@ -1008,12 +1064,33 @@
       addSpec('Vehicle class', vehicleType ? (VEHICLE_CLASS_LABELS[vehicleType] || vehicleType) : 'No active vehicle');
       addSpec('Passenger capacity', vehicleType ? `${VEHICLE_CAPACITY[vehicleType] || '—'} passengers` : '—');
       addSpec('Assigned vehicle', specTrip?.assignedVehicle || 'None assigned yet');
+      addSpec('Trips completed today', String(completedToday));
 
       container.replaceChildren(fragment);
     }
 
     renderSettings();
     applySettings();
+
+    let jobNoticeTimer = null;
+
+    function showJobNotice(trip) {
+      const notice = document.getElementById('job-notice');
+      if (!notice) return;
+      clearTimeout(jobNoticeTimer);
+      notice.querySelector('#job-notice-ref').textContent = String(trip.id).slice(0, 8);
+      notice.querySelector('#job-notice-from').textContent = trip.pickupLocation;
+      notice.querySelector('#job-notice-to').textContent = trip.dropoffLocation;
+      notice.hidden = false;
+      jobNoticeTimer = window.setTimeout(() => { notice.hidden = true; }, 10000);
+    }
+
+    function dismissJobNotice() {
+      const notice = document.getElementById('job-notice');
+      if (notice) notice.hidden = true;
+    }
+
+    document.getElementById('job-notice-close')?.addEventListener('click', () => dismissJobNotice());
 
     async function login(driverId) {
       activeDriverId = driverId.trim().toUpperCase();

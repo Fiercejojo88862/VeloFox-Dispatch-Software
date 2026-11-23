@@ -1533,12 +1533,13 @@ app.get('/api/drivers/:driverId/manifest', async (req, res) => {
     return res.status(404).json({ error: `Driver ID "${driverId}" was not recognized.` });
   }
 
-  const [manifest, dispatchPingAt] = await Promise.all([
+  const [manifest, dispatchPingAt, completedToday] = await Promise.all([
     repo.listManifest(driverId),
     repo.latestDispatchPing(driverId),
+    repo.countDriverCompletions(driverId),
   ]);
 
-  res.json({ driver, driverId, trips: manifest, dispatchPingAt, updatedAt: new Date().toISOString() });
+  res.json({ driver, driverId, trips: manifest, completedToday, dispatchPingAt, updatedAt: new Date().toISOString() });
 });
 
 app.post('/api/bookings', async (req, res) => {

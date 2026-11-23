@@ -91,6 +91,13 @@
       });
     },
 
+    // Job notice — short attention chime when a new job is assigned.
+    ping(audio) {
+      voice(audio, { freq: 987.77, at: 0, duration: 0.14, type: 'sine', peak: 0.1 });
+      voice(audio, { freq: 1318.5, at: 0.16, duration: 0.18, type: 'triangle', peak: 0.1 });
+      voice(audio, { freq: 1567.98, at: 0.36, duration: 0.22, type: 'sine', peak: 0.07 });
+    },
+
     // Confirmation click: dry, immediate, low-fatigue.
     confirm(audio) {
       voice(audio, { freq: 1320, at: 0, duration: 0.07, type: 'triangle', peak: 0.07 });
