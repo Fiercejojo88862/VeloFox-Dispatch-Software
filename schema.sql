@@ -63,6 +63,7 @@ COMMENT ON TABLE drivers IS 'Chauffeur identities used to retrieve assigned trip
 
 -- Existing databases gain the soft-delete column when this schema is re-applied.
 ALTER TABLE drivers ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE drivers ADD COLUMN IF NOT EXISTS email varchar(254);
 CREATE INDEX IF NOT EXISTS drivers_deleted_at_idx ON drivers (deleted_at);
 
 -- Driver portal submissions are kept as a permanent history. Deleting a driver
