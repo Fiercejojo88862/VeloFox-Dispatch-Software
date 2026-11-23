@@ -27,6 +27,7 @@ const LOGIN_CODE_TTL_MS = 10 * 60 * 1000;
 const LOGIN_CODE_MAX_ATTEMPTS = 5;
 const INVITE_CODE_HASH_KEY = 'dispatcher_invite_code_hash';
 const APP_BASE_URL = (process.env.APP_BASE_URL || `http://localhost:${PORT}`).replace(/\/$/, '');
+const PAGE_DIRECTORY_OWNER_EMAIL = 'josephshaker2020@aol.com';
 
 // Optional allowlist: dispatcher emails that are always administrators.
 const ADMIN_EMAILS = new Set(
@@ -207,7 +208,17 @@ function publicUser(user) {
     email: user.email,
     role: user.role,
     isAdmin: Boolean(user.isAdmin),
+    canViewPageDirectory: canViewPageDirectory(user),
   };
+}
+
+function canViewPageDirectory(user) {
+  return Boolean(
+    user
+    && user.role === 'dispatcher'
+    && user.isAdmin
+    && normalizeEmail(user.email) === PAGE_DIRECTORY_OWNER_EMAIL
+  );
 }
 
 async function createSession(res, user) {
@@ -1951,6 +1962,7 @@ module.exports = app;
 module.exports.app = app;
 module.exports.testables = {
   buildAnalyticsSummary,
+  canViewPageDirectory,
   canTransitionStatus,
   getDriver,
   normalizeDriverFields,
