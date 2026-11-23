@@ -411,12 +411,12 @@ test('dispatcher exception center surfaces unassigned, late and cancelled rides'
   assert.match(dash, /renderAlerts\(\);/);
 });
 
-test('dispatcher layout widens the board and pairs telemetry with bookings', () => {
+test('dispatcher layout widens the board with full-width telemetry', () => {
   const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
   assert.match(dash, /max-width: 1600px/);
-  assert.match(dash, /grid-template-columns: minmax\(360px, 0\.8fr\) minmax\(0, 1\.5fr\)/);
-  assert.match(dash, /main > #telemetry-panel \{ grid-column: 1; \}/);
-  assert.match(dash, /main > #bookings-panel \{ grid-column: 2; \}/);
+  assert.match(dash, /main > \[data-dashboard-section\] \{ grid-column: 1 \/ -1; \}/);
+  assert.doesNotMatch(dash, /grid-template-columns: minmax\(360px, 0\.8fr\)/);
+  assert.doesNotMatch(dash, /main > #telemetry-panel \{ grid-column: 1; \}/);
   assert.doesNotMatch(dash, /max-width: 1400px/);
 });
 

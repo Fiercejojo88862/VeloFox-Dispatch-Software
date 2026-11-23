@@ -321,15 +321,6 @@
       align-items: start;
     }
     main > [data-dashboard-section] { grid-column: 1 / -1; }
-    main > #telemetry-panel,
-    main > #bookings-panel { grid-column: auto; }
-    @media (min-width: 1300px) {
-      main {
-        grid-template-columns: minmax(360px, 0.8fr) minmax(0, 1.5fr);
-      }
-      main > #telemetry-panel { grid-column: 1; }
-      main > #bookings-panel { grid-column: 2; }
-    }
     main > .panel + .panel { margin-top: 0; }
 
     /* ---------- customizable dashboard ---------- */
