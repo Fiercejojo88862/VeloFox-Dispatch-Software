@@ -120,6 +120,11 @@ function ensureDatabase() {
 
 app.disable('x-powered-by');
 app.use(express.json());
+app.use('/api', (req, res, next) => {
+  // API responses include account, driver, and booking data; never cache them.
+  res.setHeader('Cache-Control', 'no-store, private');
+  next();
+});
 app.use(async (req, res, next) => {
   // Health must be able to report an outage instead of failing on the check.
   if (req.path === '/api/health') return next();
