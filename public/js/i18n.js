@@ -46,8 +46,6 @@
       "about.cta.fleet": "See the fleet",
       "about.cta.reserve": "Reserve a ride",
       "about.figure.caption": "The kind of car that started it all — a 2004 Mercedes S-Class, quiet, early, and always a little too clean.",
-      "about.figure.credit.photo": "Photo: Damian B Oh / Wikimedia Commons",
-      "about.figure.credit.changes": "cropped & color-adjusted",
       "about.figure.alt": "Black 2004 Mercedes-Benz S-Class (W220) sedan",
 
       'brand.sub': 'Luxury transport logistics',
@@ -404,8 +402,6 @@
       "about.cta.fleet": "Ver la flota",
       "about.cta.reserve": "Reservar un viaje",
       "about.figure.caption": "El tipo de coche con el que empezó todo: un Mercedes Clase S de 2004, silencioso, puntual y siempre demasiado limpio.",
-      "about.figure.credit.photo": "Foto: Damian B Oh / Wikimedia Commons",
-      "about.figure.credit.changes": "recortada y ajustada en color",
       "about.figure.alt": "Sedán Mercedes-Benz Clase S (W220) de 2004 en negro",
 
       'brand.sub': 'Logística de transporte de lujo',
@@ -762,8 +758,6 @@
       "about.cta.fleet": "Voir la flotte",
       "about.cta.reserve": "Réserver un trajet",
       "about.figure.caption": "Le genre de voiture qui a tout commencé — une Mercedes Classe S de 2004, silencieuse, à l'heure et toujours un peu trop propre.",
-      "about.figure.credit.photo": "Photo : Damian B Oh / Wikimedia Commons",
-      "about.figure.credit.changes": "recadrée et ajustée en couleur",
       "about.figure.alt": "Berline Mercedes-Benz Classe S (W220) noire de 2004",
 
       'brand.sub': 'Logistique de transport de luxe',
@@ -1120,8 +1114,6 @@
       "about.cta.fleet": "Flotte ansehen",
       "about.cta.reserve": "Fahrt buchen",
       "about.figure.caption": "Das Auto, mit dem alles begann – eine Mercedes S-Klasse aus dem Jahr 2004, leise, pünktlich und immer ein bisschen zu sauber.",
-      "about.figure.credit.photo": "Foto: Damian B Oh / Wikimedia Commons",
-      "about.figure.credit.changes": "zugeschnitten und farbkorrigiert",
       "about.figure.alt": "Schwarze Mercedes-Benz S-Klasse (W220) Limousine aus dem Jahr 2004",
 
       'brand.sub': 'Luxus-Transportlogistik',
@@ -1478,8 +1470,6 @@
       "about.cta.fleet": "查看车队",
       "about.cta.reserve": "预订行程",
       "about.figure.caption": "一切开始时的那类车——2004 年的梅赛德斯 S 级，安静、准时，而且总是干净得有点过分。",
-      "about.figure.credit.photo": "照片：Damian B Oh / Wikimedia Commons",
-      "about.figure.credit.changes": "已裁剪并调整色彩",
       "about.figure.alt": "黑色 2004 年梅赛德斯-奔驰 S 级（W220）轿车",
 
       'brand.sub': '豪华运输物流',

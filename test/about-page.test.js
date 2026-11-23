@@ -17,9 +17,9 @@ test('about page is linked from the public site and loads shared controllers', (
   assert.match(about, /<script src="\/js\/i18n\.js"><\/script>/);
   assert.match(about, /<script src="\/js\/a11y\.js"><\/script>/);
   assert.match(about, /<a class="nav-link" href="\/about\.html" aria-current="page"/);
-  assert.match(about, /src="\/assets\/about\/2004-mercedes-s-class\.webp"/);
+  assert.match(about, /src="\/assets\/about\/Mercedes\.webp"/);
   assert.match(about, /2004 Mercedes S-Class/);
-  assert.match(about, /about-figure__credit/);
+  assert.doesNotMatch(about, /about-figure__credit/);
 
   for (const page of ['index.html', 'booking.html', 'fleet.html']) {
     assert.match(read(page), /href="\/about\.html"/, `${page} should link to About us`);

@@ -199,8 +199,6 @@
       display: block;
       width: 100%;
       height: auto;
-      aspect-ratio: 8 / 5;
-      object-fit: cover;
       border: 1px solid #04070d;
       outline: 1px solid rgba(255, 255, 255, 0.16);
       outline-offset: -4px;
@@ -222,28 +220,6 @@
       text-transform: uppercase;
       text-shadow: 0 1px 2px #000;
     }
-
-    .about-figure__credit {
-      position: absolute;
-      top: 24px;
-      right: 24px;
-      z-index: 2;
-      max-width: calc(100% - 48px);
-      padding: 5px 8px;
-      border: 1px solid rgba(190, 210, 235, 0.4);
-      border-radius: 1px;
-      background: rgba(3, 10, 22, 0.72);
-      color: #cbd7e6;
-      font-size: 8.5px;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      line-height: 1.6;
-      text-transform: uppercase;
-    }
-
-    .about-figure__credit a { color: #bcd2ee; text-decoration: underline; }
-    .about-figure__credit a:hover,
-    .about-figure__credit a:focus-visible { color: #fff; }
 
     .timeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
 
@@ -337,7 +313,6 @@
       .timeline, .people { grid-template-columns: minmax(0, 1fr); }
       .about-figure { padding: 8px; }
       .about-figure figcaption { left: 8px; right: 8px; bottom: 8px; padding: 20px 10px 10px; font-size: 9px; }
-      .about-figure__credit { top: 16px; right: 16px; max-width: calc(100% - 32px); font-size: 7.5px; }
     }
   </style>
 </head>
@@ -475,12 +450,7 @@
     </section>
 
     <figure class="about-figure">
-      <img src="/assets/about/2004-mercedes-s-class.webp" alt="Black 2004 Mercedes-Benz S-Class (W220) sedan" data-i18n-alt="about.figure.alt" width="1600" height="1000" loading="lazy" decoding="async">
-      <small class="about-figure__credit">
-        <a href="https://commons.wikimedia.org/wiki/File:Mercedes_S-Class_W220_black_(1).jpg" target="_blank" rel="noopener noreferrer" data-i18n="about.figure.credit.photo">Photo: Damian B Oh / Wikimedia Commons</a>
-        · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>
-        · <span data-i18n="about.figure.credit.changes">cropped</span>
-      </small>
+      <img src="/assets/about/Mercedes.webp" alt="Black 2004 Mercedes-Benz S-Class (W220) sedan" data-i18n-alt="about.figure.alt" width="1448" height="1086" loading="lazy" decoding="async">
       <figcaption data-i18n="about.figure.caption">The kind of car that started it all — a 2004 Mercedes S-Class, quiet, early, and always a little too clean.</figcaption>
     </figure>
   </main>
