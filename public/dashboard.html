@@ -1845,22 +1845,40 @@
     }
 
     const telemetrySeedBtn = document.getElementById('telemetry-seed');
-    telemetrySeedBtn?.addEventListener('click', async () => {
-      if (!telemetrySeedBtn || telemetrySeedBtn.disabled) return;
-      telemetrySeedBtn.disabled = true;
-      const previousLabel = telemetrySeedBtn.textContent;
-      telemetrySeedBtn.textContent = 'Seeding…';
+    telemetrySeedBtn?.addEventListener('click', () => seedDemoTelemetry());
+
+    let telemetrySeedAttempted = false;
+    async function seedDemoTelemetry({ silent = false } = {}) {
+      const btn = document.getElementById('telemetry-seed');
+      let previousLabel;
+      if (btn) {
+        btn.disabled = true;
+        previousLabel = btn.textContent;
+        btn.textContent = 'Seeding…';
+      }
       try {
         await request('/api/demo/telemetry', { method: 'POST' });
-        showToast('Seeded demo telemetry — watching the fleet…', 'success');
+        if (!silent) showToast('Seeded demo telemetry — watching the fleet…', 'success');
         radar?.refresh();
       } catch (error) {
-        showToast(error.message, 'error', error.details);
+        if (!silent) showToast(error.message, 'error', error.details);
       } finally {
-        telemetrySeedBtn.disabled = false;
-        telemetrySeedBtn.textContent = previousLabel;
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = previousLabel;
+        }
       }
-    });
+    }
+    async function seedDemoTelemetryIfEmpty() {
+      try {
+        const data = await request('/api/telemetry');
+        const reporting = (Array.isArray(data.drivers) ? data.drivers : []).filter((driver) => driver.location).length;
+        if (reporting > 0 || telemetrySeedAttempted) return;
+        telemetrySeedAttempted = true;
+        await seedDemoTelemetry({ silent: true });
+      } catch { /* telemetry unavailable or seeding disabled */ }
+    }
+    void seedDemoTelemetryIfEmpty();
     document.getElementById('logout').addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.replace('/dispatcher-login.html');
