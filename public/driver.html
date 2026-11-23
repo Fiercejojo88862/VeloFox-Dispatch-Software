@@ -190,6 +190,23 @@
 
     .input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-wash); }
 
+    .input-row { display: flex; gap: 10px; align-items: stretch; }
+    .input-row .input { flex: 1; min-width: 0; }
+    .input-toggle {
+      min-width: 72px;
+      min-height: 58px;
+      padding: 0 14px;
+      border: 1px solid #343434;
+      border-radius: 12px;
+      background: #141414;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .input-toggle:hover { border-color: var(--gold); color: var(--gold-bright); }
+    .input-toggle:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
     .primary-button {
       width: 100%;
       min-height: 58px;
@@ -577,11 +594,17 @@
 
         <form id="login-form" novalidate>
           <label for="driver-id">Driver ID</label>
-          <input id="driver-id" class="input" name="driverId" type="text" maxlength="50"
-            placeholder="VF-1001" autocomplete="username" autocapitalize="characters" required>
+          <div class="input-row">
+            <input id="driver-id" class="input" name="driverId" type="password" maxlength="50"
+              placeholder="VF-1001" autocomplete="username" autocapitalize="characters" required>
+            <button id="driver-id-toggle" class="input-toggle" type="button" aria-label="Show Driver ID" aria-pressed="false">Show</button>
+          </div>
           <label for="driver-code">Access code</label>
-          <input id="driver-code" class="input" name="accessCode" type="password" maxlength="64"
-            placeholder="Code from dispatch" autocomplete="one-time-code" required>
+          <div class="input-row">
+            <input id="driver-code" class="input" name="accessCode" type="password" maxlength="64"
+              placeholder="Code from dispatch" autocomplete="one-time-code" required>
+            <button id="driver-code-toggle" class="input-toggle" type="button" aria-label="Show access code" aria-pressed="false">Show</button>
+          </div>
           <button id="login-button" class="primary-button" type="submit">Open my manifest</button>
           <p id="login-error" class="form-note" role="alert" aria-live="polite"></p>
         </form>
@@ -716,6 +739,24 @@
     const loginForm = document.getElementById('login-form');
     const driverIdInput = document.getElementById('driver-id');
     const driverCodeInput = document.getElementById('driver-code');
+    const driverIdToggle = document.getElementById('driver-id-toggle');
+    const driverCodeToggle = document.getElementById('driver-code-toggle');
+    driverIdToggle?.addEventListener('click', () => {
+      const hidden = driverIdInput.type === 'password';
+      driverIdInput.type = hidden ? 'text' : 'password';
+      driverIdToggle.textContent = hidden ? 'Hide' : 'Show';
+      driverIdToggle.setAttribute('aria-pressed', String(hidden));
+      driverIdToggle.setAttribute('aria-label', hidden ? 'Hide Driver ID' : 'Show Driver ID');
+      driverIdInput.focus();
+    });
+    driverCodeToggle?.addEventListener('click', () => {
+      const hidden = driverCodeInput.type === 'password';
+      driverCodeInput.type = hidden ? 'text' : 'password';
+      driverCodeToggle.textContent = hidden ? 'Hide' : 'Show';
+      driverCodeToggle.setAttribute('aria-pressed', String(hidden));
+      driverCodeToggle.setAttribute('aria-label', hidden ? 'Hide access code' : 'Show access code');
+      driverCodeInput.focus();
+    });
     const loginButton = document.getElementById('login-button');
     const loginError = document.getElementById('login-error');
     const logoutButton = document.getElementById('logout');
@@ -1324,11 +1365,6 @@
       if (!driverId) {
         loginError.textContent = 'Enter your Driver ID to continue.';
         driverIdInput.focus();
-        return;
-      }
-      if (!accessCode) {
-        loginError.textContent = 'Enter your access code to continue.';
-        driverCodeInput.focus();
         return;
       }
       void login(driverId, accessCode);

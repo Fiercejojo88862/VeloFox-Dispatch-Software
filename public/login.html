@@ -222,6 +222,20 @@
     label { color: #c9c4ba; font-size: 10px; font-weight: 800; letter-spacing: 0.13em; text-transform: uppercase; }
 
     .input-row { display: grid; gap: 10px; }
+    .input-toggle {
+      min-height: 56px;
+      padding: 0 16px;
+      border: 1px solid #373737;
+      border-radius: 11px;
+      background: #141414;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 160ms, color 160ms;
+    }
+    .input-toggle:hover { border-color: var(--gold); color: var(--gold-bright); }
+    .input-toggle:focus-visible { outline: 2px solid var(--gold-soft); outline-offset: 2px; }
 
     input {
       width: 100%;
@@ -272,7 +286,7 @@
       .roles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .role-card { min-height: 280px; padding: 28px; }
       .driver-panel { grid-template-columns: minmax(0, 0.85fr) minmax(360px, 1.15fr); align-items: center; padding: 30px; }
-      .input-row { grid-template-columns: minmax(0, 1fr) auto; }
+      .input-row { grid-template-columns: minmax(0, 1fr) auto auto; }
       .continue-button { min-width: 176px; }
     }
 
@@ -354,13 +368,15 @@
           <form id="driver-form" class="driver-form" novalidate>
             <label for="driver-id" data-i18n="login.driverId">Driver ID</label>
             <div class="input-row">
-              <input id="driver-id" name="driverId" type="text" maxlength="50" placeholder="VF-1001"
+              <input id="driver-id" name="driverId" type="password" maxlength="50" placeholder="VF-1001"
                 autocomplete="username" autocapitalize="characters" required>
+              <button id="driver-id-toggle" class="input-toggle" type="button" aria-label="Show Driver ID" aria-pressed="false">Show</button>
             </div>
             <label for="driver-code">Access code</label>
             <div class="input-row">
               <input id="driver-code" name="accessCode" type="password" maxlength="64"
                 placeholder="Code from dispatch" autocomplete="one-time-code" required>
+              <button id="driver-code-toggle" class="input-toggle" type="button" aria-label="Show access code" aria-pressed="false">Show</button>
             </div>
             <button id="continue-button" class="continue-button" type="submit" data-i18n="login.continue">Continue securely</button>
             <p id="driver-error" class="form-error" role="alert" aria-live="polite"></p>
@@ -383,8 +399,27 @@
     const driverForm = document.getElementById('driver-form');
     const driverIdInput = document.getElementById('driver-id');
     const driverCodeInput = document.getElementById('driver-code');
+    const driverIdToggle = document.getElementById('driver-id-toggle');
+    const driverCodeToggle = document.getElementById('driver-code-toggle');
     const continueButton = document.getElementById('continue-button');
     const driverError = document.getElementById('driver-error');
+
+    driverIdToggle?.addEventListener('click', () => {
+      const hidden = driverIdInput.type === 'password';
+      driverIdInput.type = hidden ? 'text' : 'password';
+      driverIdToggle.textContent = hidden ? 'Hide' : 'Show';
+      driverIdToggle.setAttribute('aria-pressed', String(hidden));
+      driverIdToggle.setAttribute('aria-label', hidden ? 'Hide Driver ID' : 'Show Driver ID');
+      driverIdInput.focus();
+    });
+    driverCodeToggle?.addEventListener('click', () => {
+      const hidden = driverCodeInput.type === 'password';
+      driverCodeInput.type = hidden ? 'text' : 'password';
+      driverCodeToggle.textContent = hidden ? 'Hide' : 'Show';
+      driverCodeToggle.setAttribute('aria-pressed', String(hidden));
+      driverCodeToggle.setAttribute('aria-label', hidden ? 'Hide access code' : 'Show access code');
+      driverCodeInput.focus();
+    });
 
     function openDriverAccess() {
       const isOpen = driverAccess.classList.toggle('is-open');
@@ -429,11 +464,6 @@
       if (!driverId) {
         driverError.textContent = 'Enter your Driver ID to continue.';
         driverIdInput.focus();
-        return;
-      }
-      if (!accessCode) {
-        driverError.textContent = 'Enter the access code issued by dispatch.';
-        driverCodeInput.focus();
         return;
       }
 

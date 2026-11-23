@@ -1896,18 +1896,23 @@ app.post('/api/driver/login', async (req, res) => {
   const accessCode = typeof body.accessCode === 'string' ? body.accessCode.trim() : '';
   const attemptKey = authAttemptKey(req, 'driver', driverId || 'unknown');
 
-  if (!isNonEmptyString(driverId, MAX_DRIVER_ID_LENGTH) || !isNonEmptyString(accessCode, MAX_ACCESS_CODE_LENGTH)) {
-    return res.status(400).json({ error: 'A Driver ID and access code are required.' });
+  if (!isNonEmptyString(driverId, MAX_DRIVER_ID_LENGTH)) {
+    return res.status(400).json({ error: 'A Driver ID is required.' });
   }
   if (isAuthRateLimited(attemptKey)) {
     return res.status(429).json({ error: 'Too many access-code attempts. Try again in 15 minutes.' });
   }
 
   const driver = await repo.getDriverAuthRecord(driverId);
+  const codeRequired = Boolean(driver?.hasAccessCode || DRIVER_FALLBACK_ACCESS_CODE);
+  if (codeRequired && !isNonEmptyString(accessCode, MAX_ACCESS_CODE_LENGTH)) {
+    return res.status(400).json({ error: 'A Driver ID and access code are required.' });
+  }
+
   const valid = driver
     ? (driver.hasAccessCode
       ? verifyDriverAccessCode(accessCode, driver)
-      : Boolean(DRIVER_FALLBACK_ACCESS_CODE) && safeStringEqual(accessCode, DRIVER_FALLBACK_ACCESS_CODE))
+      : (DRIVER_FALLBACK_ACCESS_CODE ? safeStringEqual(accessCode, DRIVER_FALLBACK_ACCESS_CODE) : true))
     : false;
 
   if (!valid) {
@@ -1965,14 +1970,25 @@ app.post('/api/admin/drivers/:id/revoke-access', requireApiAdmin(), async (req, 
   res.json({ ok: true });
 });
 
-app.get('/api/drivers/:driverId', (req, res) => {
+app.get('/api/drivers/:driverId', async (req, res) => {
   const driverId = normalizeDriverId(req.params.driverId);
 
   if (!isNonEmptyString(driverId, MAX_DRIVER_ID_LENGTH)) {
     return res.status(400).json({ error: 'A valid Driver ID is required.' });
   }
 
-  const driver = getDriver(driverId);
+  let driver = getDriver(driverId);
+  if (!driver) {
+    await refreshDriverRegistry(true).catch(() => {});
+    driver = getDriver(driverId);
+  }
+  if (!driver) {
+    const record = await repo.getDriverRecord(driverId).catch(() => null);
+    if (record && !record.deletedAt) {
+      driver = { id: record.id, name: record.name, phone: record.phone || '', status: record.status || 'available' };
+      DRIVER_REGISTRY.set(driver.id, driver);
+    }
+  }
   if (!driver) {
     return res.status(404).json({ error: `Driver ID "${driverId}" was not recognized.` });
   }
@@ -1999,7 +2015,18 @@ app.get('/api/drivers/:driverId/manifest', async (req, res) => {
     }
   }
 
-  const driver = getDriver(driverId);
+  let driver = getDriver(driverId);
+  if (!driver) {
+    await refreshDriverRegistry(true).catch(() => {});
+    driver = getDriver(driverId);
+  }
+  if (!driver) {
+    const record = await repo.getDriverRecord(driverId).catch(() => null);
+    if (record && !record.deletedAt) {
+      driver = { id: record.id, name: record.name, phone: record.phone || '', status: record.status || 'available' };
+      DRIVER_REGISTRY.set(driver.id, driver);
+    }
+  }
   if (!driver) {
     return res.status(404).json({ error: `Driver ID "${driverId}" was not recognized.` });
   }
