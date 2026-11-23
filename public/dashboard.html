@@ -883,6 +883,14 @@
     .ride-id + .muted { margin-top: 4px; }
 
     .route { display: grid; gap: 6px; min-width: 200px; }
+    .flight-badge {
+      display: inline-flex; align-items: center; justify-self: start; gap: 4px;
+      padding: 3px 8px; width: fit-content; border-radius: 999px;
+      border: 1px solid rgba(197, 160, 89, 0.5); background: rgba(197, 160, 89, 0.1);
+      color: var(--accent-bright); font-size: 9px; font-weight: 600;
+      letter-spacing: 0.08em; text-decoration: none; text-transform: uppercase;
+    }
+    .flight-badge:hover { background: rgba(197, 160, 89, 0.2); color: var(--accent); }
     .route-line { display: flex; align-items: center; gap: 10px; }
     .route-dot {
       width: 5px;
@@ -1574,6 +1582,16 @@
       client_cancelled: 'Client Cancelled',
       no_show: 'No-Show',
     };
+    const AIRPORT_HINTS = /\b(airport|jfk|ewr|lga|teb|hpn|phl|liberty|kennedy|laguardia|teterboro|westchester)\b/i;
+    const FLIGHT_RE = /\b(?:flight\s*[:#]?\s*)?([A-Z]{2}\s?\d{1,4}[A-Z]?)\b/i;
+
+    function extractFlightNumber(booking) {
+      const fromNotes = String(booking.specialRequests || '').match(FLIGHT_RE);
+      if (fromNotes) return fromNotes[1].replace(/\s/g, '').toUpperCase();
+      if (!AIRPORT_HINTS.test(String(booking.pickupLocation || ''))) return null;
+      const fromPickup = String(booking.pickupLocation || '').match(FLIGHT_RE);
+      return fromPickup ? fromPickup[1].replace(/\s/g, '').toUpperCase() : null;
+    }
 
     function wireAssignmentDrop(element, bookingId) {
       element.addEventListener('dragover', (event) => {
@@ -3083,6 +3101,17 @@
         makeRouteLine('pickup', booking.pickupLocation),
         makeRouteLine('dropoff', booking.dropoffLocation)
       );
+      const flightNumber = extractFlightNumber(booking);
+      if (flightNumber) {
+        const flight = document.createElement('a');
+        flight.className = 'flight-badge';
+        flight.href = `https://www.flightaware.com/live/flight/${encodeURIComponent(flightNumber)}`;
+        flight.target = '_blank';
+        flight.rel = 'noopener noreferrer';
+        flight.textContent = `✈ ${flightNumber} · Track`;
+        flight.title = `Track ${flightNumber} live on FlightAware`;
+        route.append(flight);
+      }
 
       const when = document.createElement('div');
       when.className = isOverdue(booking) ? 'when overdue' : 'when';

@@ -170,7 +170,7 @@ test('live telemetry has a session-scoped clear toggle', () => {
   const map = fs.readFileSync(path.join(ROOT, 'public', 'js', 'telemetry-map.js'), 'utf8');
   assert.match(map, /function clear\(\)/);
   assert.match(map, /function resume\(\)/);
-  assert.match(map, /return \{ start, stop, refresh, clear, resume, destroy \}/);
+  assert.match(map, /return \{ start, stop, refresh, clear, resume, setTrafficMode, destroy \}/);
 });
 
 test('ping fleet notifies drivers through their manifest', () => {
@@ -446,4 +446,30 @@ test('cancelled KPI shows reason breakdown and filters by reason', () => {
   assert.match(dash, /function applyReasonFilter\(reason\)/);
   assert.match(dash, /function pickCancellationReason\(booking\)/);
   assert.match(dash, /card\.dataset\.status === 'cancelled'\) openReasonPopover\(card\)/);
+});
+
+test('live map draws active routes and a fleet traffic toggle', () => {
+  const map = fs.readFileSync(path.join(ROOT, 'public', 'js', 'telemetry-map.js'), 'utf8');
+  assert.match(map, /async function drawRoutes\(drivers, activeTrips\)/);
+  assert.match(map, /L\.polyline\(points, options\)/);
+  assert.match(map, /function trafficColor\(speedMetersPerSecond\)/);
+  assert.match(map, /function geocode\(address\)/);
+  assert.match(map, /nominatim\.openstreetmap\.org/);
+  assert.match(map, /function setTrafficMode\(enabled\)/);
+  assert.match(map, /return \{ start, stop, refresh, clear, resume, setTrafficMode, destroy \}/);
+
+  const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(dash, /id="telemetry-traffic" class="btn btn-sm" type="button" aria-pressed="false">Traffic: off/);
+  assert.match(dash, /id="traffic-legend" class="traffic-legend" hidden/);
+  assert.match(dash, /radar\.setTrafficMode\(enabled\)/);
+  assert.match(dash, /trafficMode \? 'fleet traffic view' : null/);
+});
+
+test('airport pickups link to live FlightAware tracking', () => {
+  const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(dash, /const AIRPORT_HINTS = /);
+  assert.match(dash, /const FLIGHT_RE = /);
+  assert.match(dash, /function extractFlightNumber\(booking\)/);
+  assert.match(dash, /flight\.href = `https:\/\/www\.flightaware\.com\/live\/flight\//);
+  assert.match(dash, /flight\.className = 'flight-badge'/);
 });
