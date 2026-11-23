@@ -532,43 +532,40 @@
 
     .software-preview__intro { margin: 0; max-width: 62ch; font-size: 14.5px; color: var(--muted); }
 
-    .software-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 18px;
-    }
+    .software-grid { display: grid; gap: 18px; }
 
     .software-shot {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
       margin: 0;
       overflow: hidden;
       border: 1px solid var(--line);
       border-radius: var(--radius);
       background: var(--panel);
-      transition: border-color 0.2s ease, transform 0.2s ease;
+      transition: border-color 0.2s ease;
     }
 
-    .software-shot:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+    .software-shot:has(a:hover) { border-color: var(--line-strong); }
 
     .software-shot__frame {
       position: relative;
       display: block;
       overflow: hidden;
-      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line);
       background: #0b0b0b;
     }
 
     .software-shot__frame img {
       display: block;
       width: 100%;
-      aspect-ratio: 16 / 10;
+      height: 100%;
+      min-height: 240px;
       object-fit: cover;
       object-position: top center;
       transition: transform 0.45s var(--ease-luxe);
     }
 
-    .software-shot__frame:hover img { transform: scale(1.03); }
+    a.software-shot__frame:hover img { transform: scale(1.03); }
 
     .software-shot__view {
       position: absolute;
@@ -591,7 +588,12 @@
     .software-shot__frame:hover .software-shot__view,
     .software-shot__frame:focus-visible .software-shot__view { opacity: 1; transform: none; }
 
-    .software-shot figcaption { display: grid; gap: 8px; padding: 20px 22px 22px; }
+    .software-shot figcaption {
+      display: grid;
+      align-content: center;
+      gap: 10px;
+      padding: clamp(24px, 3vw, 40px);
+    }
 
     .software-shot__num {
       font-size: 10px;
@@ -600,17 +602,16 @@
       color: var(--accent);
     }
 
-    .software-shot h3 { margin: 0; font-size: 15px; font-weight: 500; }
+    .software-shot h3 { margin: 0; font-size: 18px; font-weight: 500; }
 
-    .software-shot p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
-
-    @media (max-width: 1080px) {
-      .software-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
+    .software-shot p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--muted); }
 
     @media (max-width: 640px) {
       .software-preview { margin-bottom: 26px; padding-top: 28px; }
-      .software-grid { grid-template-columns: minmax(0, 1fr); }
+      .software-shot { grid-template-columns: minmax(0, 1fr); }
+      .software-shot__frame { border-right: 0; border-bottom: 1px solid var(--line); }
+      .software-shot__frame img { min-height: 0; aspect-ratio: 16 / 10; }
+      .software-shot figcaption { padding: 22px; }
     }
 
   </style>
@@ -767,10 +768,9 @@
 
       <div class="software-grid">
         <figure class="software-shot reveal" style="--i: 0">
-          <a class="software-shot__frame" href="/dashboard.html" aria-label="Open the dispatcher dashboard">
+          <div class="software-shot__frame">
             <img src="/assets/screenshots/dispatcher-dashboard.webp" alt="VeloFox dispatcher dashboard with live booking totals and a fleet telemetry map" width="1200" height="750" loading="lazy" decoding="async">
-            <span class="software-shot__view">Open dashboard →</span>
-          </a>
+          </div>
           <figcaption>
             <span class="software-shot__num">01 · Dispatch</span>
             <h3>Command dashboard</h3>
