@@ -49,14 +49,20 @@
 
   window.addEventListener('DOMContentLoaded', () => {
     /* Pages with the accessibility menu own the theme controls. */
-    if (document.querySelector('.a11y-menu') || document.querySelector('.theme-toggle')) return;
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'theme-toggle';
-    button.addEventListener('click', () => {
-      set(root.dataset.theme === 'light' ? 'dark' : 'light');
-    });
-    document.body.append(button);
+    if (document.querySelector('.a11y-menu')) return;
+    let button = document.querySelector('.theme-toggle');
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'theme-toggle';
+      document.body.append(button);
+    }
+    if (button.dataset.themeBound !== 'true') {
+      button.dataset.themeBound = 'true';
+      button.addEventListener('click', () => {
+        set(root.dataset.theme === 'light' ? 'dark' : 'light');
+      });
+    }
     apply(root.dataset.theme || preferredTheme());
   });
 }());
