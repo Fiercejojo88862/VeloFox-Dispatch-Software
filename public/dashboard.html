@@ -548,6 +548,36 @@
     .filter-chip:hover { background: rgba(197, 160, 89, 0.18); }
     .filter-chip[hidden] { display: none; }
 
+    /* ---------- booking tabs ---------- */
+
+    .tab-strip {
+      display: flex;
+      gap: 6px;
+      padding: 10px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .tab {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 14px;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: transparent;
+      color: var(--muted);
+      font: inherit;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .tab:hover { border-color: var(--accent); color: var(--accent); }
+    .tab.is-active { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+    .tab.is-active:hover { color: var(--accent-ink); }
+
     @media (prefers-reduced-motion: reduce) {
       .voice-mic[aria-pressed="true"]::before { animation: none; }
     }
@@ -854,6 +884,10 @@
         <button id="filter-chip" class="filter-chip" type="button" hidden></button>
         <span id="voice-status" class="voice-status" aria-live="polite">Voice ready · type a command or tap the mic</span>
       </div>
+      <div id="bookings-tabs" class="tab-strip" role="tablist" aria-label="Booking views">
+        <button class="tab is-active" type="button" data-tab="active" role="tab" aria-selected="true">Bookings</button>
+        <button class="tab" type="button" data-tab="completed" role="tab" aria-selected="false">Completed</button>
+      </div>
       <div class="table-wrap">
         <table>
           <thead>
@@ -949,6 +983,7 @@
     ];
 
     const tbody = document.getElementById('bookings-body');
+    const bookingTabButtons = Array.from(document.querySelectorAll('#bookings-tabs [data-tab]'));
     const pagesBody = document.getElementById('pages-body');
     const statsEl = document.getElementById('stats');
     const countEl = document.getElementById('booking-count');
@@ -969,6 +1004,7 @@
     let isLoading = false;
     let hasLoadedOnce = false;
     let activeFilter = null;
+    let bookingsTab = 'active';
 
     const dateFormatter = new Intl.DateTimeFormat(undefined, {
       dateStyle: 'medium',
@@ -1121,6 +1157,15 @@
     function applyFilter(status) {
       activeFilter = status || null;
       updateFilterChip();
+      render();
+    }
+
+    function setBookingsTab(tab) {
+      bookingsTab = tab;
+      bookingTabButtons.forEach((button) => {
+        button.classList.toggle('is-active', button.dataset.tab === tab);
+        button.setAttribute('aria-selected', String(button.dataset.tab === tab));
+      });
       render();
     }
 
@@ -1747,21 +1792,31 @@
     function render() {
       renderStats();
 
+      const tabVisible = bookingsTab === 'completed'
+        ? bookings.filter((booking) => TERMINAL_STATUSES.has(booking.status))
+        : bookings.filter((booking) => !TERMINAL_STATUSES.has(booking.status));
       const visible = activeFilter
         ? activeFilter === 'unassigned'
-          ? bookings.filter((booking) => !booking.driverId)
-          : bookings.filter((booking) => booking.status === activeFilter)
-        : bookings;
+          ? tabVisible.filter((booking) => !booking.driverId)
+          : tabVisible.filter((booking) => booking.status === activeFilter)
+        : tabVisible;
 
       countEl.textContent = activeFilter
-        ? `${visible.length} of ${bookings.length} rides`
-        : `${bookings.length} ${bookings.length === 1 ? 'ride' : 'rides'}`;
+        ? `${visible.length} of ${tabVisible.length} rides`
+        : `${tabVisible.length} ${tabVisible.length === 1 ? 'ride' : 'rides'}`;
 
       if (visible.length === 0) {
-        if (bookings.length === 0) {
+        if (tabVisible.length === 0 && bookings.length === 0) {
           renderState(
             'No bookings yet',
             'New reservations from the client app will appear here automatically.'
+          );
+        } else if (tabVisible.length === 0) {
+          renderState(
+            bookingsTab === 'completed' ? 'No completed jobs' : 'No active bookings yet',
+            bookingsTab === 'completed'
+              ? 'Completed and cancelled rides appear here when jobs finish.'
+              : 'Active, in-progress and pending rides appear here automatically.'
           );
         } else {
           renderState(
@@ -1835,6 +1890,10 @@
     filterChip.addEventListener('click', () => {
       applyFilter(null);
       setVoiceStatus('Filter cleared.');
+    });
+
+    bookingTabButtons.forEach((button) => {
+      button.addEventListener('click', () => setBookingsTab(button.dataset.tab));
     });
 
     if (radar) {
