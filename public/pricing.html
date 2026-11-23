@@ -7,6 +7,7 @@
   <title>VeloFox Dispatch — Pricing</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="/a11y.css">
   <script src="/js/theme.js"></script>
   <style>
     :root { color-scheme: dark; --bg: #0b0b0b; --bg-soft: #0f0f0f; --panel: #141414; --panel-hover: #171717; --line: #232323; --line-strong: #33302a; --text: #f4f1ea; --muted: #9b968c; --accent: #c5a059; --accent-bright: #d9bd83; --accent-ink: #0b0b0b; --radius: 4px; --shadow: 0 24px 60px rgba(0, 0, 0, 0.55); }
@@ -21,7 +22,8 @@
     .brand-sub { margin-top: 2px; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
     .topbar-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: flex-end; }
     .nav-link { font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); text-decoration: none; padding-bottom: 2px; border-bottom: 1px solid transparent; transition: color 0.16s ease, border-color 0.16s ease; }
-    .nav-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
+    .nav-link:hover,
+    .nav-link[aria-current="page"] { color: var(--accent); border-bottom-color: var(--accent); }
     main { max-width: 1100px; margin: 0 auto; padding: clamp(20px, 3vw, 36px) clamp(16px, 3.4vw, 44px) 80px; }
     .eyebrow { display: block; margin-bottom: 6px; font-size: 10px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
     .section-head { max-width: 62ch; margin-bottom: 32px; }
@@ -58,9 +60,13 @@
       </div>
     </a>
     <div class="topbar-actions">
-      <a class="nav-link" href="/">Home</a>
-      <a class="nav-link" href="/dashboard.html">Dispatcher</a>
-      <a class="nav-link" href="/booking.html">Reserve</a>
+      <nav class="topbar-nav" aria-label="Primary" data-i18n-aria-label="nav.site">
+        <a class="nav-link" href="/fleet.html" data-i18n="nav.fleet">The fleet</a>
+        <a class="nav-link" href="/about.html" data-i18n="nav.about">About us</a>
+        <a class="nav-link" href="/booking.html" data-i18n="nav.reserve">Reserve</a>
+        <a class="nav-link" href="/pricing.html" aria-current="page" data-i18n="nav.pricing">Pricing</a>
+        <a class="nav-link" href="/login.html" data-i18n="nav.signin">Sign in</a>
+      </nav>
     </div>
   </header>
   <main>
@@ -103,14 +109,14 @@
           <li>Integrations (SSO, calendars, APIs)</li>
           <li>SLAs, training &amp; data export</li>
         </ul>
-        <a class="pricing-card__cta" href="/legal.html">Talk to sales</a>
+        <a class="pricing-card__cta" href="/booking.html">Talk to dispatch</a>
       </div>
     </div>
   </section>
     <div class="pricing-ctas">
       <a class="btn" href="/booking.html">Book your first ride</a>
       <a class="btn" href="/login.html">Start your trial</a>
-      <a class="btn" href="/legal.html">Talk to sales</a>
+      <a class="btn" href="/booking.html">Talk to dispatch</a>
     </div>
   </main>
   <footer class="site-footer">
@@ -118,8 +124,9 @@
     <a href="/booking.html">Reserve</a><span>·</span>
     <a href="/dashboard.html">Dispatcher</a><span>·</span>
     <a href="/driver.html">Chauffeur portal</a><span>·</span>
-    <a href="/legal.html">Terms &amp; policies</a><span>·</span>
     <span>© 2026 VeloFox Dispatch</span>
   </footer>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/a11y.js"></script>
 </body>
 </html>

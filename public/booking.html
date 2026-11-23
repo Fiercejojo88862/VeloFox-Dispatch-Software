@@ -107,7 +107,8 @@
       transition: color 0.16s ease, border-color 0.16s ease;
     }
 
-    .topnav a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+    .topnav a:hover,
+    .topnav a[aria-current="page"] { color: var(--accent); border-bottom-color: var(--accent); }
     .topnav a:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
 
     main {
@@ -705,9 +706,10 @@
       </div>
     </a>
     <nav class="topnav" aria-label="Site" data-i18n-aria-label="nav.site">
-      <a href="/" data-i18n="nav.home">Home</a>
       <a href="/fleet.html" data-i18n="nav.fleet">The fleet</a>
       <a href="/about.html" data-i18n="nav.about">About us</a>
+      <a href="/booking.html" aria-current="page" data-i18n="nav.reserve">Reserve</a>
+      <a href="/pricing.html" data-i18n="nav.pricing">Pricing</a>
       <a href="/login.html" data-i18n="nav.signin">Sign in</a>
     </nav>
   </header>
