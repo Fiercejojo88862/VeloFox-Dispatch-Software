@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0b0b">
+  <title data-i18n="doc.title.about">About VeloFox Dispatch — The people behind the wheel</title>
+  <meta name="description" content="How VeloFox grew from one sedan and a whiteboard into a New York and New Jersey chauffeur service built around the people who actually do the driving.">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/theme.css">
+  <link rel="stylesheet" href="/a11y.css">
+  <script src="/js/theme.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0b0b;
+      --bg-soft: #0f0f0f;
+      --panel: #141414;
+      --line: #232323;
+      --line-strong: #33302a;
+      --text: #f4f1ea;
+      --muted: #9b968c;
+      --accent: #c5a059;
+      --accent-bright: #d9bd83;
+      --accent-ink: #0b0b0b;
+      --radius: 4px;
+      --shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      --gold: #c5a059;
+      --gold-bright: #d9bd83;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 18px clamp(16px, 3.4vw, 44px);
+      border-bottom: 1px solid var(--line);
+      background: rgba(11, 11, 11, 0.9);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .brand { display: flex; align-items: center; gap: 16px; color: inherit; text-decoration: none; }
+    .brand:hover .mark { border-color: var(--accent-bright); }
+    .brand:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
+
+    .mark {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--accent);
+      border-radius: 2px;
+    }
+
+    .brand-name {
+      font-size: 15px;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .brand-sub {
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 10.5px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .topbar-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .nav-link {
+      color: var(--muted);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-decoration: none;
+      padding-bottom: 2px;
+      border-bottom: 1px solid transparent;
+      transition: color 0.16s ease, border-color 0.16s ease;
+    }
+
+    .nav-link:hover,
+    .nav-link[aria-current="page"] { color: var(--accent); border-bottom-color: var(--accent); }
+    .nav-link:focus-visible { outline: 1px solid var(--accent); outline-offset: 3px; }
+
+    main { max-width: 1180px; margin: 0 auto; padding: 0 clamp(16px, 3.4vw, 44px) 80px; }
+
+    .eyebrow {
+      display: block;
+      margin-bottom: 10px;
+      color: var(--accent);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 { font-family: var(--font-display), Georgia, serif; font-weight: 500; }
+
+    .about-hero { padding: clamp(56px, 9vw, 110px) 0 clamp(48px, 7vw, 84px); border-bottom: 1px solid var(--line); }
+
+    .about-hero h1 {
+      max-width: 18ch;
+      margin: 0 0 26px;
+      font-size: clamp(38px, 6.4vw, 76px);
+      line-height: 1.02;
+      letter-spacing: -0.025em;
+    }
+
+    .about-hero__lead { max-width: 62ch; margin: 0; font-size: clamp(16px, 1.6vw, 19px); line-height: 1.7; color: var(--muted); }
+
+    .about-hero__meta {
+      margin-top: 34px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+      color: var(--quiet, var(--muted));
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .about-section { padding: clamp(48px, 7vw, 82px) 0; border-bottom: 1px solid var(--line); }
+
+    .about-section h2 {
+      max-width: 20ch;
+      margin: 0 0 22px;
+      font-size: clamp(28px, 4vw, 46px);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    .about-columns { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: clamp(28px, 5vw, 72px); }
+
+    .about-copy p { max-width: 62ch; margin: 0 0 18px; color: var(--muted); font-size: 14.5px; line-height: 1.75; }
+    .about-copy p:last-child { margin-bottom: 0; }
+
+    .about-aside {
+      align-self: start;
+      border: 1px solid var(--line);
+      border-left: 2px solid var(--accent);
+      border-radius: var(--radius);
+      background: var(--panel);
+      padding: 28px;
+    }
+
+    .about-aside blockquote { margin: 0; font-family: var(--font-display), Georgia, serif; font-size: clamp(19px, 2vw, 25px); line-height: 1.4; }
+    .about-aside figcaption { margin-top: 16px; color: var(--muted); font-size: 10px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; }
+
+    .about-figure { position: relative; overflow: hidden; border: 1px solid var(--line); border-radius: var(--radius); }
+
+    .about-figure img { display: block; width: 100%; height: 100%; object-fit: cover; filter: saturate(0.8) contrast(1.05) brightness(0.85); }
+
+    .about-figure figcaption {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      padding: 28px 22px 18px;
+      background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.75));
+      color: #f4f1ea;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .timeline { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+
+    .timeline__item { border-top: 1px solid var(--line-strong); padding-top: 18px; }
+
+    .timeline__year { display: block; margin-bottom: 10px; color: var(--accent); font-size: 11px; font-weight: 600; letter-spacing: 0.18em; }
+
+    .timeline__item h3 { margin: 0 0 10px; font-size: 18px; line-height: 1.2; }
+    .timeline__item p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.6; }
+
+    .people { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 34px; }
+
+    .person { border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); padding: 24px; }
+
+    .person__name { margin: 0 0 6px; font-size: 20px; }
+    .person__role { display: block; margin-bottom: 12px; color: var(--accent); font-size: 10px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; }
+    .person p { margin: 0; color: var(--muted); font-size: 13.5px; line-height: 1.7; }
+
+    .about-end { border-bottom: 0; }
+
+    .about-end h2 { max-width: 24ch; }
+
+    .about-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 30px; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 20px;
+      border: 1px solid var(--line-strong);
+      border-radius: 2px;
+      color: var(--text);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-decoration: none;
+      transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+    }
+
+    .btn:hover,
+    .btn:focus-visible { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); outline: none; }
+
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+    .btn-primary:hover, .btn-primary:focus-visible { background: var(--accent-bright); border-color: var(--accent-bright); }
+
+    .site-footer {
+      margin-top: 20px;
+      padding: 28px clamp(16px, 3.4vw, 44px);
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 28px;
+      flex-wrap: wrap;
+      max-width: 1180px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .site-footer__brand { display: flex; align-items: center; gap: 14px; }
+    .site-footer__name { display: block; font-size: 11.5px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; }
+    .site-footer__sub { display: block; margin-top: 3px; color: var(--muted); font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; }
+
+    .site-footer__links { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+
+    .site-footer__links a {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      padding-bottom: 2px;
+    }
+
+    .site-footer__links a:hover { color: var(--accent-bright); border-bottom-color: var(--accent); }
+
+    .site-footer__meta { display: grid; gap: 10px; color: var(--muted); font-size: 9.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; }
+
+    @media (max-width: 900px) {
+      .about-columns { grid-template-columns: minmax(0, 1fr); }
+      .timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .topbar { flex-direction: column; align-items: flex-start; }
+      .topbar-actions { width: 100%; justify-content: space-between; }
+      .timeline, .people { grid-template-columns: minmax(0, 1fr); }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" title="VeloFox Dispatch home">
+      <span class="mark" aria-hidden="true"><img class="topbar-logo" src="/images/VeloFox.png" alt="VeloFox"></span>
+      <span>
+        <span class="brand-name">VeloFox Dispatch</span>
+        <span class="brand-sub" data-i18n="brand.sub">Luxury transport logistics</span>
+      </span>
+    </a>
+    <div class="topbar-actions">
+      <nav class="topbar-nav" aria-label="Primary" data-i18n-aria-label="nav.site">
+        <a class="nav-link" href="/" data-i18n="nav.home">Home</a>
+        <a class="nav-link" href="/fleet.html" data-i18n="nav.fleet">The fleet</a>
+        <a class="nav-link" href="/about.html" aria-current="page" data-i18n="nav.about">About us</a>
+        <a class="nav-link" href="/booking.html" data-i18n="nav.reserve">Reserve</a>
+        <a class="nav-link" href="/login.html" data-i18n="nav.signin">Sign in</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="about-hero" aria-labelledby="about-heading">
+      <span class="eyebrow" data-i18n="about.eyebrow">Our story</span>
+      <h1 id="about-heading" data-i18n="about.hero.title">We started because one driver was waiting in the wrong lot.</h1>
+      <p class="about-hero__lead" data-i18n="about.hero.lead">
+        It was 11:40 at Newark, rain coming down sideways, and a passenger with two suitcases and no idea
+        who was supposed to pick her up. Our first car spent forty minutes circling the wrong terminal.
+        We have been fixing that particular mistake ever since.
+      </p>
+      <p class="about-hero__meta" data-i18n="about.hero.meta">New York · New Jersey · quietly at it since 2017</p>
+    </section>
+
+    <section class="about-section" aria-labelledby="lesson-heading">
+      <div class="about-columns">
+        <div>
+          <span class="eyebrow" data-i18n="about.lesson.eyebrow">The early days</span>
+          <h2 id="lesson-heading" data-i18n="about.lesson.title">Luxury is mostly the boring things done right.</h2>
+          <div class="about-copy">
+            <p data-i18n="about.lesson.p1">
+              People remember the car, of course. But the calls we get are about the other stuff: the
+              chauffeur who texted before the plane landed, the extra ten minutes while a child got
+              settled into a car seat, the driver who knew to use the side entrance at the Peninsula
+              because the lobby was closed for an event.
+            </p>
+            <p data-i18n="about.lesson.p2">
+              We have also learned to say the unglamorous things out loud. If a flight is delayed and
+              the car is sitting in traffic on the Turnpike, you hear it from us before you notice.
+              If we cannot make a pickup time, we say so and offer options. Clients forgive a delay
+              much faster than they forgive being left guessing.
+            </p>
+          </div>
+        </div>
+        <figure class="about-aside">
+          <blockquote data-i18n="about.lesson.quote">
+            The moment you stop chasing a car is the moment the whole thing starts feeling like service.
+          </blockquote>
+          <figcaption data-i18n="about.lesson.caption">A note pinned above the old dispatch desk</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="about-section" aria-labelledby="timeline-heading">
+      <span class="eyebrow" data-i18n="about.timeline.eyebrow">How we got here</span>
+      <h2 id="timeline-heading" data-i18n="about.timeline.title">A whiteboard, a notebook, and a lot of early flights.</h2>
+      <div class="timeline">
+        <div class="timeline__item">
+          <span class="timeline__year">2017</span>
+          <h3 data-i18n="about.timeline.2017.title">One sedan and a notebook</h3>
+          <p data-i18n="about.timeline.2017.body">A garage in Jersey City, one black S-Class, and a handwritten list of flights we had learned to watch. The first months were mostly referrals and phone calls.</p>
+        </div>
+        <div class="timeline__item">
+          <span class="timeline__year">2019</span>
+          <h3 data-i18n="about.timeline.2019.title">A board on the wall</h3>
+          <p data-i18n="about.timeline.2019.body">We put a whiteboard in the office and wrote every pickup on it. It was ugly, but for the first time everyone could see which car was due where — and who was running late.</p>
+        </div>
+        <div class="timeline__item">
+          <span class="timeline__year">2022</span>
+          <h3 data-i18n="about.timeline.2022.title">The board became software</h3>
+          <p data-i18n="about.timeline.2022.body">Live assignments, GPS, quotes and receipts. We built it because we kept hitting the same gaps ourselves, not because the world needed another dashboard.</p>
+        </div>
+        <div class="timeline__item">
+          <span class="timeline__year">2026</span>
+          <h3 data-i18n="about.timeline.2026.title">Four classes, same habit</h3>
+          <p data-i18n="about.timeline.2026.body">Sedan, SUV, Sprinter and stretch limousine now cover the tri-state area. The routine has not changed: check the flight, call before the client has to ask, leave room for the unexpected.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="about-section" aria-labelledby="people-heading">
+      <span class="eyebrow" data-i18n="about.people.eyebrow">The people</span>
+      <h2 id="people-heading" data-i18n="about.people.title">The same chauffeurs, not whoever happens to be free.</h2>
+      <div class="about-copy">
+        <p data-i18n="about.people.p1">
+          Marcus has been doing airport pickups since 2011 and can tell you which arrivals hall at JFK
+          moves faster on a Friday afternoon. Elena keeps ginger ale in the Sprinter because she once
+          had a client who felt carsick on the way to a wedding. Neither of them reads from a script.
+          Both will call you by name.
+        </p>
+        <p data-i18n="about.people.p2">
+          That is the whole idea. The car matters, obviously. But the person in the front seat is the
+          reason anyone calls us a second time.
+        </p>
+      </div>
+      <div class="people">
+        <article class="person">
+          <h3 class="person__name">Marcus</h3>
+          <span class="person__role" data-i18n="about.people.marcus.role">Airport desk · since 2011</span>
+          <p data-i18n="about.people.marcus.note">Knows every terminal shortcut and most of the regulars by name.</p>
+        </article>
+        <article class="person">
+          <h3 class="person__name">Elena</h3>
+          <span class="person__role" data-i18n="about.people.elena.role">Sprinter &amp; group travel</span>
+          <p data-i18n="about.people.elena.note">Keeps the cabin calm, the water cold, and a spare phone charger within reach.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="about-section about-end" aria-labelledby="end-heading">
+      <span class="eyebrow" data-i18n="about.end.eyebrow">Still us</span>
+      <h2 id="end-heading" data-i18n="about.end.title">Still a small team, on purpose.</h2>
+      <div class="about-copy">
+        <p data-i18n="about.end.p1">
+          There is no call centre to navigate and no script to get through. You reach a dispatcher who
+          can see the cars, the drivers and your booking on the same screen. If something goes sideways,
+          you talk to someone who can actually fix it — usually the same person who answered.
+        </p>
+      </div>
+      <div class="about-actions">
+        <a class="btn" href="/fleet.html"><span data-i18n="about.cta.fleet">See the fleet</span> <span aria-hidden="true">→</span></a>
+        <a class="btn btn-primary" href="/booking.html"><span data-i18n="about.cta.reserve">Reserve a ride</span> <span aria-hidden="true">→</span></a>
+      </div>
+    </section>
+
+    <figure class="about-figure">
+      <img src="/assets/fleet/luxury-sedan.webp" alt="Black luxury sedan waiting outside a garage at dusk" data-i18n-alt="about.figure.alt" width="1200" height="800" loading="lazy" decoding="async">
+      <figcaption data-i18n="about.figure.caption">The kind of car that started it all — quiet, early, and always a little too clean.</figcaption>
+    </figure>
+  </main>
+
+  <footer class="site-footer">
+    <div class="site-footer__brand">
+      <img class="topbar-logo" src="/images/VeloFox.png" alt="VeloFox">
+      <span>
+        <span class="site-footer__name">VeloFox Dispatch</span>
+        <span class="site-footer__sub" data-i18n="brand.sub">Luxury transport logistics</span>
+      </span>
+    </div>
+    <nav class="site-footer__links" aria-label="Footer">
+      <a href="/booking.html" data-i18n="footer.reserve">Reserve</a>
+      <a href="/fleet.html" data-i18n="nav.fleet">The fleet</a>
+      <a href="/about.html" aria-current="page" data-i18n="nav.about">About us</a>
+      <a href="/dashboard.html" data-i18n="footer.dispatch">Dispatch</a>
+    </nav>
+    <div class="site-footer__meta">
+      <span data-i18n="footer.region">New York · New Jersey</span>
+      <span data-i18n="footer.copyright">© 2026 VeloFox Dispatch</span>
+    </div>
+  </footer>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/a11y.js"></script>
+</body>
+</html>

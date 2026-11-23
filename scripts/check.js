@@ -20,6 +20,7 @@ const REQUIRED_FILES = [
   'schema.sql',
   'neon.ts',
   'public/index.html',
+  'public/about.html',
   'public/booking.html',
   'public/dashboard.html',
   'public/client.html',
