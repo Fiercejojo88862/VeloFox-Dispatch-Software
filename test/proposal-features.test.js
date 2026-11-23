@@ -123,6 +123,25 @@ test('page directory is limited to Joseph Shaker as a dispatcher administrator',
   assert.match(html, /pagesPanel\.remove\(\)/);
 });
 
+test('new dispatchers receive a replayable tour and can save a custom dashboard order', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(html, /id="tour-replay"/);
+  assert.match(html, /id="customize-dashboard"/);
+  assert.match(html, /id="dashboard-tour"/);
+  assert.match(html, /const TOUR_STEPS = \[/);
+  assert.match(html, /localStorage\.getItem\(dashboardTourKey\) === 'complete'/);
+  assert.match(html, /localStorage\.setItem\(dashboardTourKey, 'complete'\)/);
+  assert.match(html, /data-dashboard-section="summary"/);
+  assert.match(html, /data-dashboard-section="calendar"/);
+  assert.match(html, /data-dashboard-section="telemetry"/);
+  assert.match(html, /data-dashboard-section="bookings"/);
+  assert.match(html, /localStorage\.setItem\(dashboardLayoutKey, JSON\.stringify\(order\)\)/);
+  assert.match(html, /handle\.addEventListener\('dragstart'/);
+  assert.match(html, /moveDashboardSection\(section, -1\)/);
+  assert.match(html, /moveDashboardSection\(section, 1\)/);
+  assert.match(html, /if \(layoutTools\) statsEl\.append\(layoutTools\)/);
+});
+
 test('schema and driver portal accept the dropped-off status', () => {
   const schema = fs.readFileSync(path.join(ROOT, 'schema.sql'), 'utf8');
   assert.match(schema, /'passenger_aboard', 'dropped_off', 'completed', 'cancelled'/);

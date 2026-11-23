@@ -190,6 +190,69 @@
       padding: clamp(20px, 3vw, 36px) clamp(16px, 3.4vw, 44px) 80px;
     }
 
+    /* ---------- customizable dashboard ---------- */
+
+    [data-dashboard-section] { position: relative; }
+    body.is-customizing [data-dashboard-section] {
+      outline: 1px dashed var(--accent);
+      outline-offset: 5px;
+    }
+    body.is-customizing [data-dashboard-section].is-dragging { opacity: 0.45; }
+    body.is-customizing [data-dashboard-section].is-drop-target {
+      outline-style: solid;
+      box-shadow: 0 0 0 3px rgba(197, 160, 89, 0.16);
+    }
+    .layout-tools {
+      position: absolute;
+      z-index: 12;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 4px;
+      padding: 4px;
+      background: var(--bg);
+      border: 1px solid var(--accent);
+      border-radius: 3px;
+      box-shadow: var(--shadow);
+    }
+    .layout-tools[hidden] { display: none; }
+    .layout-tools button {
+      appearance: none;
+      border: 1px solid var(--line-strong);
+      background: var(--panel);
+      color: var(--text);
+      min-width: 30px;
+      min-height: 28px;
+      cursor: pointer;
+      font: inherit;
+    }
+    .layout-tools button:hover,
+    .layout-tools button:focus-visible { color: var(--accent); border-color: var(--accent); }
+    .layout-handle { cursor: grab !important; }
+    .layout-handle:active { cursor: grabbing !important; }
+
+    .dashboard-tour {
+      position: fixed;
+      z-index: 1000;
+      right: clamp(16px, 3vw, 36px);
+      bottom: clamp(16px, 3vw, 36px);
+      width: min(390px, calc(100vw - 32px));
+      padding: 22px;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: 0 30px 90px rgba(0, 0, 0, 0.75);
+    }
+    .dashboard-tour[hidden] { display: none; }
+    .dashboard-tour h2 { margin: 5px 0 8px; font-size: 20px; }
+    .dashboard-tour p { margin: 0 0 18px; color: var(--muted); }
+    .tour-progress { color: var(--accent); font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase; }
+    .tour-actions { display: flex; justify-content: space-between; gap: 10px; }
+    .tour-highlight {
+      z-index: 30;
+      box-shadow: 0 0 0 3px var(--accent), 0 0 0 9999px rgba(0, 0, 0, 0.48) !important;
+    }
+
     /* ---------- buttons ---------- */
 
     .btn {
@@ -910,6 +973,8 @@
       <a class="nav-link" href="/">Home</a>
       <a class="nav-link" href="/financial.html">Financial</a>
       <span id="last-updated" class="muted small">Loading…</span>
+      <button id="tour-replay" class="btn btn-sm" type="button" disabled>Tour</button>
+      <button id="customize-dashboard" class="btn btn-sm" type="button" aria-pressed="false" disabled>Customize</button>
       <button id="sound-toggle" class="btn btn-sm" type="button" aria-pressed="false">Sound on</button>
       <button id="logout" class="btn" type="button">Sign out</button>
       <button id="refresh" class="btn" type="button" data-audio="confirm">Refresh</button>
@@ -917,9 +982,9 @@
   </header>
 
   <main>
-    <section id="stats" class="stats" aria-label="Booking summary"></section>
+    <section id="stats" class="stats" aria-label="Booking summary" data-dashboard-section="summary"></section>
 
-    <section class="panel calendar-panel" aria-labelledby="calendar-heading">
+    <section id="calendar-panel" class="panel calendar-panel" aria-labelledby="calendar-heading" data-dashboard-section="calendar">
       <div class="panel-head calendar-head">
         <div>
           <h2 id="calendar-heading">Calendar</h2>
@@ -941,7 +1006,7 @@
       <div id="calendar" class="calendar-month" aria-live="polite"></div>
     </section>
 
-    <section id="pages-panel" class="panel" aria-labelledby="pages-heading" hidden>
+    <section id="pages-panel" class="panel" aria-labelledby="pages-heading" data-dashboard-section="pages" hidden>
       <div class="panel-head">
         <div>
           <h2 id="pages-heading">Available pages</h2>
@@ -951,7 +1016,7 @@
       <div id="pages-body" class="pages-grid" aria-live="polite"></div>
     </section>
 
-    <section class="panel" aria-labelledby="telemetry-heading">
+    <section id="telemetry-panel" class="panel" aria-labelledby="telemetry-heading" data-dashboard-section="telemetry">
       <div class="panel-head">
         <div>
           <h2 id="telemetry-heading">Live telemetry</h2>
@@ -975,7 +1040,7 @@
       </div>
     </section>
 
-    <section class="panel" aria-labelledby="bookings-heading">
+    <section id="bookings-panel" class="panel" aria-labelledby="bookings-heading" data-dashboard-section="bookings">
       <div class="panel-head">
         <h2 id="bookings-heading">Bookings</h2>
         <span id="booking-count" class="muted small"></span>
@@ -1016,6 +1081,16 @@
   </main>
 
   <div id="toasts" class="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
+
+  <aside id="dashboard-tour" class="dashboard-tour" role="dialog" aria-modal="true" aria-labelledby="tour-title" hidden>
+    <div id="tour-progress" class="tour-progress"></div>
+    <h2 id="tour-title"></h2>
+    <p id="tour-copy"></p>
+    <div class="tour-actions">
+      <button id="tour-skip" class="btn btn-sm" type="button">Skip tour</button>
+      <button id="tour-next" class="btn btn-primary btn-sm" type="button">Next</button>
+    </div>
+  </aside>
 
   <datalist id="drivers">
     <option value="VF-1001">Marcus Vance</option>
@@ -1105,6 +1180,15 @@
 
     const tbody = document.getElementById('bookings-body');
     const bookingTabButtons = Array.from(document.querySelectorAll('#bookings-tabs [data-tab]'));
+    const dashboardMain = document.querySelector('main');
+    const customizeDashboardBtn = document.getElementById('customize-dashboard');
+    const tourReplayBtn = document.getElementById('tour-replay');
+    const tourEl = document.getElementById('dashboard-tour');
+    const tourProgressEl = document.getElementById('tour-progress');
+    const tourTitleEl = document.getElementById('tour-title');
+    const tourCopyEl = document.getElementById('tour-copy');
+    const tourNextBtn = document.getElementById('tour-next');
+    const tourSkipBtn = document.getElementById('tour-skip');
     const pagesPanel = document.getElementById('pages-panel');
     const pagesBody = document.getElementById('pages-body');
     const statsEl = document.getElementById('stats');
@@ -1134,6 +1218,10 @@
     let hasLoadedOnce = false;
     let activeFilter = null;
     let bookingsTab = 'active';
+    let dashboardLayoutKey = null;
+    let dashboardTourKey = null;
+    let draggedDashboardSection = null;
+    let activeTourStep = 0;
     const calendarDate = new Date();
     let calendarView = 'month';
 
@@ -1586,10 +1674,12 @@
         counts[status] = bookings.filter((booking) => booking.status === status).length;
       });
 
+      const layoutTools = statsEl.querySelector(':scope > .layout-tools');
       statsEl.replaceChildren(
         makeStatCard('total', 'Total rides', counts.total),
         ...STATUSES.map((status) => makeStatCard(status, formatStatus(status), counts[status]))
       );
+      if (layoutTools) statsEl.append(layoutTools);
     }
 
     function renderPages() {
@@ -1614,7 +1704,152 @@
       );
     }
 
-    async function loadPageDirectory() {
+    const dashboardSections = () => Array.from(dashboardMain.querySelectorAll('[data-dashboard-section]'));
+
+    function saveDashboardLayout() {
+      if (!dashboardLayoutKey) return;
+      const order = dashboardSections().map((section) => section.dataset.dashboardSection);
+      try {
+        localStorage.setItem(dashboardLayoutKey, JSON.stringify(order));
+      } catch { /* The layout still works for this session when storage is unavailable. */ }
+    }
+
+    function restoreDashboardLayout() {
+      if (!dashboardLayoutKey) return;
+      try {
+        const order = JSON.parse(localStorage.getItem(dashboardLayoutKey) || '[]');
+        if (!Array.isArray(order)) return;
+        order.forEach((name) => {
+          const section = dashboardMain.querySelector(`[data-dashboard-section="${name}"]`);
+          if (section) dashboardMain.append(section);
+        });
+      } catch { /* Keep the default layout when saved data is invalid. */ }
+    }
+
+    function moveDashboardSection(section, direction) {
+      const sections = dashboardSections();
+      const index = sections.indexOf(section);
+      const target = sections[index + direction];
+      if (!target) return;
+      if (direction < 0) target.before(section);
+      else target.after(section);
+      saveDashboardLayout();
+      section.focus({ preventScroll: true });
+    }
+
+    function installDashboardLayoutTools() {
+      dashboardSections().forEach((section) => {
+        if (section.querySelector(':scope > .layout-tools')) return;
+        section.tabIndex = -1;
+        const tools = document.createElement('div');
+        tools.className = 'layout-tools';
+        tools.hidden = true;
+        tools.setAttribute('aria-label', `Move ${section.dataset.dashboardSection} section`);
+
+        const handle = document.createElement('button');
+        handle.type = 'button';
+        handle.className = 'layout-handle';
+        handle.textContent = '⠿';
+        handle.title = 'Drag to rearrange';
+        handle.setAttribute('aria-label', `Drag ${section.dataset.dashboardSection} section`);
+        handle.draggable = true;
+
+        const up = document.createElement('button');
+        up.type = 'button';
+        up.textContent = '↑';
+        up.title = 'Move up';
+        up.setAttribute('aria-label', `Move ${section.dataset.dashboardSection} section up`);
+
+        const down = document.createElement('button');
+        down.type = 'button';
+        down.textContent = '↓';
+        down.title = 'Move down';
+        down.setAttribute('aria-label', `Move ${section.dataset.dashboardSection} section down`);
+
+        handle.addEventListener('dragstart', (event) => {
+          draggedDashboardSection = section;
+          section.classList.add('is-dragging');
+          event.dataTransfer.effectAllowed = 'move';
+          event.dataTransfer.setData('text/plain', section.dataset.dashboardSection);
+        });
+        handle.addEventListener('dragend', () => {
+          section.classList.remove('is-dragging');
+          dashboardSections().forEach((item) => item.classList.remove('is-drop-target'));
+          draggedDashboardSection = null;
+        });
+        section.addEventListener('dragover', (event) => {
+          if (!draggedDashboardSection || draggedDashboardSection === section) return;
+          event.preventDefault();
+          section.classList.add('is-drop-target');
+        });
+        section.addEventListener('dragleave', () => section.classList.remove('is-drop-target'));
+        section.addEventListener('drop', (event) => {
+          event.preventDefault();
+          section.classList.remove('is-drop-target');
+          if (!draggedDashboardSection || draggedDashboardSection === section) return;
+          const after = event.clientY > section.getBoundingClientRect().top + section.offsetHeight / 2;
+          if (after) section.after(draggedDashboardSection);
+          else section.before(draggedDashboardSection);
+          saveDashboardLayout();
+        });
+        up.addEventListener('click', () => moveDashboardSection(section, -1));
+        down.addEventListener('click', () => moveDashboardSection(section, 1));
+        tools.append(handle, up, down);
+        section.append(tools);
+      });
+    }
+
+    function setDashboardCustomization(enabled) {
+      document.body.classList.toggle('is-customizing', enabled);
+      customizeDashboardBtn.setAttribute('aria-pressed', String(enabled));
+      customizeDashboardBtn.textContent = enabled ? 'Save layout' : 'Customize';
+      dashboardSections().forEach((section) => {
+        const tools = section.querySelector(':scope > .layout-tools');
+        if (tools) tools.hidden = !enabled;
+      });
+      if (!enabled) saveDashboardLayout();
+    }
+
+    const TOUR_STEPS = [
+      { selector: '#stats', title: 'Your ride overview', copy: 'Select any total to jump straight to the matching rides. Total Rides shows the complete list.' },
+      { selector: '#calendar-panel', title: 'Plan by month or week', copy: 'Use the calendar to see upcoming work, then select an event to find that ride in the booking table.' },
+      { selector: '#telemetry-panel', title: 'Follow the fleet', copy: 'Live Telemetry shows reporting chauffeurs and lets dispatch ping the fleet when an update is needed.' },
+      { selector: '#bookings-panel', title: 'Run every trip', copy: 'Bookings is where you assign drivers and vehicles, update ride status, and review trip details.' },
+      { selector: '#customize-dashboard', title: 'Make it your dashboard', copy: 'Choose Customize, then drag sections or use the arrow controls. Your preferred order is saved automatically.' },
+    ];
+
+    function finishDashboardTour() {
+      document.querySelector('.tour-highlight')?.classList.remove('tour-highlight');
+      tourEl.hidden = true;
+      if (dashboardTourKey) {
+        try {
+          localStorage.setItem(dashboardTourKey, 'complete');
+        } catch { /* The tour can still be closed when storage is unavailable. */ }
+      }
+      tourReplayBtn.focus({ preventScroll: true });
+    }
+
+    function showDashboardTourStep() {
+      document.querySelector('.tour-highlight')?.classList.remove('tour-highlight');
+      const step = TOUR_STEPS[activeTourStep];
+      const target = document.querySelector(step.selector);
+      target?.classList.add('tour-highlight');
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      tourProgressEl.textContent = `Step ${activeTourStep + 1} of ${TOUR_STEPS.length}`;
+      tourTitleEl.textContent = step.title;
+      tourCopyEl.textContent = step.copy;
+      tourNextBtn.textContent = activeTourStep === TOUR_STEPS.length - 1 ? 'Finish' : 'Next';
+      tourNextBtn.focus({ preventScroll: true });
+    }
+
+    function startDashboardTour() {
+      setDashboardCustomization(false);
+      activeTourStep = 0;
+      tourEl.hidden = false;
+      showDashboardTourStep();
+    }
+
+    async function bootstrapDispatcherDashboard() {
       try {
         const session = await request('/api/auth/session');
         if (session?.user?.canViewPageDirectory) {
@@ -1622,6 +1857,20 @@
           pagesPanel.hidden = false;
         } else {
           pagesPanel.remove();
+        }
+        const dispatcherKey = session.user.id || session.user.email;
+        dashboardLayoutKey = `velofox-dashboard-layout:${dispatcherKey}`;
+        dashboardTourKey = `velofox-dashboard-tour:${dispatcherKey}`;
+        restoreDashboardLayout();
+        installDashboardLayoutTools();
+        customizeDashboardBtn.disabled = false;
+        tourReplayBtn.disabled = false;
+        let tourComplete = false;
+        try {
+          tourComplete = localStorage.getItem(dashboardTourKey) === 'complete';
+        } catch { /* Treat unavailable storage as a fresh browser session. */ }
+        if (!tourComplete) {
+          window.setTimeout(startDashboardTour, 450);
         }
       } catch {
         pagesPanel.remove();
@@ -2224,6 +2473,21 @@
       const card = event.target.closest('.stat[data-status]');
       if (card) openBookingsForStatus(card.dataset.status);
     });
+    customizeDashboardBtn.addEventListener('click', () => {
+      setDashboardCustomization(!document.body.classList.contains('is-customizing'));
+    });
+    tourReplayBtn.addEventListener('click', startDashboardTour);
+    tourSkipBtn.addEventListener('click', finishDashboardTour);
+    tourNextBtn.addEventListener('click', () => {
+      if (activeTourStep >= TOUR_STEPS.length - 1) finishDashboardTour();
+      else {
+        activeTourStep += 1;
+        showDashboardTourStep();
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !tourEl.hidden) finishDashboardTour();
+    });
 
     if (radar) {
       radar.start();
@@ -2318,7 +2582,7 @@
     calendarWeekBtn?.addEventListener('click', () => setCalendarView('week'));
 
     renderStats();
-    void loadPageDirectory();
+    void bootstrapDispatcherDashboard();
     renderCalendar();
     renderState('Loading bookings', 'Fetching the latest reservations…');
 
