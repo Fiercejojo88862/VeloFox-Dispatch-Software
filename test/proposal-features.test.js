@@ -456,12 +456,14 @@ test('live map draws active routes and a fleet traffic toggle', () => {
   assert.match(map, /function geocode\(address\)/);
   assert.match(map, /nominatim\.openstreetmap\.org/);
   assert.match(map, /function setTrafficMode\(enabled\)/);
+  assert.match(map, /let trafficMode = true;/);
   assert.match(map, /return \{ start, stop, refresh, clear, resume, setTrafficMode, destroy \}/);
 
   const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
-  assert.match(dash, /id="telemetry-traffic" class="btn btn-sm" type="button" aria-pressed="false">Traffic: off/);
-  assert.match(dash, /id="traffic-legend" class="traffic-legend" hidden/);
-  assert.match(dash, /radar\.setTrafficMode\(enabled\)/);
+  assert.match(dash, /id="telemetry-traffic" class="btn btn-sm is-active" type="button" aria-pressed="true">Traffic: on/);
+  assert.match(dash, /id="traffic-legend" class="traffic-legend">/);
+  assert.match(dash, /radar\.setTrafficMode\(on\)/);
+  assert.match(dash, /syncTrafficUi\(true\)/);
   assert.match(dash, /trafficMode \? 'fleet traffic view' : null/);
 });
 

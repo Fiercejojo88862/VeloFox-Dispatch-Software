@@ -1197,7 +1197,7 @@
           <h2 id="telemetry-heading">Live telemetry</h2>
           <span id="telemetry-summary" class="muted small">Connecting to the fleet GPS feed…</span>
         </div>
-                <button id="telemetry-traffic" class="btn btn-sm" type="button" aria-pressed="false">Traffic: off</button>
+                <button id="telemetry-traffic" class="btn btn-sm is-active" type="button" aria-pressed="true">Traffic: on</button>
         <button id="telemetry-refresh" class="btn btn-sm" type="button" data-audio="confirm">Ping fleet</button>
         <button id="telemetry-seed" class="btn btn-sm" type="button" data-audio="confirm">Seed demo telemetry</button>
         <button id="telemetry-clear" class="btn btn-sm" type="button" aria-pressed="false" data-audio="confirm">Clear locations</button>
@@ -1212,7 +1212,7 @@
           <div class="legend-row"><span class="legend-dot is-hollow"></span> Awaiting fix</div>
           <div class="legend-row"><span class="legend-line"></span> Open marker for trip details</div>
           <div class="legend-row"><span class="legend-line is-route"></span> Vehicle → pickup → drop-off</div>
-          <div id="traffic-legend" class="traffic-legend" hidden>
+          <div id="traffic-legend" class="traffic-legend">
             <div><span class="traffic-swatch is-fast"></span> Free flow (28+ mph)</div>
             <div><span class="traffic-swatch is-slow"></span> Slow (10–28 mph)</div>
             <div><span class="traffic-swatch is-stopped"></span> Stopped (&lt;10 mph)</div>
@@ -2228,14 +2228,8 @@
       }
 
       if (intent.type === 'traffic') {
-        const enabled = intent.enabled === null
-          ? telemetryTrafficBtn.getAttribute('aria-pressed') !== 'true'
-          : intent.enabled;
         telemetryTrafficBtn.click();
-        if ((telemetryTrafficBtn.getAttribute('aria-pressed') === 'true') !== enabled) {
-          telemetryTrafficBtn.click();
-        }
-        respond(enabled ? 'Fleet traffic view is on.' : 'Fleet traffic view is off.');
+        respond('Fleet traffic view is on.');
         return;
       }
 
@@ -3421,6 +3415,11 @@
 
     if (radar) {
       radar.start();
+      if (telemetryClearBtn?.getAttribute('aria-pressed') === 'true') {
+        radar.resume();
+        telemetryClearBtn.setAttribute('aria-pressed', 'false');
+        telemetryClearBtn.textContent = 'Clear locations';
+      }
       telemetryRefreshBtn.addEventListener('click', async () => {
         telemetryRefreshBtn.disabled = true;
         try {
@@ -3440,14 +3439,18 @@
         telemetryClearBtn.setAttribute('aria-pressed', String(clearing));
         telemetryClearBtn.textContent = clearing ? 'Resume locations' : 'Clear locations';
       });
+      const syncTrafficUi = (enabled = true) => {
+        const on = Boolean(enabled);
+        radar.setTrafficMode(on);
+        telemetryTrafficBtn.setAttribute('aria-pressed', String(on));
+        telemetryTrafficBtn.textContent = on ? 'Traffic: on' : 'Traffic: off';
+        telemetryTrafficBtn.classList.toggle('is-active', on);
+        if (trafficLegend) trafficLegend.hidden = !on;
+      };
       telemetryTrafficBtn?.addEventListener('click', () => {
-        const enabled = telemetryTrafficBtn.getAttribute('aria-pressed') !== 'true';
-        radar.setTrafficMode(enabled);
-        telemetryTrafficBtn.setAttribute('aria-pressed', String(enabled));
-        telemetryTrafficBtn.textContent = enabled ? 'Traffic: on' : 'Traffic: off';
-        telemetryTrafficBtn.classList.toggle('is-active', enabled);
-        if (trafficLegend) trafficLegend.hidden = !enabled;
+        syncTrafficUi(true);
       });
+      syncTrafficUi(true);
     } else {
       telemetrySummaryEl.textContent = 'Telemetry module unavailable.';
     }

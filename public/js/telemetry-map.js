@@ -96,7 +96,7 @@
     let fetching = false;
     let hasFitFleet = false;
     let cleared = false;
-    let trafficMode = false;
+    let trafficMode = true;
     let lastSummary = null;
 
     function markerIcon(driverId) {
