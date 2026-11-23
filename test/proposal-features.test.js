@@ -142,6 +142,18 @@ test('new dispatchers receive a replayable tour and can save a custom dashboard 
   assert.match(html, /if \(layoutTools\) statsEl\.append\(layoutTools\)/);
 });
 
+test('dispatcher theme toggle sits beside the VeloFox brand and remains interactive', () => {
+  const dashboard = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  const themeController = fs.readFileSync(path.join(ROOT, 'public', 'js', 'theme.js'), 'utf8');
+  const brandStart = dashboard.indexOf('<div class="brand-cluster">');
+  const actionsStart = dashboard.indexOf('<div class="topbar-actions">');
+  assert.ok(brandStart > 0 && brandStart < actionsStart);
+  assert.match(dashboard, /class="theme-toggle theme-toggle--header"/);
+  assert.match(dashboard, /\.theme-toggle\.theme-toggle--header \{\s*position: static;/);
+  assert.match(themeController, /let button = document\.querySelector\('\.theme-toggle'\)/);
+  assert.match(themeController, /button\.dataset\.themeBound = 'true'/);
+});
+
 test('schema and driver portal accept the dropped-off status', () => {
   const schema = fs.readFileSync(path.join(ROOT, 'schema.sql'), 'utf8');
   assert.match(schema, /'passenger_aboard', 'dropped_off', 'completed', 'cancelled'/);
@@ -318,4 +330,23 @@ test('admin dashboard shows driver submissions even after deletion', () => {
   assert.match(page, /api\/admin\/driver-submissions/);
   assert.match(page, /including profiles drivers later delete/);
   assert.match(page, /driver\.deletedAt \? 'deleted'/);
+});
+
+test('dispatcher roster shows fleet status and supports drag-to-assign', () => {
+  const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
+  assert.match(server, /app\.get\('\/api\/fleet\/roster', requireApiRole\('dispatcher'\)/);
+  assert.match(server, /status = 'on_trip'/);
+  assert.match(server, /shiftEnd: lastPickup \? /);
+  assert.match(server, /reporting: Boolean\(latestByDriver\.get\(driver\.id\)\)/);
+
+  const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(dash, /id="roster" class="roster-strip"/);
+  assert.match(dash, /id="roster-summary"/);
+  assert.match(dash, /const ROSTER_STATUS_LABELS = \{/);
+  assert.match(dash, /async function loadRoster\(\)/);
+  assert.match(dash, /card\.draggable = true/);
+  assert.match(dash, /function wireAssignmentDrop\(element, bookingId\)/);
+  assert.match(dash, /wireAssignmentDrop\(row, booking\.id\)/);
+  assert.match(dash, /wireAssignmentDrop\(event, booking\.id\)/);
+  assert.match(dash, /if \(!payload \|\| !payload\.driverId\) return;/);
 });

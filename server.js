@@ -1696,6 +1696,56 @@ app.get('/api/telemetry', requireApiRole('dispatcher'), async (req, res) => {
   });
 });
 
+app.get('/api/fleet/roster', requireApiRole('dispatcher'), async (req, res) => {
+  const [drivers, bookings, latestByDriver] = await Promise.all([
+    repo.listDrivers(),
+    repo.listBookings(),
+    repo.latestTelemetryByDriver(),
+  ]);
+
+  const rosterDrivers = drivers.filter((driver) => !driver.deletedAt).map((driver) => {
+    const trips = bookings.filter(
+      (booking) => booking.driverId === driver.id && booking.status !== 'cancelled' && booking.status !== 'completed'
+    );
+    const current = trips.find((booking) => ACTIVE_BOOKING_STATUSES.has(booking.status)) || null;
+    const lastPickup = trips.reduce((latest, booking) => Math.max(latest, Date.parse(booking.pickupDateTime) || 0), 0);
+    let status = 'available';
+    if (driver.status === 'off_duty') status = 'offline';
+    else if (current) status = 'on_trip';
+    return {
+      id: driver.id,
+      name: driver.name || driver.id,
+      phone: driver.phone || '',
+      status,
+      vehicle: current?.assignedVehicle || null,
+      vehicleClass: current?.vehicleType || null,
+      shiftEnd: lastPickup ? new Date(lastPickup + 60 * 60 * 1000).toISOString() : null,
+      reporting: Boolean(latestByDriver.get(driver.id)),
+      tripId: current?.id || null,
+    };
+  });
+
+  const vehicles = new Map();
+  bookings.forEach((booking) => {
+    if (!booking.assignedVehicle) return;
+    const assigned = ACTIVE_BOOKING_STATUSES.has(booking.status);
+    const current = vehicles.get(booking.assignedVehicle);
+    if (current && !assigned) return;
+    vehicles.set(booking.assignedVehicle, {
+      name: booking.assignedVehicle,
+      vehicleClass: booking.vehicleType || current?.vehicleClass || null,
+      status: assigned ? 'assigned' : 'available',
+      driverId: assigned ? booking.driverId || null : null,
+    });
+  });
+
+  res.json({
+    generatedAt: new Date().toISOString(),
+    drivers: rosterDrivers,
+    vehicles: [...vehicles.values()].sort((a, b) => a.name.localeCompare(b.name)),
+  });
+});
+
 app.post('/api/drivers/:driverId/email', requireApiRole('dispatcher'), async (req, res) => {
   const driverId = normalizeDriverId(req.params.driverId);
   if (!isNonEmptyString(driverId, MAX_DRIVER_ID_LENGTH)) {
