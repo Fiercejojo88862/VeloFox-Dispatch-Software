@@ -146,6 +146,16 @@
 
     .hero-lux .lead { margin: 0; max-width: 52ch; font-size: 17px; color: #d3cdc1; }
 
+    .hero-lux__vehicle {
+      display: block;
+      width: min(440px, 62vw);
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid rgba(244, 241, 234, 0.18);
+      box-shadow: 0 32px 64px rgba(0, 0, 0, 0.55);
+      margin: 34px 0 0 auto;
+    }
+
     .hero-lux__actions { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 32px; }
 
     .hero-lux__facts {
@@ -383,6 +393,16 @@
 
     .system-info__head p { margin: 0; max-width: 62ch; font-size: 14.5px; color: var(--muted); }
 
+    .system-info__visual {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+      object-position: center;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      margin-bottom: 28px;
+    }
+
     .system-info__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 
     .system-info__card {
@@ -551,6 +571,11 @@
         Airport transfers, executive travel, and special occasions handled by professional
         chauffeurs. Request your ride in under a minute and dispatch confirms every detail.
       </p>
+      <img
+        class="hero-lux__vehicle"
+        src="/assets/fleet/cadillac-escalade.webp"
+        alt="Black Cadillac Escalade luxury SUV at a premium garage entrance"
+        width="1200" height="800" loading="lazy" decoding="async">
       <div class="hero-lux__actions">
         <a class="btn btn-primary" href="/booking.html">
           Reserve a ride <span class="arrow" aria-hidden="true">→</span>
@@ -589,6 +614,11 @@
     </section>
 
     <section class="system-info" aria-labelledby="system-info-heading">
+      <img
+        class="system-info__visual"
+        src="/assets/fleet/mercedes-sprinter.webp"
+        alt="Black full-size Mercedes-Benz Sprinter high-roof passenger van"
+        width="1200" height="800" loading="lazy" decoding="async">
       <div class="system-info__head">
         <span class="eyebrow">The dispatch system</span>
         <h2 id="system-info-heading">Every ride, end to end</h2>
