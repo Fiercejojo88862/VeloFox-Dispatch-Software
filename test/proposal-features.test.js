@@ -210,9 +210,11 @@ test('driver portal shows a day-grouped calendar and dispatcher shows a compact 
 
   const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
   const mainStart = dash.indexOf('<main>');
+  const statsStart = dash.indexOf('id="stats"', mainStart);
   const calendarStart = dash.indexOf('class="panel calendar-panel"', mainStart);
+  assert.ok(statsStart > mainStart);
   assert.ok(calendarStart > mainStart);
-  assert.ok(calendarStart < dash.indexOf('id="stats"', mainStart));
+  assert.ok(statsStart < calendarStart);
   assert.match(dash, /<div class="calendar-weekdays" aria-hidden="true">/);
   assert.match(dash, /id="calendar" class="calendar-month"/);
   assert.match(dash, /id="calendar-prev"/);
