@@ -351,3 +351,22 @@ test('dispatcher roster shows fleet status and supports drag-to-assign', () => {
   assert.match(dash, /wireAssignmentDrop\(event, booking\.id\)/);
   assert.match(dash, /if \(!payload \|\| !payload\.driverId\) return;/);
 });
+
+test('dispatcher has a new-booking modal and one-click client and chauffeur comms', () => {
+  const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(dash, /id="new-booking-btn" class="btn btn-primary btn-sm" type="button">\+ New Booking/);
+  assert.match(dash, /id="booking-modal" class="modal-overlay" hidden/);
+  assert.match(dash, /id="new-booking-form" class="modal" novalidate/);
+  assert.match(dash, /name="flightNumber"/);
+  assert.match(dash, /await request\('\/api\/bookings', \{ method: 'POST'/);
+  assert.match(dash, /function makeCommLink\(phone, label, kind/);
+  assert.match(dash, /makeCommLink\(booking\.clientPhone, 'Call', 'tel'\)/);
+  assert.match(dash, /makeCommLink\(booking\.clientPhone, 'Text', 'sms'/);
+  assert.match(dash, /makeCommLink\(rosterDriver\.phone, 'Call', 'tel'\)/);
+  assert.match(dash, /sendEnRouteText\(booking, 'en_route', enRoute\)/);
+
+  const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
+  assert.match(server, /app\.post\('\/api\/bookings\/:id\/notify', requireApiRole\('dispatcher'\)/);
+  assert.match(server, /async function sendSMS\(to, text\)/);
+  assert.match(server, /Your chauffeur is en route/);
+});

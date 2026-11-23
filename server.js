@@ -427,6 +427,34 @@ async function sendDriverSMS(booking) {
   }
 }
 
+async function sendSMS(to, text) {
+  const apiKey = process.env.UM_API_KEY;
+  if (!apiKey) return { sent: false, reason: 'not configured' };
+  const digits = String(to || '').replace(/\D/g, '');
+  if (!digits) return { sent: false, reason: 'no recipient' };
+  const recipient = digits.length === 10 ? `+1${digits}`
+    : digits.length === 11 && digits.startsWith('1') ? `+${digits}`
+      : `+${digits}`;
+  try {
+    const response = await fetch('https://api.unlimitedmessaging.app/message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ recipient, text }),
+    });
+    if (!response.ok) {
+      console.error('[sms] client notification rejected:', response.status);
+      return { sent: false, reason: `status ${response.status}` };
+    }
+    return { sent: true };
+  } catch (error) {
+    console.error('[sms] client notification failed:', error.message);
+    return { sent: false, reason: error.message };
+  }
+}
+
 async function deliverLoginCode(email, code) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM;
@@ -1744,6 +1772,20 @@ app.get('/api/fleet/roster', requireApiRole('dispatcher'), async (req, res) => {
     drivers: rosterDrivers,
     vehicles: [...vehicles.values()].sort((a, b) => a.name.localeCompare(b.name)),
   });
+});
+
+app.post('/api/bookings/:id/notify', requireApiRole('dispatcher'), async (req, res) => {
+  const booking = await repo.getBooking(req.params.id);
+  if (!booking) return res.status(404).json({ error: 'Ride not found.' });
+  const kind = req.body && req.body.kind === 'pob' ? 'pob' : 'en_route';
+  if (!booking.clientPhone) return res.status(400).json({ error: 'This ride has no client phone number.' });
+  const ride = String(booking.id).slice(0, 8);
+  const message = kind === 'pob'
+    ? `VeloFox: Your chauffeur has picked you up (ride ${ride}). Have a great trip!`
+    : `VeloFox: Your chauffeur is en route to ${booking.pickupLocation} (ride ${ride}).`;
+  const result = await sendSMS(booking.clientPhone, message);
+  await audit(req, 'booking.notify', booking.id, { kind, sent: result.sent });
+  res.json({ kind, sent: result.sent, reason: result.reason || null });
 });
 
 app.post('/api/drivers/:driverId/email', requireApiRole('dispatcher'), async (req, res) => {

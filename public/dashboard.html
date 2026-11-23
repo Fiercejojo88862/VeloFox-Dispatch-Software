@@ -95,6 +95,39 @@
     .roster-meta { font-size: 10px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .drop-target { outline: 1px dashed var(--accent); outline-offset: -1px; }
 
+    /* ---------- quick booking modal & comms ---------- */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 60; padding: 20px;
+      background: rgba(0, 0, 0, 0.72); display: grid; place-items: center;
+    }
+    .modal-overlay[hidden] { display: none; }
+    .modal {
+      width: min(640px, 100%); max-height: 88vh; overflow: auto;
+      background: var(--panel); border: 1px solid var(--line-strong);
+      border-radius: var(--radius); box-shadow: var(--shadow); padding: 22px;
+    }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .modal-head h2 { margin: 0; }
+    .modal-grid {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px;
+      margin: 18px 0 12px;
+    }
+    .modal-grid label {
+      display: grid; gap: 5px; min-width: 0; color: var(--muted);
+      font-size: 9px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
+    }
+    .modal-grid .wide { grid-column: 1 / -1; }
+    .modal-grid textarea { resize: vertical; min-height: 60px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+    .comms { display: inline-flex; gap: 8px; margin-left: 8px; }
+    .comm-link {
+      color: var(--accent-bright); font-size: 9px; font-weight: 600;
+      letter-spacing: 0.1em; text-transform: uppercase; text-decoration: none;
+      border-bottom: 1px solid rgba(197, 160, 89, 0.4);
+    }
+    .comm-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
+    .notify-btn { padding: 4px 8px; font-size: 9px; }
+
     :root {
       color-scheme: dark;
       --bg: #0b0b0b;
@@ -834,7 +867,10 @@
 
     select.status-select,
     .assign input,
-    .assign select {
+    .assign select,
+    .modal-grid input,
+    .modal-grid select,
+    .modal-grid textarea {
       width: 100%;
       font: inherit;
       font-size: 13px;
@@ -1013,6 +1049,7 @@
     <div class="topbar-actions">
       <a class="nav-link" href="/">Home</a>
       <a class="nav-link" href="/financial.html">Financial</a>
+      <button id="new-booking-btn" class="btn btn-primary btn-sm" type="button">+ New Booking</button>
       <span id="last-updated" class="muted small">Loading…</span>
       <button id="tour-replay" class="btn btn-sm" type="button" disabled>Tour</button>
       <button id="customize-dashboard" class="btn btn-sm" type="button" aria-pressed="false" disabled>Customize</button>
@@ -1131,6 +1168,41 @@
       </div>
     </section>
   </main>
+
+  <div id="booking-modal" class="modal-overlay" hidden>
+    <form id="new-booking-form" class="modal" novalidate>
+      <div class="modal-head">
+        <h2>New booking</h2>
+        <button id="booking-modal-close" class="btn btn-ghost btn-sm" type="button" aria-label="Close">✕</button>
+      </div>
+      <p class="muted small">Log a phone-in reservation without leaving the dispatch board.</p>
+      <div class="modal-grid">
+        <label>Client name <input name="clientName" type="text" maxlength="120" required autocomplete="name"></label>
+        <label>Client email <input name="clientEmail" type="email" maxlength="254" required autocomplete="email"></label>
+        <label>Client phone <input name="clientPhone" type="tel" maxlength="30" autocomplete="tel"></label>
+        <label>Pickup time <input name="pickupDateTime" type="datetime-local" required></label>
+        <label class="wide">Pickup location <input name="pickupLocation" type="text" maxlength="200" required></label>
+        <label class="wide">Drop-off location <input name="dropoffLocation" type="text" maxlength="200" required></label>
+        <label>Vehicle class
+          <select name="vehicleType">
+            <option value="sedan">Sedan</option>
+            <option value="suv">SUV</option>
+            <option value="sprinter">Sprinter</option>
+            <option value="limousine">Limousine</option>
+          </select>
+        </label>
+        <label>Passengers <input name="passengerCount" type="number" min="1" max="16" value="1" required></label>
+        <label>Flight number <input name="flightNumber" type="text" maxlength="12" placeholder="e.g. UA123"></label>
+        <label>Preferred driver <input name="preferredDriverId" type="text" maxlength="50" list="drivers" placeholder="VF-1001"></label>
+        <label class="wide">Special requests <textarea name="specialRequests" maxlength="900" rows="2"></textarea></label>
+      </div>
+      <p id="new-booking-error" class="muted small" role="alert"></p>
+      <div class="modal-actions">
+        <button class="btn" type="button" data-close-modal>Cancel</button>
+        <button class="btn btn-primary" type="submit">Create booking</button>
+      </div>
+    </form>
+  </div>
 
   <div id="toasts" class="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
 
@@ -1265,6 +1337,10 @@
     const calendarMonthLabel = document.getElementById('calendar-month-label');
     const rosterEl = document.getElementById('roster');
     const rosterSummaryEl = document.getElementById('roster-summary');
+    const newBookingBtn = document.getElementById('new-booking-btn');
+    const bookingModal = document.getElementById('booking-modal');
+    const newBookingForm = document.getElementById('new-booking-form');
+    const newBookingError = document.getElementById('new-booking-error');
 
     /** @type {Array<object>} */
     let bookings = [];
@@ -1278,6 +1354,8 @@
     let activeTourStep = 0;
     const calendarDate = new Date();
     let calendarView = 'month';
+    const rosterDriversById = new Map();
+    let lastRosterSignature = '';
 
     const dateFormatter = new Intl.DateTimeFormat(undefined, {
       dateStyle: 'medium',
@@ -1334,6 +1412,13 @@
         const vehicles = Array.isArray(data.vehicles) ? data.vehicles : [];
         const onTrip = drivers.filter((driver) => driver.status === 'on_trip').length;
         rosterSummaryEl.textContent = `${drivers.length} chauffeurs · ${onTrip} on trip · ${vehicles.length} vehicles`;
+        rosterDriversById.clear();
+        drivers.forEach((driver) => rosterDriversById.set(driver.id, driver));
+        const signature = drivers.map((driver) => `${driver.id}:${driver.phone}`).join('|');
+        if (signature !== lastRosterSignature) {
+          lastRosterSignature = signature;
+          if (hasLoadedOnce) render();
+        }
         rosterEl.replaceChildren(...drivers.map((driver) => {
           const card = document.createElement('div');
           card.className = 'roster-card';
@@ -1380,6 +1465,36 @@
         }));
       } catch (error) {
         rosterSummaryEl.textContent = `Roster unavailable — ${error.message}`;
+      }
+    }
+
+    function makeCommLink(phone, label, kind, message = '') {
+      const link = document.createElement('a');
+      link.className = 'comm-link';
+      link.href = kind === 'tel'
+        ? `tel:${encodeURIComponent(phone)}`
+        : `sms:${encodeURIComponent(phone)}${message ? `?body=${encodeURIComponent(message)}` : ''}`;
+      link.textContent = label;
+      link.title = `${label} ${phone}`;
+      return link;
+    }
+
+    async function sendEnRouteText(booking, kind, button) {
+      button.disabled = true;
+      try {
+        const result = await request(`${API_URL}/${encodeURIComponent(booking.id)}/notify`, {
+          method: 'POST',
+          body: JSON.stringify({ kind }),
+        });
+        if (result.sent) {
+          showToast(`En-route text sent to ${booking.clientName || 'the client'}.`, 'success');
+        } else {
+          showToast(`Text not sent (${result.reason || 'unavailable'}). Use Text to send from your phone.`, 'error');
+        }
+      } catch (error) {
+        showToast(error.message, 'error', error.details);
+      } finally {
+        button.disabled = false;
       }
     }
 
@@ -2393,6 +2508,22 @@
         booking.clientName || '',
         booking.clientPhone || booking.clientEmail || '',
       ].filter(Boolean).join(' · ');
+      if (booking.clientPhone) {
+        const comms = document.createElement('span');
+        comms.className = 'comms';
+        comms.append(
+          makeCommLink(booking.clientPhone, 'Call', 'tel'),
+          makeCommLink(booking.clientPhone, 'Text', 'sms', 'VeloFox: your chauffeur is on the way.')
+        );
+        const enRoute = document.createElement('button');
+        enRoute.type = 'button';
+        enRoute.className = 'btn btn-ghost btn-sm notify-btn';
+        enRoute.textContent = 'En route text';
+        enRoute.title = `Text ${booking.clientName || 'the client'} that the chauffeur is en route`;
+        enRoute.addEventListener('click', () => sendEnRouteText(booking, 'en_route', enRoute));
+        comms.append(enRoute);
+        createdEl.append(comms);
+      }
 
       const rideCell = makeCell('Ride', idEl, createdEl);
 
@@ -2440,6 +2571,16 @@
       } else {
         assigned.className = 'unassigned';
         assigned.textContent = 'Unassigned';
+      }
+      const rosterDriver = booking.driverId ? rosterDriversById.get(booking.driverId) : null;
+      if (rosterDriver?.phone) {
+        const driverComms = document.createElement('span');
+        driverComms.className = 'comms';
+        driverComms.append(
+          makeCommLink(rosterDriver.phone, 'Call', 'tel'),
+          makeCommLink(rosterDriver.phone, 'Text', 'sms', `VeloFox dispatch: ride ${booking.id.slice(0, 8)}.`)
+        );
+        assigned.append(driverComms);
       }
 
       const actions = document.createElement('div');
@@ -2724,6 +2865,65 @@
     });
     calendarMonthBtn?.addEventListener('click', () => setCalendarView('month'));
     calendarWeekBtn?.addEventListener('click', () => setCalendarView('week'));
+
+    function openBookingModal() {
+      bookingModal.hidden = false;
+      newBookingForm.reset();
+      newBookingError.textContent = '';
+      const next = new Date(Date.now() + 60 * 60 * 1000);
+      newBookingForm.elements.pickupDateTime.value = new Date(
+        next.getTime() - next.getTimezoneOffset() * 60000
+      ).toISOString().slice(0, 16);
+      newBookingForm.elements.pickupDateTime.min = new Date(
+        Date.now() - new Date().getTimezoneOffset() * 60000
+      ).toISOString().slice(0, 16);
+      newBookingForm.elements.clientName.focus();
+    }
+    function closeBookingModal() {
+      bookingModal.hidden = true;
+    }
+    newBookingBtn?.addEventListener('click', openBookingModal);
+    document.getElementById('booking-modal-close')?.addEventListener('click', closeBookingModal);
+    bookingModal?.addEventListener('click', (event) => {
+      if (event.target === bookingModal || event.target.closest('[data-close-modal]')) closeBookingModal();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && bookingModal && !bookingModal.hidden) closeBookingModal();
+    });
+    newBookingForm?.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(newBookingForm).entries());
+      const flight = String(values.flightNumber || '').trim();
+      const special = [
+        String(values.specialRequests || '').trim(),
+        flight ? `Flight: ${flight}` : '',
+      ].filter(Boolean).join(' · ');
+      const payload = {
+        clientName: String(values.clientName || '').trim(),
+        clientEmail: String(values.clientEmail || '').trim(),
+        clientPhone: String(values.clientPhone || '').trim(),
+        pickupLocation: String(values.pickupLocation || '').trim(),
+        dropoffLocation: String(values.dropoffLocation || '').trim(),
+        pickupDateTime: values.pickupDateTime,
+        vehicleType: values.vehicleType,
+        passengerCount: Number(values.passengerCount),
+        preferredDriverId: String(values.preferredDriverId || '').trim() || null,
+        specialRequests: special || null,
+      };
+      const submitBtn = newBookingForm.querySelector('[type="submit"]');
+      submitBtn.disabled = true;
+      newBookingError.textContent = '';
+      try {
+        await request('/api/bookings', { method: 'POST', body: JSON.stringify(payload) });
+        closeBookingModal();
+        showToast('Booking created.', 'success');
+        await loadBookings();
+      } catch (error) {
+        newBookingError.textContent = [...(error.details || []), error.message].filter(Boolean).join(' · ');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
 
     renderStats();
     void bootstrapDispatcherDashboard();
