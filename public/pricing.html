@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0b0b">
+  <title>VeloFox Dispatch — Pricing</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/theme.css">
+  <script src="/js/theme.js"></script>
+  <style>
+    :root { color-scheme: dark; --bg: #0b0b0b; --bg-soft: #0f0f0f; --panel: #141414; --panel-hover: #171717; --line: #232323; --line-strong: #33302a; --text: #f4f1ea; --muted: #9b968c; --accent: #c5a059; --accent-bright: #d9bd83; --accent-ink: #0b0b0b; --radius: 4px; --shadow: 0 24px 60px rgba(0, 0, 0, 0.55); }
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body { margin: 0; background: var(--bg); color: var(--text); font-family: "Helvetica Neue", Helvetica, Arial, ui-sans-serif, system-ui, sans-serif; font-size: 15px; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px clamp(16px, 3.4vw, 44px); border-bottom: 1px solid var(--line); background: rgba(11, 11, 11, 0.9); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 20; }
+    .brand { display: flex; align-items: center; gap: 16px; color: inherit; text-decoration: none; }
+    .brand:hover .mark { border-color: var(--accent-bright); color: var(--accent-bright); }
+    .mark { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 2px; background: transparent; border: 1px solid var(--accent); color: var(--accent); font-weight: 600; font-size: 15px; letter-spacing: 0.06em; }
+    .brand-name { font-size: 15px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; }
+    .brand-sub { margin-top: 2px; font-size: 10.5px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+    .topbar-actions { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; justify-content: flex-end; }
+    .nav-link { font-size: 10.5px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); text-decoration: none; padding-bottom: 2px; border-bottom: 1px solid transparent; transition: color 0.16s ease, border-color 0.16s ease; }
+    .nav-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
+    main { max-width: 1100px; margin: 0 auto; padding: clamp(20px, 3vw, 36px) clamp(16px, 3.4vw, 44px) 80px; }
+    .eyebrow { display: block; margin-bottom: 6px; font-size: 10px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+    .section-head { max-width: 62ch; margin-bottom: 32px; }
+    .section-head h2 { margin: 0 0 10px; font-size: clamp(26px, 4vw, 38px); font-weight: 500; line-height: 1.15; letter-spacing: -0.02em; }
+    .section-head p { margin: 0; font-size: 15px; color: var(--muted); }
+    .pricing-section { margin-bottom: 24px; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    .pricing-card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+    .pricing-card--featured { border-color: var(--accent); }
+    .pricing-card__num { font-size: 10px; font-weight: 600; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); }
+    .pricing-card__name { margin: 8px 0 6px; font-size: 15px; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
+    .pricing-card__price { margin: 0 0 14px; font-size: 15px; font-weight: 600; color: var(--text); }
+    .pricing-card__features { margin: 0 0 14px; padding: 0 0 0 16px; color: var(--muted); font-size: 12px; }
+    .pricing-card__features li { margin: 4px 0; }
+    .pricing-card__cta { display: inline-block; padding: 10px 14px; border: 1px solid var(--line-strong); border-radius: 6px; color: var(--text); font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; text-decoration: none; }
+    .pricing-card__cta:hover { border-color: var(--accent); color: var(--accent); }
+    .pricing-ctas { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+    .btn { appearance: none; border: 1px solid var(--line-strong); background: transparent; color: var(--text); font: inherit; font-weight: 600; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; padding: 10px 18px; border-radius: 2px; cursor: pointer; text-decoration: none; }
+    .btn:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+    .site-footer { margin-top: 40px; padding-top: 22px; border-top: 1px solid var(--line); display: flex; gap: 22px; flex-wrap: wrap; font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+    .site-footer a { color: var(--muted); text-decoration: none; border-bottom: 1px solid transparent; }
+    .site-footer a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+    @media (max-width: 1080px) { .pricing-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pricing-card--featured { grid-column: 1 / -1; } }
+    @media (max-width: 720px) { .pricing-grid { grid-template-columns: minmax(0, 1fr); } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/" title="VeloFox Dispatch home">
+      <div class="mark" aria-hidden="true"><img class="topbar-logo" src="/images/VeloFox.png" alt="VeloFox"></div>
+      <div>
+        <div class="brand-name">VeloFox Dispatch</div>
+        <div class="brand-sub">Pricing</div>
+      </div>
+    </a>
+    <div class="topbar-actions">
+      <a class="nav-link" href="/">Home</a>
+      <a class="nav-link" href="/dashboard.html">Dispatcher</a>
+      <a class="nav-link" href="/booking.html">Reserve</a>
+    </div>
+  </header>
+  <main>
+    <div class="section-head">
+      <span class="eyebrow">Pricing tiers</span>
+      <h2>Simple tiers — scale with your fleet</h2>
+      <p>Three plans for every size — from pay-as-you-go rides to enterprise fleet integrations.</p>
+    </div>
+  <section class="pricing-section" aria-labelledby="pricing-heading">
+    <div class="section-head reveal">
+      <span class="eyebrow">Pricing tiers</span>
+      <h2 id="pricing-heading">Simple tiers — scale with your fleet</h2>
+      <p class="pricing-sub">Three plans for every size — from pay-as-you-go rides to enterprise fleet integrations.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="pricing-card">
+        <span class="pricing-card__num">01</span>
+        <h3 class="pricing-card__name">Dispatcher</h3>
+        <p class="pricing-card__price">Pay per completed ride</p>
+        <ul class="pricing-card__features">
+          <li>Live dispatch board</li>
+          <li>Bookings from web &amp; API</li>
+          <li>Basic reporting</li>
+        </ul>
+        <a class="pricing-card__cta" href="/booking.html">Book your first ride</a>
+      </div>
+      <div class="pricing-card pricing-card--featured">
+        <span class="pricing-card__num">02</span>
+        <h3 class="pricing-card__name">Pro</h3>
+        <p class="pricing-card__price">Monthly — pay-as-you-go free trial available</p>
+        <ul class="pricing-card__features">
+          <li>Unlimited bookings</li>
+          <li>Priority dispatch &amp; driver sign-on</li>
+          <li>Phone &amp; email support</li>
+          <li>Advanced fleet filters</li>
+        </ul>
+        <a class="pricing-card__cta" href="/login.html">Start your trial</a>
+      </div>
+      <div class="pricing-card">
+        <span class="pricing-card__num">03</span>
+        <h3 class="pricing-card__name">Enterprise</h3>
+        <p class="pricing-card__price">Custom — fleet integrations &amp; SLAs</p>
+        <ul class="pricing-card__features">
+          <li>Dedicated account manager</li>
+          <li>Integrations (SSO, calendars, APIs)</li>
+          <li>SLAs, training &amp; data export</li>
+        </ul>
+        <a class="pricing-card__cta" href="/legal.html">Talk to sales</a>
+      </div>
+    </div>
+  </section>
+    <div class="pricing-ctas">
+      <a class="btn" href="/booking.html">Book your first ride</a>
+      <a class="btn" href="/login.html">Start your trial</a>
+      <a class="btn" href="/legal.html">Talk to sales</a>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <a href="/">Home</a><span>·</span>
+    <a href="/booking.html">Reserve</a><span>·</span>
+    <a href="/dashboard.html">Dispatcher</a><span>·</span>
+    <a href="/driver.html">Chauffeur portal</a><span>·</span>
+    <a href="/legal.html">Terms &amp; policies</a><span>·</span>
+    <span>© 2026 VeloFox Dispatch</span>
+  </footer>
+</body>
+</html>
