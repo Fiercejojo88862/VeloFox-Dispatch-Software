@@ -431,6 +431,61 @@
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
     }
+
+    /* ---------- driver specs & customization ---------- */
+
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 20px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .card-head { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+    .card-kicker { font-size: 10px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+    .card-title { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #d7d3ca; }
+    .specs { display: grid; gap: 7px; }
+    .spec-row { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+    .spec-label { font-size: 10.5px; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; color: var(--quiet); }
+    .spec-value { font-size: 13px; font-weight: 650; color: #d7d3ca; text-align: right; }
+    .settings-list { display: flex; flex-direction: column; gap: 8px; }
+    .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 12px; background: var(--black); border: 1px solid var(--line); border-radius: 12px; }
+    .setting-label { display: grid; gap: 2px; font-size: 13px; font-weight: 600; color: #d7d3ca; }
+    .setting-note { font-size: 9.5px; color: var(--quiet); letter-spacing: 0.04em; }
+    .setting-switch {
+      position: relative;
+      flex: none;
+      width: 38px;
+      height: 20px;
+      border: none;
+      border-radius: 999px;
+      background: var(--line);
+      transition: background 0.16s ease;
+      cursor: pointer;
+    }
+    .setting-switch::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--card);
+      transition: transform 0.16s ease;
+      box-shadow: 0 0 0 1px rgba(197, 160, 89, 0.25);
+    }
+    .setting-switch:checked { background: var(--gold); }
+    .setting-switch:checked::after { transform: translateX(18px); }
+    .manifest.is-compact .trip-card { padding: 14px 16px; }
+    @media (max-width: 720px) {
+      .cards-grid { grid-template-columns: 1fr; }
+    }
   </style>
 </head>
 <body>
@@ -478,6 +533,23 @@
             <span class="connection-label">Live location</span>
             <span class="connection-value"><span id="gps-dot" class="dot"></span><span id="gps-state">Starting</span></span>
           </div>
+        </div>
+      </div>
+
+      <div class="cards-grid">
+        <div class="card" aria-labelledby="specs-heading">
+          <div class="card-head">
+            <span class="card-kicker">Profile &amp; specs</span>
+            <h2 class="card-title" id="specs-heading">Driver specs</h2>
+          </div>
+          <div id="driver-specs" class="specs"></div>
+        </div>
+        <div class="card" aria-labelledby="settings-heading">
+          <div class="card-head">
+            <span class="card-kicker">Customize</span>
+            <h2 class="card-title" id="settings-heading">Portal settings</h2>
+          </div>
+          <div id="portal-settings" class="settings-list"></div>
         </div>
       </div>
 
@@ -761,6 +833,7 @@
         setConnection('api', 'online', 'Connected');
         lastRefresh.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
         renderManifest();
+        renderSpecs();
         if (latestPosition) void streamTelemetry(latestPosition, true);
       } catch (error) {
         setConnection('api', 'error', 'Offline');
@@ -830,6 +903,118 @@
       );
     }
 
+    /* ---------------------- driver specs & customization ---------------------- */
+
+    const SETTINGS_KEY = 'velofoxDriverSettings';
+    const VEHICLE_CLASS_LABELS = { sedan: 'Sedan', suv: 'SUV', sprinter: 'Sprinter', limousine: 'Limousine' };
+    const VEHICLE_CAPACITY = { sedan: 3, suv: 6, sprinter: 15, limousine: 16 };
+
+    function loadSettings() {
+      try {
+        return Object.assign({ sound: true, compact: false, autoRefresh: true }, JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'));
+      } catch {
+        return { sound: true, compact: false, autoRefresh: true };
+      }
+    }
+
+    let settingsState = loadSettings();
+
+    function startManifestPoll() {
+      if (manifestTimer) window.clearInterval(manifestTimer);
+      if (!settingsState.autoRefresh) {
+        manifestTimer = null;
+        return;
+      }
+      manifestTimer = window.setInterval(() => loadManifest({ quiet: true }), MANIFEST_REFRESH_MS);
+    }
+
+    function applySettings() {
+      window.VeloFoxAudio?.setMuted(!settingsState.sound);
+      document.getElementById('manifest')?.classList.toggle('is-compact', settingsState.compact);
+      startManifestPoll();
+    }
+
+    function saveSettings(patch) {
+      settingsState = Object.assign({}, settingsState, patch);
+      try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settingsState)); } catch { /* storage may be blocked */ }
+      applySettings();
+      renderSettings();
+    }
+
+    function renderSettings() {
+      const container = document.getElementById('portal-settings');
+      if (!container) return;
+      const fragment = document.createDocumentFragment();
+
+      const addSetting = (id, label, note, checked, onChange) => {
+        const row = document.createElement('div');
+        row.className = 'setting-row';
+
+        const labelEl = document.createElement('span');
+        labelEl.className = 'setting-label';
+        labelEl.textContent = label;
+        if (note) {
+          const noteEl = document.createElement('small');
+          noteEl.className = 'setting-note';
+          noteEl.textContent = note;
+          labelEl.append(noteEl);
+        }
+
+        const switchEl = document.createElement('input');
+        switchEl.type = 'checkbox';
+        switchEl.className = 'setting-switch';
+        switchEl.checked = Boolean(checked);
+        switchEl.addEventListener('change', () => {
+          saveSettings({ [id]: switchEl.checked });
+          onChange?.(switchEl.checked);
+        });
+
+        row.append(labelEl, switchEl);
+        fragment.append(row);
+      };
+
+      addSetting('sound', 'Sound & notifications', 'Play tones when trips update.', settingsState.sound);
+      addSetting('compact', 'Compact trip cards', 'Tighter layout for quicker scanning.', settingsState.compact);
+      addSetting('autoRefresh', 'Live location updates', 'Refresh the manifest every 15 seconds.', settingsState.autoRefresh);
+
+      container.replaceChildren(fragment);
+    }
+
+    function renderSpecs() {
+      const container = document.getElementById('driver-specs');
+      if (!container) return;
+      const specTrip = trips.find((trip) => ACTIVE_TELEMETRY_STATUSES.has(trip.status));
+
+      const fragment = document.createDocumentFragment();
+      const addSpec = (label, value) => {
+        const row = document.createElement('div');
+        row.className = 'spec-row';
+
+        const labelEl = document.createElement('span');
+        labelEl.className = 'spec-label';
+        labelEl.textContent = label;
+
+        const valueEl = document.createElement('span');
+        valueEl.className = 'spec-value';
+        valueEl.textContent = value;
+
+        row.append(labelEl, valueEl);
+        fragment.append(row);
+      };
+
+      addSpec('Driver ID', activeDriverId || '—');
+      addSpec('Name', activeDriverName || '—');
+      const vehicleType = specTrip?.vehicleType;
+      addSpec('Vehicle class', vehicleType ? (VEHICLE_CLASS_LABELS[vehicleType] || vehicleType) : 'No active vehicle');
+      addSpec('Passenger capacity', vehicleType ? `${VEHICLE_CAPACITY[vehicleType] || '—'} passengers` : '—');
+      addSpec('Assigned vehicle', specTrip?.assignedVehicle || 'None assigned yet');
+
+      container.replaceChildren(fragment);
+    }
+
+    renderSettings();
+    applySettings();
+
     async function login(driverId) {
       activeDriverId = driverId.trim().toUpperCase();
       lastDispatchPingAt = null;
@@ -842,8 +1027,7 @@
         portalView.classList.add('is-active');
         logoutButton.hidden = false;
         startLocationSharing();
-        window.clearInterval(manifestTimer);
-        manifestTimer = window.setInterval(() => loadManifest({ quiet: true }), MANIFEST_REFRESH_MS);
+        startManifestPoll();
       } catch (error) {
         activeDriverId = '';
         loginError.textContent = error.message;
