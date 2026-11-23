@@ -8,6 +8,15 @@
   <link rel="stylesheet" href="/theme.css">
   <script src="/js/theme.js"></script>
   <style>
+    .calendar { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-top: 16px; }
+    .calendar-day { background: #141414; border: 1px solid #232323; border-radius: 12px; padding: 12px; display: grid; gap: 6px; min-width: 0; }
+    .calendar-day.is-today { border-color: #c5a059; }
+    .calendar-day h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: #9b968c; }
+    .calendar-chip { padding: 6px 9px; border-radius: 8px; font-size: 11px; background: rgba(255, 255, 255, 0.04); border: 1px solid #232323; display: grid; gap: 3px; line-height: 1.25; }
+    .chip-time { font-size: 10px; font-weight: 700; color: #c5a059; }
+    .chip-route { color: #d7d3ca; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip-status { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: #9b968c; }
+
     :root {
       color-scheme: dark;
       --ink: #f3efe7;
@@ -657,6 +666,8 @@
         <span id="last-refresh">Not yet updated</span>
       </div>
       <div id="manifest" class="manifest" aria-live="polite" aria-busy="true"></div>
+      <div id="calendar" class="calendar" aria-live="polite"></div>
+      <p id="calendar-empty" class="calendar-empty" hidden>No jobs scheduled in the next few days.</p>
     </section>
   </main>
 
@@ -930,11 +941,71 @@
         copy.textContent = 'There are no active trips on your manifest. This page will refresh automatically when dispatch assigns one.';
         empty.append(icon, heading, copy);
         manifestEl.append(empty);
+        renderCalendar();
         return;
       }
 
       trips.forEach((trip) => manifestEl.append(tripCard(trip)));
+      renderCalendar();
     }
+
+    function renderCalendar() {
+      const container = document.getElementById('calendar');
+      const emptyEl = document.getElementById('calendar-empty');
+      if (!container) return;
+      const now = new Date();
+      const startOfDay = (value) => new Date(value.getFullYear(), value.getMonth(), value.getDate());
+      const fmtDay = (date) => date.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
+      const fmtTime = (iso) => {
+        const d = new Date(iso);
+        const t = new Date();
+        t.setHours(d.getHours(), d.getMinutes(), 0, 0);
+        return t.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      };
+      const byDay = new Map();
+      [...trips].sort((a, b) => Date.parse(a.pickupDateTime) - Date.parse(b.pickupDateTime)).forEach((trip) => {
+        const key = startOfDay(new Date(trip.pickupDateTime)).getTime();
+        if (!byDay.has(key)) byDay.set(key, { day: startOfDay(new Date(trip.pickupDateTime)), trips: [] });
+        byDay.get(key).trips.push(trip);
+      });
+      const days = [];
+      for (let i = 0; i <= 7; i += 1) {
+        const day = startOfDay(new Date(now.getTime() + i * 86_400_000));
+        const group = byDay.get(day.getTime());
+        if (group) days.push({ day, group });
+      }
+      if (!days.length) {
+        container.replaceChildren();
+        emptyEl.hidden = false;
+        return;
+      }
+      emptyEl.hidden = true;
+      container.replaceChildren(...days.map(({ day, group }) => {
+        const card = document.createElement('div');
+        card.className = `calendar-day${day.getTime() === startOfDay(now).getTime() ? ' is-today' : ''}`;
+        const head = document.createElement('h3');
+        head.textContent = fmtDay(day);
+        card.append(head);
+        group.trips.forEach((trip) => {
+          const chip = document.createElement('div');
+          chip.className = 'calendar-chip';
+          const time = document.createElement('span');
+          time.className = 'chip-time';
+          time.textContent = fmtTime(trip.pickupDateTime);
+          const route = document.createElement('span');
+          route.className = 'chip-route';
+          route.textContent = `${trip.pickupLocation || '—'} → ${trip.dropoffLocation || '—'}`;
+          const status = document.createElement('span');
+          status.className = 'chip-status';
+          status.textContent = String(trip.status || '').replace('_', ' ');
+          chip.append(time, route, status);
+          card.append(chip);
+        });
+        return card;
+      }));
+    }
+
+
 
     async function loadManifest({ quiet = false } = {}) {
       if (!activeDriverId) return;

@@ -157,6 +157,20 @@ test('dashboard assign form shows driver name and auto-matches their vehicle', (
   assert.match(page, /vehicleInput\.value = activeTrip\.assignedVehicle;/);
 });
 
+test('driver and dispatcher portals show a day-grouped calendar of jobs', () => {
+  const driver = fs.readFileSync(path.join(ROOT, 'public', 'driver.html'), 'utf8');
+  assert.match(driver, /id="calendar"/);
+  assert.match(driver, /id="calendar-empty"/);
+  assert.match(driver, /function renderCalendar\(\)/);
+  assert.match(driver, /const byDay = new Map\(\);/);
+  assert.match(driver, /renderCalendar\(\);/);
+  const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(dash, /id="calendar"/);
+  assert.match(dash, /function renderCalendar\(\)/);
+  assert.match(dash, /getDriver\(booking\.driverId\)\?\.name \|\| booking\.driverId/);
+  assert.match(dash, /renderCalendar\(\);/);
+});
+
 test('administrators have a driver dashboard backed by the database', () => {
   const page = fs.readFileSync(path.join(ROOT, 'public', 'drivers-admin.html'), 'utf8');
   assert.match(page, /href="\/theme\.css"/);

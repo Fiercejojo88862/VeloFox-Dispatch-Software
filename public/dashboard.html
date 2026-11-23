@@ -8,6 +8,16 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="/js/theme.js"></script>
   <style>
+    .calendar { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 18px; }
+    .calendar-day { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 6px; min-width: 0; }
+    .calendar-day.is-today { border-color: var(--gold); }
+    .calendar-day h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
+    .calendar-chip { padding: 6px 9px; border-radius: 8px; font-size: 11px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); display: grid; gap: 3px; line-height: 1.25; }
+    .chip-time { font-size: 10px; font-weight: 600; color: var(--gold); }
+    .chip-route { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chip-driver { color: var(--muted); font-size: 10px; }
+    .chip-status { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
     :root {
       color-scheme: dark;
       --bg: #0b0b0b;
@@ -911,6 +921,7 @@
           </thead>
           <tbody id="bookings-body"></tbody>
         </table>
+        <div id="calendar" class="calendar" aria-live="polite"></div>
       </div>
     </section>
   </main>
@@ -1088,6 +1099,58 @@
       return data;
     }
 
+    function renderCalendar() {
+      const container = document.getElementById('calendar');
+      if (!container) return;
+      const now = new Date();
+      const startOfDay = (value) => new Date(value.getFullYear(), value.getMonth(), value.getDate());
+      const fmtDay = (date) => date.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
+      const fmtTime = (iso) => {
+        const d = new Date(iso);
+        const t = new Date();
+        t.setHours(d.getHours(), d.getMinutes(), 0, 0);
+        return t.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      };
+      const byDay = new Map();
+      [...bookings].sort((a, b) => Date.parse(a.pickupDateTime) - Date.parse(b.pickupDateTime)).forEach((booking) => {
+        const key = startOfDay(new Date(booking.pickupDateTime)).getTime();
+        if (!byDay.has(key)) byDay.set(key, { day: startOfDay(new Date(booking.pickupDateTime)), bookings: [] });
+        byDay.get(key).bookings.push(booking);
+      });
+      const days = [];
+      for (let i = 0; i <= 14; i += 1) {
+        const day = startOfDay(new Date(now.getTime() + i * 86_400_000));
+        const group = byDay.get(day.getTime());
+        if (group) days.push({ day, group });
+      }
+      container.replaceChildren(...days.map(({ day, group }) => {
+        const card = document.createElement('div');
+        card.className = `calendar-day${day.getTime() === startOfDay(now).getTime() ? ' is-today' : ''}`;
+        const head = document.createElement('h3');
+        head.textContent = fmtDay(day);
+        card.append(head);
+        group.bookings.forEach((booking) => {
+          const chip = document.createElement('div');
+          chip.className = 'calendar-chip';
+          const time = document.createElement('span');
+          time.className = 'chip-time';
+          time.textContent = fmtTime(booking.pickupDateTime);
+          const route = document.createElement('span');
+          route.className = 'chip-route';
+          route.textContent = `${booking.pickupLocation || '—'} → ${booking.dropoffLocation || '—'}`;
+          const driver = document.createElement('span');
+          driver.className = 'chip-driver';
+          driver.textContent = booking.driverId ? (getDriver(booking.driverId)?.name || booking.driverId) : 'Unassigned';
+          const status = document.createElement('span');
+          status.className = 'chip-status';
+          status.textContent = booking.status.replace('_', ' ');
+          chip.append(time, route, driver, status);
+          card.append(chip);
+        });
+        return card;
+      }));
+    }
+
     async function loadBookings({ quiet = false } = {}) {
       if (isLoading) return;
       isLoading = true;
@@ -1098,6 +1161,7 @@
         bookings = Array.isArray(data) ? data : [];
         hasLoadedOnce = true;
         render();
+        renderCalendar();
         lastUpdatedEl.textContent = `Updated ${new Date().toLocaleTimeString()}`;
       } catch (error) {
         if (!quiet) {
