@@ -4,7 +4,12 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const { canTransitionStatus, normalizeDriverFields, validateBooking } = require('../server').testables;
+const {
+  canTransitionStatus,
+  canViewPageDirectory,
+  normalizeDriverFields,
+  validateBooking,
+} = require('../server').testables;
 
 const ROOT = path.join(__dirname, '..');
 
@@ -91,6 +96,33 @@ test('dispatcher dashboard shows on route, POB, dropped off and completed', () =
   assert.match(html, /const TERMINAL_STATUSES = new Set\(\['dropped_off', 'completed', 'cancelled'\]\)/);
 });
 
+test('ride summary buttons open the matching rides list', () => {
+  const html = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(html, /document\.createElement\('button'\)/);
+  assert.match(html, /data-tab="all"/);
+  assert.match(html, /setBookingsTab\('all'\)/);
+  assert.match(html, /applyFilter\(status\)/);
+  assert.match(html, /statsEl\.addEventListener\('click'/);
+  assert.match(html, /scrollIntoView\(\{ behavior: 'smooth', block: 'start' \}\)/);
+});
+
+test('page directory is limited to Joseph Shaker as a dispatcher administrator', () => {
+  assert.equal(canViewPageDirectory({
+    role: 'dispatcher', isAdmin: true, email: 'JosephShaker2020@aol.com',
+  }), true);
+  assert.equal(canViewPageDirectory({
+    role: 'dispatcher', isAdmin: false, email: 'JosephShaker2020@aol.com',
+  }), false);
+  assert.equal(canViewPageDirectory({
+    role: 'dispatcher', isAdmin: true, email: 'another-admin@example.com',
+  }), false);
+
+  const html = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(html, /id="pages-panel"[^>]*hidden/);
+  assert.match(html, /session\?\.user\?\.canViewPageDirectory/);
+  assert.match(html, /pagesPanel\.remove\(\)/);
+});
+
 test('schema and driver portal accept the dropped-off status', () => {
   const schema = fs.readFileSync(path.join(ROOT, 'schema.sql'), 'utf8');
   assert.match(schema, /'passenger_aboard', 'dropped_off', 'completed', 'cancelled'/);
@@ -168,7 +200,7 @@ test('dashboard assign form offers class-matched vehicles and shows the driver n
   assert.doesNotMatch(page, /const vehicleInput = document\.createElement/);
 });
 
-test('driver portal shows a day-grouped calendar and dispatcher shows an Apple-style month grid at the top', () => {
+test('driver portal shows a day-grouped calendar and dispatcher shows a compact month grid at the top', () => {
   const driver = fs.readFileSync(path.join(ROOT, 'public', 'driver.html'), 'utf8');
   assert.match(driver, /id="calendar"/);
   assert.match(driver, /id="calendar-empty"/);
@@ -187,13 +219,29 @@ test('driver portal shows a day-grouped calendar and dispatcher shows an Apple-s
   assert.match(dash, /id="calendar-today"/);
   assert.match(dash, /id="calendar-next"/);
   assert.match(dash, /function renderCalendar\(\)/);
-  assert.match(dash, /for \(let index = 0; index < 42; index \+= 1\)/);
+  assert.match(dash, /const cellCount = isWeek \? 7 : 42;/);
+  assert.match(dash, /for \(let index = 0; index < cellCount; index \+= 1\)/);
   assert.match(dash, /dayBookings\.slice\(0, 3\)/);
   assert.match(dash, /getDriverName\(booking\.driverId\)/);
   assert.match(dash, /row\.dataset\.bookingId = booking\.id;/);
   assert.match(dash, /tbody\.querySelector\(\`tr\[data-booking-id=/);
   assert.doesNotMatch(dash, /getDriver\(booking\.driverId\)/);
   assert.match(dash, /renderCalendar\(\);/);
+});
+
+test('dispatcher calendar offers compact month and week views', () => {
+  const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(dash, /id="calendar-view-month" class="btn btn-sm is-active" type="button" aria-pressed="true">Month/);
+  assert.match(dash, /id="calendar-view-week" class="btn btn-sm" type="button" aria-pressed="false">Week/);
+  assert.match(dash, /let calendarView = 'month';/);
+  assert.match(dash, /const gridStart = isWeek \? weekStart : /);
+  assert.match(dash, /container\.classList\.toggle\('is-week', isWeek\)/);
+  assert.match(dash, /calendarDate\.setDate\(calendarDate\.getDate\(\) \+ direction \* 7\)/);
+  assert.match(dash, /calendarDate\.setMonth\(calendarDate\.getMonth\(\) \+ direction, 1\)/);
+  assert.match(dash, /calendarMonthBtn\?\.addEventListener\('click', \(\) => setCalendarView\('month'\)\)/);
+  assert.match(dash, /calendarWeekBtn\?\.addEventListener\('click', \(\) => setCalendarView\('week'\)\)/);
+  assert.match(dash, /min-height: 82px/);
+  assert.doesNotMatch(dash, /min-height: 106px/);
 });
 
 test('administrators have a driver dashboard backed by the database', () => {

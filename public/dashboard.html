@@ -8,53 +8,62 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="/js/theme.js"></script>
   <style>
-    /* ---------- Apple-style month calendar ---------- */
+    /* ---------- Apple-style compact calendar ---------- */
     .calendar-panel { padding: 0; overflow: hidden; }
     .calendar-head {
-      align-items: center; margin: 0; padding: 14px 18px;
+      align-items: center; margin: 0; padding: 10px 14px; gap: 10px; flex-wrap: wrap;
       border-bottom: 1px solid var(--line); background: var(--bg-soft);
     }
     .calendar-head h2 { margin: 0; }
-    .calendar-nav { display: flex; align-items: center; gap: 6px; }
-    .calendar-nav .btn { min-width: 32px; padding: 5px 9px; }
+    .calendar-nav { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .calendar-nav .btn { min-width: 28px; padding: 4px 8px; }
+    .calendar-view-toggle { display: flex; }
+    .calendar-view-toggle .btn { border-radius: 0; }
+    .calendar-view-toggle .btn + .btn { border-left: 0; }
+    .calendar-view-toggle .btn:first-child { border-radius: 2px 0 0 2px; }
+    .calendar-view-toggle .btn:last-child { border-radius: 0 2px 2px 0; }
+    .calendar-view-toggle .btn.is-active,
+    .calendar-view-toggle .btn.is-active:hover {
+      background: var(--accent); border-color: var(--accent); color: var(--accent-ink);
+    }
     .calendar-weekdays {
       display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
       background: var(--bg-soft); border-bottom: 1px solid var(--line);
     }
     .calendar-weekdays span {
-      padding: 7px 10px; text-align: right; color: var(--muted);
-      font-size: 9px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 5px 8px; text-align: right; color: var(--muted);
+      font-size: 8px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
     }
     .calendar-month {
       display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
       gap: 1px; background: var(--line);
     }
     .calendar-day {
-      min-height: 106px; min-width: 0; padding: 7px;
-      background: var(--panel); display: flex; flex-direction: column; gap: 5px;
+      min-height: 82px; min-width: 0; padding: 5px 6px;
+      background: var(--panel); display: flex; flex-direction: column; gap: 3px;
     }
     .calendar-day.is-outside { background: var(--bg-soft); }
     .calendar-date {
-      display: grid; place-items: center; width: 24px; height: 24px; margin-left: auto;
-      border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--text);
+      display: grid; place-items: center; width: 20px; height: 20px; margin-left: auto;
+      border-radius: 999px; font-size: 10.5px; font-weight: 600; color: var(--text);
     }
     .calendar-day.is-outside .calendar-date { color: var(--muted); }
     .calendar-day.is-today .calendar-date { background: var(--accent); color: var(--accent-ink); }
-    .calendar-events { display: grid; gap: 4px; align-content: start; }
+    .calendar-events { display: grid; gap: 3px; align-content: start; }
     .calendar-event {
-      border-left: 3px solid var(--accent); border-radius: 3px; padding: 4px 6px;
+      border-left: 2px solid var(--accent); border-radius: 3px; padding: 3px 5px;
       background: rgba(255, 255, 255, 0.035); display: grid; gap: 1px;
       cursor: pointer; min-width: 0;
     }
     .calendar-event:hover { background: rgba(255, 255, 255, 0.07); }
-    .calendar-event time { font-size: 9px; font-weight: 700; color: var(--accent-bright); }
+    .calendar-event time { font-size: 8px; font-weight: 700; color: var(--accent-bright); }
     .calendar-event .event-route {
-      font-size: 10px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: 9px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .calendar-event .event-driver {
-      font-size: 9px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: 8px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    .calendar-more { font-size: 9px; color: var(--muted); padding-left: 4px; }
+    .calendar-more { font-size: 8px; color: var(--muted); padding-left: 3px; }
     tr.calendar-highlight { outline: 1px solid var(--accent); outline-offset: -1px; }
 
     :root {
@@ -241,14 +250,21 @@
     }
 
     .stat {
+      appearance: none;
+      width: 100%;
+      color: inherit;
+      font: inherit;
+      text-align: left;
       background: var(--panel);
       padding: 18px 20px;
+      border: 0;
       border-top: 2px solid transparent;
       cursor: pointer;
     }
 
     .stat[data-status] { border-top-color: rgba(197, 160, 89, 0.45); }
     .stat:hover { background: var(--panel-hover); }
+    .stat:focus-visible { position: relative; z-index: 1; outline: 2px solid var(--accent); outline-offset: -2px; }
 
     .stat-label {
       display: flex;
@@ -828,9 +844,9 @@
     }
 
     @media (max-width: 960px) {
-      .calendar-day { min-height: 82px; padding: 5px; }
+      .calendar-day { min-height: 70px; padding: 4px; }
       .calendar-event .event-route { display: none; }
-      .calendar-weekdays span { padding: 6px 5px; font-size: 8px; }
+      .calendar-weekdays span { padding: 5px 4px; font-size: 7px; }
       table { min-width: 0; }
       thead { display: none; }
       tbody, tr, td { display: block; width: 100%; }
@@ -908,6 +924,10 @@
           <span id="calendar-month-label" class="muted small"></span>
         </div>
         <div class="calendar-nav" role="group" aria-label="Calendar navigation">
+          <div class="calendar-view-toggle" role="group" aria-label="Calendar view">
+            <button id="calendar-view-month" class="btn btn-sm is-active" type="button" aria-pressed="true">Month</button>
+            <button id="calendar-view-week" class="btn btn-sm" type="button" aria-pressed="false">Week</button>
+          </div>
           <button id="calendar-prev" class="btn btn-sm" type="button" aria-label="Previous month">‹</button>
           <button id="calendar-today" class="btn btn-sm" type="button">Today</button>
           <button id="calendar-next" class="btn btn-sm" type="button" aria-label="Next month">›</button>
@@ -921,7 +941,7 @@
 
     <section id="stats" class="stats" aria-label="Booking summary"></section>
 
-    <section class="panel" aria-labelledby="pages-heading">
+    <section id="pages-panel" class="panel" aria-labelledby="pages-heading" hidden>
       <div class="panel-head">
         <div>
           <h2 id="pages-heading">Available pages</h2>
@@ -973,6 +993,7 @@
       <div id="bookings-tabs" class="tab-strip" role="tablist" aria-label="Booking views">
         <button class="tab is-active" type="button" data-tab="active" role="tab" aria-selected="true">Bookings</button>
         <button class="tab" type="button" data-tab="completed" role="tab" aria-selected="false">Completed</button>
+        <button class="tab" type="button" data-tab="all" role="tab" aria-selected="false">All rides</button>
       </div>
       <div class="table-wrap">
         <table>
@@ -1084,6 +1105,7 @@
 
     const tbody = document.getElementById('bookings-body');
     const bookingTabButtons = Array.from(document.querySelectorAll('#bookings-tabs [data-tab]'));
+    const pagesPanel = document.getElementById('pages-panel');
     const pagesBody = document.getElementById('pages-body');
     const statsEl = document.getElementById('stats');
     const countEl = document.getElementById('booking-count');
@@ -1102,6 +1124,8 @@
     const calendarPreviousBtn = document.getElementById('calendar-prev');
     const calendarTodayBtn = document.getElementById('calendar-today');
     const calendarNextBtn = document.getElementById('calendar-next');
+    const calendarMonthBtn = document.getElementById('calendar-view-month');
+    const calendarWeekBtn = document.getElementById('calendar-view-week');
     const calendarMonthLabel = document.getElementById('calendar-month-label');
 
     /** @type {Array<object>} */
@@ -1110,8 +1134,8 @@
     let hasLoadedOnce = false;
     let activeFilter = null;
     let bookingsTab = 'active';
-    const calendarMonth = new Date();
-    calendarMonth.setDate(1);
+    const calendarDate = new Date();
+    let calendarView = 'month';
 
     const dateFormatter = new Intl.DateTimeFormat(undefined, {
       dateStyle: 'medium',
@@ -1186,9 +1210,24 @@
       const container = document.getElementById('calendar');
       if (!container) return;
 
-      const year = calendarMonth.getFullYear();
-      const month = calendarMonth.getMonth();
-      calendarMonthLabel.textContent = calendarMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      const isWeek = calendarView === 'week';
+      const year = calendarDate.getFullYear();
+      const month = calendarDate.getMonth();
+      const shortDate = (value) => value.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      const weekStart = new Date(year, month, calendarDate.getDate() - calendarDate.getDay());
+      const weekEnd = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 6);
+      if (isWeek) {
+        calendarMonthLabel.textContent = weekStart.getFullYear() !== weekEnd.getFullYear()
+          ? `${shortDate(weekStart)}, ${weekStart.getFullYear()} – ${shortDate(weekEnd)}, ${weekEnd.getFullYear()}`
+          : weekStart.getMonth() !== weekEnd.getMonth()
+            ? `${shortDate(weekStart)} – ${shortDate(weekEnd)}, ${weekEnd.getFullYear()}`
+            : `${shortDate(weekStart)} – ${weekEnd.getDate()}, ${weekEnd.getFullYear()}`;
+      } else {
+        calendarMonthLabel.textContent = calendarDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      }
+      calendarPreviousBtn?.setAttribute('aria-label', isWeek ? 'Previous week' : 'Previous month');
+      calendarNextBtn?.setAttribute('aria-label', isWeek ? 'Next week' : 'Next month');
+      container.classList.toggle('is-week', isWeek);
 
       const today = new Date();
       const todayKey = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
@@ -1204,11 +1243,12 @@
       byDay.forEach((list) => list.sort((a, b) => Date.parse(a.pickupDateTime) - Date.parse(b.pickupDateTime)));
 
       const first = new Date(year, month, 1);
-      const gridStart = new Date(year, month, 1 - first.getDay());
+      const gridStart = isWeek ? weekStart : new Date(year, month, 1 - first.getDay());
+      const cellCount = isWeek ? 7 : 42;
       const rootStyles = getComputedStyle(document.documentElement);
       const fragment = document.createDocumentFragment();
 
-      for (let index = 0; index < 42; index += 1) {
+      for (let index = 0; index < cellCount; index += 1) {
         const day = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index);
         const key = day.getTime();
         const cell = document.createElement('div');
@@ -1363,12 +1403,12 @@
 
     function openBookingsForStatus(status) {
       if (status === 'total') {
-        setBookingsTab('active');
+        setBookingsTab('all');
         applyFilter(null);
       } else if (TERMINAL_STATUSES.has(status)) {
         // Completed, cancelled and dropped-off jobs live on the Completed tab.
         setBookingsTab('completed');
-        applyFilter(null);
+        applyFilter(status);
       } else {
         setBookingsTab('active');
         applyFilter(status);
@@ -1521,9 +1561,12 @@
     /* --------------------------- rendering --------------------------- */
 
     function makeStatCard(key, label, value) {
-      const card = document.createElement('div');
+      const card = document.createElement('button');
+      card.type = 'button';
       card.className = 'stat';
       card.dataset.status = key;
+      card.title = `View ${key === 'total' ? 'all rides' : `${label.toLowerCase()} rides`}`;
+      card.setAttribute('aria-controls', 'bookings-body');
 
       const labelEl = document.createElement('div');
       labelEl.className = 'stat-label';
@@ -1569,6 +1612,20 @@
           return link;
         })
       );
+    }
+
+    async function loadPageDirectory() {
+      try {
+        const session = await request('/api/auth/session');
+        if (session?.user?.canViewPageDirectory) {
+          renderPages();
+          pagesPanel.hidden = false;
+        } else {
+          pagesPanel.remove();
+        }
+      } catch {
+        pagesPanel.remove();
+      }
     }
 
     function makeCell(label, ...children) {
@@ -2057,9 +2114,11 @@
     function render() {
       renderStats();
 
-      const tabVisible = bookingsTab === 'completed'
-        ? bookings.filter((booking) => TERMINAL_STATUSES.has(booking.status))
-        : bookings.filter((booking) => !TERMINAL_STATUSES.has(booking.status));
+      const tabVisible = bookingsTab === 'all'
+        ? bookings
+        : bookingsTab === 'completed'
+          ? bookings.filter((booking) => TERMINAL_STATUSES.has(booking.status))
+          : bookings.filter((booking) => !TERMINAL_STATUSES.has(booking.status));
       const visible = activeFilter
         ? activeFilter === 'unassigned'
           ? tabVisible.filter((booking) => !booking.driverId)
@@ -2161,9 +2220,9 @@
       button.addEventListener('click', () => setBookingsTab(button.dataset.tab));
     });
 
-    document.querySelectorAll('#stats .stat').forEach((card) => {
-      card.title = 'Click to view the matching jobs in the bookings panel';
-      card.addEventListener('click', () => openBookingsForStatus(card.dataset.status));
+    statsEl.addEventListener('click', (event) => {
+      const card = event.target.closest('.stat[data-status]');
+      if (card) openBookingsForStatus(card.dataset.status);
     });
 
     if (radar) {
@@ -2231,22 +2290,35 @@
       window.location.replace('/dispatcher-login.html');
     });
 
-    calendarPreviousBtn?.addEventListener('click', () => {
-      calendarMonth.setMonth(calendarMonth.getMonth() - 1, 1);
+    const shiftCalendar = (direction) => {
+      if (calendarView === 'week') {
+        calendarDate.setDate(calendarDate.getDate() + direction * 7);
+      } else {
+        calendarDate.setMonth(calendarDate.getMonth() + direction, 1);
+      }
       renderCalendar();
-    });
-    calendarNextBtn?.addEventListener('click', () => {
-      calendarMonth.setMonth(calendarMonth.getMonth() + 1, 1);
+    };
+    const setCalendarView = (view) => {
+      calendarView = view;
+      const isWeek = view === 'week';
+      calendarMonthBtn?.classList.toggle('is-active', !isWeek);
+      calendarWeekBtn?.classList.toggle('is-active', isWeek);
+      calendarMonthBtn?.setAttribute('aria-pressed', String(!isWeek));
+      calendarWeekBtn?.setAttribute('aria-pressed', String(isWeek));
       renderCalendar();
-    });
+    };
+    calendarPreviousBtn?.addEventListener('click', () => shiftCalendar(-1));
+    calendarNextBtn?.addEventListener('click', () => shiftCalendar(1));
     calendarTodayBtn?.addEventListener('click', () => {
       const now = new Date();
-      calendarMonth.setFullYear(now.getFullYear(), now.getMonth(), 1);
+      calendarDate.setFullYear(now.getFullYear(), now.getMonth(), now.getDate());
       renderCalendar();
     });
+    calendarMonthBtn?.addEventListener('click', () => setCalendarView('month'));
+    calendarWeekBtn?.addEventListener('click', () => setCalendarView('week'));
 
     renderStats();
-    renderPages();
+    void loadPageDirectory();
     renderCalendar();
     renderState('Loading bookings', 'Fetching the latest reservations…');
 
