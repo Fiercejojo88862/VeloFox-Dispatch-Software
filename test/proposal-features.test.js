@@ -147,27 +147,52 @@ test('driver administration normalizes and validates driver fields', () => {
   assert.equal(invalid.errors.length, 4);
 });
 
-test('dashboard assign form shows driver name and auto-matches their vehicle', () => {
+test('dashboard assign form offers class-matched vehicles and shows the driver name inline', () => {
   const page = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
-  assert.match(page, /\.driver-hint/);
-  assert.match(page, /const driverHint = document\.createElement\('span'\)/);
+  assert.match(page, /const FLEET_BY_CLASS = \{/);
+  assert.match(page, /sedan: \['Executive Sedan 01', 'Executive Sedan 02'\]/);
+  assert.match(page, /suv: \['Cadillac Escalade 01', 'Cadillac Escalade 02'\]/);
+  assert.match(page, /const vehicleSelect = document\.createElement\('select'\);/);
+  assert.match(page, /FLEET_BY_CLASS\[vehicleKey\]/);
+  assert.match(page, /const driverField = document\.createElement\('span'\);/);
+  assert.match(page, /driverField\.className = 'driver-field';/);
+  assert.match(page, /const driverNameEl = document\.createElement\('span'\);/);
+  assert.match(page, /driverNameEl\.className = 'driver-name';/);
   assert.match(page, /DRIVER_ACTIVE_STATUSES = new Set\(\['assigned', 'en_route', 'arrived', 'passenger_aboard'\]\)/);
   assert.match(page, /\/api\/drivers\/\$\{encodeURIComponent\(typedId\)\}/);
-  assert.match(page, /\/api\/drivers\/\$\{encodeURIComponent\(driver\.id\)\}\/manifest/);
-  assert.match(page, /vehicleInput\.value = activeTrip\.assignedVehicle;/);
+  assert.match(page, /\/api\/drivers\/\$\{encodeURIComponent\(driverId\)\}\/manifest/);
+  assert.match(page, /suggestVehicleFor\(driver\.id\);/);
+  assert.match(page, /vehicleSelect\.value = activeTrip\.assignedVehicle;/);
+  assert.match(page, /FLEET_BY_CLASS\[vehicleKey\]\?\.includes\(activeTrip\.assignedVehicle\)/);
+  assert.doesNotMatch(page, /id="fleet"/);
+  assert.doesNotMatch(page, /const vehicleInput = document\.createElement/);
 });
 
-test('driver and dispatcher portals show a day-grouped calendar of jobs', () => {
+test('driver portal shows a day-grouped calendar and dispatcher shows an Apple-style month grid at the top', () => {
   const driver = fs.readFileSync(path.join(ROOT, 'public', 'driver.html'), 'utf8');
   assert.match(driver, /id="calendar"/);
   assert.match(driver, /id="calendar-empty"/);
   assert.match(driver, /function renderCalendar\(\)/);
   assert.match(driver, /const byDay = new Map\(\);/);
   assert.match(driver, /renderCalendar\(\);/);
+
   const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
-  assert.match(dash, /id="calendar"/);
+  const mainStart = dash.indexOf('<main>');
+  const calendarStart = dash.indexOf('class="panel calendar-panel"', mainStart);
+  assert.ok(calendarStart > mainStart);
+  assert.ok(calendarStart < dash.indexOf('id="stats"', mainStart));
+  assert.match(dash, /<div class="calendar-weekdays" aria-hidden="true">/);
+  assert.match(dash, /id="calendar" class="calendar-month"/);
+  assert.match(dash, /id="calendar-prev"/);
+  assert.match(dash, /id="calendar-today"/);
+  assert.match(dash, /id="calendar-next"/);
   assert.match(dash, /function renderCalendar\(\)/);
-  assert.match(dash, /getDriver\(booking\.driverId\)\?\.name \|\| booking\.driverId/);
+  assert.match(dash, /for \(let index = 0; index < 42; index \+= 1\)/);
+  assert.match(dash, /dayBookings\.slice\(0, 3\)/);
+  assert.match(dash, /getDriverName\(booking\.driverId\)/);
+  assert.match(dash, /row\.dataset\.bookingId = booking\.id;/);
+  assert.match(dash, /tbody\.querySelector\(\`tr\[data-booking-id=/);
+  assert.doesNotMatch(dash, /getDriver\(booking\.driverId\)/);
   assert.match(dash, /renderCalendar\(\);/);
 });
 

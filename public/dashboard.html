@@ -8,15 +8,54 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <script src="/js/theme.js"></script>
   <style>
-    .calendar { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; margin-top: 18px; }
-    .calendar-day { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; display: grid; gap: 6px; min-width: 0; }
-    .calendar-day.is-today { border-color: var(--gold); }
-    .calendar-day h3 { margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); }
-    .calendar-chip { padding: 6px 9px; border-radius: 8px; font-size: 11px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); display: grid; gap: 3px; line-height: 1.25; }
-    .chip-time { font-size: 10px; font-weight: 600; color: var(--gold); }
-    .chip-route { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .chip-driver { color: var(--muted); font-size: 10px; }
-    .chip-status { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+    /* ---------- Apple-style month calendar ---------- */
+    .calendar-panel { padding: 0; overflow: hidden; }
+    .calendar-head {
+      align-items: center; margin: 0; padding: 14px 18px;
+      border-bottom: 1px solid var(--line); background: var(--bg-soft);
+    }
+    .calendar-head h2 { margin: 0; }
+    .calendar-nav { display: flex; align-items: center; gap: 6px; }
+    .calendar-nav .btn { min-width: 32px; padding: 5px 9px; }
+    .calendar-weekdays {
+      display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+      background: var(--bg-soft); border-bottom: 1px solid var(--line);
+    }
+    .calendar-weekdays span {
+      padding: 7px 10px; text-align: right; color: var(--muted);
+      font-size: 9px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase;
+    }
+    .calendar-month {
+      display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 1px; background: var(--line);
+    }
+    .calendar-day {
+      min-height: 106px; min-width: 0; padding: 7px;
+      background: var(--panel); display: flex; flex-direction: column; gap: 5px;
+    }
+    .calendar-day.is-outside { background: var(--bg-soft); }
+    .calendar-date {
+      display: grid; place-items: center; width: 24px; height: 24px; margin-left: auto;
+      border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--text);
+    }
+    .calendar-day.is-outside .calendar-date { color: var(--muted); }
+    .calendar-day.is-today .calendar-date { background: var(--accent); color: var(--accent-ink); }
+    .calendar-events { display: grid; gap: 4px; align-content: start; }
+    .calendar-event {
+      border-left: 3px solid var(--accent); border-radius: 3px; padding: 4px 6px;
+      background: rgba(255, 255, 255, 0.035); display: grid; gap: 1px;
+      cursor: pointer; min-width: 0;
+    }
+    .calendar-event:hover { background: rgba(255, 255, 255, 0.07); }
+    .calendar-event time { font-size: 9px; font-weight: 700; color: var(--accent-bright); }
+    .calendar-event .event-route {
+      font-size: 10px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .calendar-event .event-driver {
+      font-size: 9px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .calendar-more { font-size: 9px; color: var(--muted); padding-left: 4px; }
+    tr.calendar-highlight { outline: 1px solid var(--accent); outline-offset: -1px; }
 
     :root {
       color-scheme: dark;
@@ -677,7 +716,8 @@
     }
 
     select.status-select,
-    .assign input {
+    .assign input,
+    .assign select {
       width: 100%;
       font: inherit;
       font-size: 13px;
@@ -692,7 +732,8 @@
     select.status-select { cursor: pointer; }
 
     select.status-select:focus,
-    .assign input:focus {
+    .assign input:focus,
+    .assign select:focus {
       outline: none;
       border-color: var(--accent);
       box-shadow: 0 0 0 1px rgba(197, 160, 89, 0.35);
@@ -700,16 +741,23 @@
 
     select.status-select:disabled,
     .assign input:disabled,
+    .assign select:disabled,
     .btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
 
     .assign { display: grid; gap: 6px; }
-    .assign input { flex: 1; min-width: 0; }
+    .assign input, .assign select { flex: 1; min-width: 0; }
     .assign .btn { flex: none; }
     .assign input::placeholder { color: var(--muted); }
-    .assign .driver-hint { font-size: 11px; color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .driver-field { position: relative; display: flex; min-width: 0; }
+    .driver-field input { padding-right: 120px; }
+    .driver-field .driver-name {
+      position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+      max-width: 112px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      font-size: 10px; color: var(--accent-bright); pointer-events: none;
+    }
 
     /* ---------- states ---------- */
 
@@ -780,6 +828,9 @@
     }
 
     @media (max-width: 960px) {
+      .calendar-day { min-height: 82px; padding: 5px; }
+      .calendar-event .event-route { display: none; }
+      .calendar-weekdays span { padding: 6px 5px; font-size: 8px; }
       table { min-width: 0; }
       thead { display: none; }
       tbody, tr, td { display: block; width: 100%; }
@@ -850,6 +901,24 @@
   </header>
 
   <main>
+    <section class="panel calendar-panel" aria-labelledby="calendar-heading">
+      <div class="panel-head calendar-head">
+        <div>
+          <h2 id="calendar-heading">Calendar</h2>
+          <span id="calendar-month-label" class="muted small"></span>
+        </div>
+        <div class="calendar-nav" role="group" aria-label="Calendar navigation">
+          <button id="calendar-prev" class="btn btn-sm" type="button" aria-label="Previous month">‹</button>
+          <button id="calendar-today" class="btn btn-sm" type="button">Today</button>
+          <button id="calendar-next" class="btn btn-sm" type="button" aria-label="Next month">›</button>
+        </div>
+      </div>
+      <div class="calendar-weekdays" aria-hidden="true">
+        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+      </div>
+      <div id="calendar" class="calendar-month" aria-live="polite"></div>
+    </section>
+
     <section id="stats" class="stats" aria-label="Booking summary"></section>
 
     <section class="panel" aria-labelledby="pages-heading">
@@ -921,21 +990,11 @@
           </thead>
           <tbody id="bookings-body"></tbody>
         </table>
-        <div id="calendar" class="calendar" aria-live="polite"></div>
       </div>
     </section>
   </main>
 
   <div id="toasts" class="toasts" role="status" aria-live="polite" aria-atomic="false"></div>
-
-  <datalist id="fleet">
-    <option value="Executive Sedan 01"></option>
-    <option value="Executive Sedan 02"></option>
-    <option value="Cadillac Escalade 01"></option>
-    <option value="Cadillac Escalade 02"></option>
-    <option value="Mercedes Sprinter 01"></option>
-    <option value="Limousine 01"></option>
-  </datalist>
 
   <datalist id="drivers">
     <option value="VF-1001">Marcus Vance</option>
@@ -987,6 +1046,23 @@
       sprinter: 'Sprinter',
       limousine: 'Limousine',
     };
+    const FLEET_BY_CLASS = {
+      sedan: ['Executive Sedan 01', 'Executive Sedan 02'],
+      suv: ['Cadillac Escalade 01', 'Cadillac Escalade 02'],
+      sprinter: ['Mercedes Sprinter 01'],
+      limousine: ['Limousine 01'],
+    };
+    const EVENT_COLORS = {
+      pending: '--pending', confirmed: '--confirmed', assigned: '--assigned',
+      en_route: '--en-route', arrived: '--arrived', passenger_aboard: '--aboard',
+      dropped_off: '--dropped-off', completed: '--completed', cancelled: '--cancelled',
+    };
+    const DRIVER_NAMES = new Map([
+      ['VF-1001', 'Marcus Vance'],
+      ['VF-1002', 'David Sterling'],
+      ['VF-1003', 'Elena Marquez'],
+      ['VF-2004', 'Naomi Laurent'],
+    ]);
     const REFRESH_INTERVAL_MS = 30000;
     const ACTIVE_STATUSES = new Set(['assigned', 'en_route', 'arrived', 'passenger_aboard']);
 
@@ -1023,6 +1099,10 @@
     const telemetryRefreshBtn = document.getElementById('telemetry-refresh');
     const telemetryClearBtn = document.getElementById('telemetry-clear');
     const telemetryMap = document.getElementById('telemetry-map');
+    const calendarPreviousBtn = document.getElementById('calendar-prev');
+    const calendarTodayBtn = document.getElementById('calendar-today');
+    const calendarNextBtn = document.getElementById('calendar-next');
+    const calendarMonthLabel = document.getElementById('calendar-month-label');
 
     /** @type {Array<object>} */
     let bookings = [];
@@ -1030,6 +1110,8 @@
     let hasLoadedOnce = false;
     let activeFilter = null;
     let bookingsTab = 'active';
+    const calendarMonth = new Date();
+    calendarMonth.setDate(1);
 
     const dateFormatter = new Intl.DateTimeFormat(undefined, {
       dateStyle: 'medium',
@@ -1046,6 +1128,7 @@
     const formatUsd = (cents) => usd.format((Number(cents) || 0) / 100);
 
     const formatStatus = (value) => STATUS_LABELS[value] || capitalize(value);
+    const getDriverName = (driverId) => DRIVER_NAMES.get(driverId) || driverId || 'Unassigned';
 
     function formatVehicleType(value) {
       const key = typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -1102,53 +1185,84 @@
     function renderCalendar() {
       const container = document.getElementById('calendar');
       if (!container) return;
-      const now = new Date();
-      const startOfDay = (value) => new Date(value.getFullYear(), value.getMonth(), value.getDate());
-      const fmtDay = (date) => date.toLocaleDateString(undefined, { weekday: 'short', month: 'numeric', day: 'numeric' });
-      const fmtTime = (iso) => {
-        const d = new Date(iso);
-        const t = new Date();
-        t.setHours(d.getHours(), d.getMinutes(), 0, 0);
-        return t.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-      };
+
+      const year = calendarMonth.getFullYear();
+      const month = calendarMonth.getMonth();
+      calendarMonthLabel.textContent = calendarMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+
+      const today = new Date();
+      const todayKey = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
       const byDay = new Map();
-      [...bookings].sort((a, b) => Date.parse(a.pickupDateTime) - Date.parse(b.pickupDateTime)).forEach((booking) => {
-        const key = startOfDay(new Date(booking.pickupDateTime)).getTime();
-        if (!byDay.has(key)) byDay.set(key, { day: startOfDay(new Date(booking.pickupDateTime)), bookings: [] });
-        byDay.get(key).bookings.push(booking);
+      bookings.forEach((booking) => {
+        const timestamp = Date.parse(booking.pickupDateTime);
+        if (Number.isNaN(timestamp)) return;
+        const pickup = new Date(timestamp);
+        const key = new Date(pickup.getFullYear(), pickup.getMonth(), pickup.getDate()).getTime();
+        if (!byDay.has(key)) byDay.set(key, []);
+        byDay.get(key).push(booking);
       });
-      const days = [];
-      for (let i = 0; i <= 14; i += 1) {
-        const day = startOfDay(new Date(now.getTime() + i * 86_400_000));
-        const group = byDay.get(day.getTime());
-        if (group) days.push({ day, group });
-      }
-      container.replaceChildren(...days.map(({ day, group }) => {
-        const card = document.createElement('div');
-        card.className = `calendar-day${day.getTime() === startOfDay(now).getTime() ? ' is-today' : ''}`;
-        const head = document.createElement('h3');
-        head.textContent = fmtDay(day);
-        card.append(head);
-        group.bookings.forEach((booking) => {
-          const chip = document.createElement('div');
-          chip.className = 'calendar-chip';
-          const time = document.createElement('span');
-          time.className = 'chip-time';
-          time.textContent = fmtTime(booking.pickupDateTime);
+      byDay.forEach((list) => list.sort((a, b) => Date.parse(a.pickupDateTime) - Date.parse(b.pickupDateTime)));
+
+      const first = new Date(year, month, 1);
+      const gridStart = new Date(year, month, 1 - first.getDay());
+      const rootStyles = getComputedStyle(document.documentElement);
+      const fragment = document.createDocumentFragment();
+
+      for (let index = 0; index < 42; index += 1) {
+        const day = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + index);
+        const key = day.getTime();
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day';
+        if (day.getMonth() !== month) cell.classList.add('is-outside');
+        if (key === todayKey) cell.classList.add('is-today');
+
+        const dateLabel = document.createElement('span');
+        dateLabel.className = 'calendar-date';
+        dateLabel.textContent = String(day.getDate());
+        cell.append(dateLabel);
+
+        const events = document.createElement('div');
+        events.className = 'calendar-events';
+        const dayBookings = byDay.get(key) || [];
+        dayBookings.slice(0, 3).forEach((booking) => {
+          const event = document.createElement('div');
+          event.className = 'calendar-event';
+          const colorVar = EVENT_COLORS[booking.status] || '--accent';
+          event.style.borderLeftColor = rootStyles.getPropertyValue(colorVar).trim() || '#c5a059';
+
+          const time = document.createElement('time');
+          time.textContent = new Date(booking.pickupDateTime).toLocaleTimeString(undefined, {
+            hour: 'numeric', minute: '2-digit',
+          });
           const route = document.createElement('span');
-          route.className = 'chip-route';
+          route.className = 'event-route';
           route.textContent = `${booking.pickupLocation || '—'} → ${booking.dropoffLocation || '—'}`;
           const driver = document.createElement('span');
-          driver.className = 'chip-driver';
-          driver.textContent = booking.driverId ? (getDriver(booking.driverId)?.name || booking.driverId) : 'Unassigned';
-          const status = document.createElement('span');
-          status.className = 'chip-status';
-          status.textContent = booking.status.replace('_', ' ');
-          chip.append(time, route, driver, status);
-          card.append(chip);
+          driver.className = 'event-driver';
+          driver.textContent = getDriverName(booking.driverId);
+
+          event.append(time, route, driver);
+          event.title = `${formatStatus(booking.status)} · ${formatDateTime(booking.pickupDateTime)} · ${getDriverName(booking.driverId)}`;
+          event.addEventListener('click', () => {
+            const row = tbody.querySelector(`tr[data-booking-id="${booking.id}"]`);
+            if (!row) return;
+            row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            row.classList.add('calendar-highlight');
+            window.setTimeout(() => row.classList.remove('calendar-highlight'), 1800);
+          });
+          events.append(event);
         });
-        return card;
-      }));
+        if (dayBookings.length > 3) {
+          const more = document.createElement('span');
+          more.className = 'calendar-more';
+          more.textContent = `+${dayBookings.length - 3} more`;
+          events.append(more);
+        }
+        cell.append(events);
+        fragment.append(cell);
+      }
+
+      container.replaceChildren(fragment);
     }
 
     async function loadBookings({ quiet = false } = {}) {
@@ -1674,17 +1788,32 @@
       return details;
     }
 
-    function makeAssignForm(booking) {      const form = document.createElement('form');
+    function makeAssignForm(booking) {
+      const form = document.createElement('form');
       form.className = 'assign';
 
-      const vehicleInput = document.createElement('input');
-      vehicleInput.type = 'text';
-      vehicleInput.maxLength = 100;
-      vehicleInput.placeholder = 'Vehicle';
-      vehicleInput.value = booking.assignedVehicle || '';
-      vehicleInput.setAttribute('list', 'fleet');
-      vehicleInput.setAttribute('aria-label', `Assign a vehicle to ride ${booking.id.slice(0, 8)}`);
+      const vehicleKey = typeof booking.vehicleType === 'string' ? booking.vehicleType.trim().toLowerCase() : '';
+      const fleetOptions = [...(FLEET_BY_CLASS[vehicleKey] || [])];
+      if (booking.assignedVehicle && !fleetOptions.includes(booking.assignedVehicle)) {
+        fleetOptions.push(booking.assignedVehicle);
+      }
 
+      const vehicleSelect = document.createElement('select');
+      vehicleSelect.setAttribute('aria-label', `Assign a vehicle to ride ${booking.id.slice(0, 8)}`);
+      const vehiclePlaceholder = document.createElement('option');
+      vehiclePlaceholder.value = '';
+      vehiclePlaceholder.textContent = `Choose ${formatVehicleType(vehicleKey)} vehicle`;
+      vehicleSelect.append(vehiclePlaceholder);
+      fleetOptions.forEach((name) => {
+        const option = document.createElement('option');
+        option.value = name;
+        option.textContent = name;
+        vehicleSelect.append(option);
+      });
+      vehicleSelect.value = booking.assignedVehicle || '';
+
+      const driverField = document.createElement('span');
+      driverField.className = 'driver-field';
       const driverInput = document.createElement('input');
       driverInput.type = 'text';
       driverInput.maxLength = 50;
@@ -1693,32 +1822,42 @@
       driverInput.autocapitalize = 'characters';
       driverInput.setAttribute('list', 'drivers');
       driverInput.setAttribute('aria-label', `Assign a driver to ride ${booking.id.slice(0, 8)}`);
+      const driverNameEl = document.createElement('span');
+      driverNameEl.className = 'driver-name';
+      driverNameEl.setAttribute('aria-live', 'polite');
+      if (booking.driverId) driverNameEl.textContent = getDriverName(booking.driverId);
+      driverField.append(driverInput, driverNameEl);
 
-      const driverHint = document.createElement('span');
-      driverHint.className = 'driver-hint';
-      driverHint.setAttribute('aria-live', 'polite');
       let driverLookupTimer = null;
+      const suggestVehicleFor = (driverId) => {
+        if (vehicleSelect.value) return;
+        void request(`/api/drivers/${encodeURIComponent(driverId)}/manifest`).then((manifest) => {
+          const activeTrip = (manifest.trips || []).find(
+            (trip) => trip.assignedVehicle && DRIVER_ACTIVE_STATUSES.has(trip.status)
+          );
+          if (!activeTrip || vehicleSelect.value) return;
+          // Only class-matched vehicles may be assigned; never widen the select
+          // with a vehicle from a driver's active trip in another class.
+          if (!FLEET_BY_CLASS[vehicleKey]?.includes(activeTrip.assignedVehicle)) return;
+          vehicleSelect.value = activeTrip.assignedVehicle;
+        }).catch(() => { /* driver manifest is optional here */ });
+      };
+
       driverInput.addEventListener('input', () => {
         clearTimeout(driverLookupTimer);
-        driverHint.textContent = '';
+        driverNameEl.textContent = '';
         const typedId = driverInput.value.trim();
         if (!typedId) return;
-        driverLookupTimer = setTimeout(async () => {
+        driverLookupTimer = window.setTimeout(async () => {
           if (driverInput.value.trim() !== typedId) return;
           try {
             const driver = await request(`/api/drivers/${encodeURIComponent(typedId)}`);
             if (driverInput.value.trim() !== typedId) return;
-            driverHint.textContent = `${driver.name} — ${driver.id}`;
-            if (vehicleInput.value.trim()) return;
-            const manifest = await request(`/api/drivers/${encodeURIComponent(driver.id)}/manifest`);
-            const activeTrip = (manifest.trips || []).find(
-              (trip) => trip.assignedVehicle && DRIVER_ACTIVE_STATUSES.has(trip.status)
-            );
-            if (activeTrip && !vehicleInput.value.trim()) {
-              vehicleInput.value = activeTrip.assignedVehicle;
-            }
+            DRIVER_NAMES.set(driver.id, driver.name);
+            driverNameEl.textContent = driver.name;
+            suggestVehicleFor(driver.id);
           } catch {
-            driverHint.textContent = '';
+            driverNameEl.textContent = '';
           }
         }, 250);
       });
@@ -1728,14 +1867,14 @@
       submit.className = 'btn btn-primary btn-sm';
       submit.textContent = 'Assign';
 
-      form.append(vehicleInput, driverInput, driverHint, submit);
+      form.append(vehicleSelect, driverField, submit);
 
       if (booking.assignedVehicle || booking.driverId) {
         const clearBtn = document.createElement('button');
         clearBtn.type = 'button';
         clearBtn.className = 'btn btn-ghost btn-sm';
         clearBtn.textContent = 'Clear';
-        clearBtn.title = 'Remove the assigned vehicle';
+        clearBtn.title = 'Remove the assigned vehicle and driver';
         clearBtn.addEventListener('click', async () => {
           clearBtn.disabled = true;
           try {
@@ -1751,24 +1890,24 @@
 
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
-        const vehicle = vehicleInput.value.trim();
+        const vehicle = vehicleSelect.value.trim();
         const driverId = driverInput.value.trim();
 
         if (!vehicle || !driverId) {
-          showToast('Enter both a vehicle and Driver ID before assigning.', 'error');
-          (vehicle ? driverInput : vehicleInput).focus();
+          showToast('Choose a vehicle and enter a Driver ID before assigning.', 'error');
+          (vehicle ? driverInput : vehicleSelect).focus();
           return;
         }
 
         submit.disabled = true;
-        vehicleInput.disabled = true;
+        vehicleSelect.disabled = true;
         driverInput.disabled = true;
         try {
           await patchBooking(booking.id, { assignedVehicle: vehicle, driverId });
           showToast(`Vehicle and driver assigned to ride ${booking.id.slice(0, 8)}.`, 'success');
         } catch (error) {
           submit.disabled = false;
-          vehicleInput.disabled = false;
+          vehicleSelect.disabled = false;
           driverInput.disabled = false;
           showToast(error.message, 'error', error.details);
         }
@@ -1779,6 +1918,7 @@
 
     function makeRow(booking) {
       const row = document.createElement('tr');
+      row.dataset.bookingId = booking.id;
 
       const idEl = document.createElement('div');
       idEl.className = 'ride-id';
@@ -2091,8 +2231,23 @@
       window.location.replace('/dispatcher-login.html');
     });
 
+    calendarPreviousBtn?.addEventListener('click', () => {
+      calendarMonth.setMonth(calendarMonth.getMonth() - 1, 1);
+      renderCalendar();
+    });
+    calendarNextBtn?.addEventListener('click', () => {
+      calendarMonth.setMonth(calendarMonth.getMonth() + 1, 1);
+      renderCalendar();
+    });
+    calendarTodayBtn?.addEventListener('click', () => {
+      const now = new Date();
+      calendarMonth.setFullYear(now.getFullYear(), now.getMonth(), 1);
+      renderCalendar();
+    });
+
     renderStats();
     renderPages();
+    renderCalendar();
     renderState('Loading bookings', 'Fetching the latest reservations…');
 
     setInterval(() => {
