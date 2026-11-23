@@ -1237,7 +1237,7 @@
         </label>
         <label>Passengers <input name="passengerCount" type="number" min="1" max="16" value="1" required></label>
         <label>Flight number <input name="flightNumber" type="text" maxlength="12" placeholder="e.g. UA123"></label>
-        <label>Preferred driver <input name="preferredDriverId" type="text" maxlength="50" list="drivers" placeholder="VF-1001"></label>
+        <label>Preferred driver <input name="preferredDriverId" type="text" maxlength="50" placeholder="VF-1001"></label>
         <label class="wide">Special requests <textarea name="specialRequests" maxlength="900" rows="2"></textarea></label>
       </div>
       <p id="new-booking-error" class="muted small" role="alert"></p>
@@ -1259,13 +1259,6 @@
       <button id="tour-next" class="btn btn-primary btn-sm" type="button">Next</button>
     </div>
   </aside>
-
-  <datalist id="drivers">
-    <option value="VF-1001">Marcus Vance</option>
-    <option value="VF-1002">David Sterling</option>
-    <option value="VF-1003">Elena Marquez</option>
-    <option value="VF-2004">Naomi Laurent</option>
-  </datalist>
 
   <script src="/js/audio-fx.js"></script>
   <script src="/js/voice-command.js"></script>
@@ -1422,6 +1415,35 @@
 
     const formatStatus = (value) => STATUS_LABELS[value] || capitalize(value);
     const getDriverName = (driverId) => DRIVER_NAMES.get(driverId) || driverId || 'Unassigned';
+
+    function findKnownDriver(reference) {
+      const needle = String(reference || '').trim().toLowerCase();
+      if (!needle) return null;
+      for (const driver of rosterDriversById.values()) {
+        if (driver.id.toLowerCase() === needle || driver.name.toLowerCase() === needle) {
+          return { id: driver.id, name: driver.name };
+        }
+      }
+      for (const [id, name] of DRIVER_NAMES) {
+        if (id.toLowerCase() === needle || name.toLowerCase() === needle) return { id, name };
+      }
+      return null;
+    }
+
+    async function resolveDriverReference(reference) {
+      const known = findKnownDriver(reference);
+      if (known) return known;
+      const candidate = String(reference || '').trim();
+      if (!candidate || /\s/.test(candidate)) return null;
+      try {
+        const driver = await request(`/api/drivers/${encodeURIComponent(candidate)}`);
+        DRIVER_NAMES.set(driver.id, driver.name);
+        return { id: driver.id, name: driver.name };
+      } catch {
+        return null;
+      }
+    }
+
     const ROSTER_STATUS_LABELS = {
       available: 'Available', on_trip: 'On Trip', offline: 'Offline', maintenance: 'Maintenance',
     };
@@ -1462,7 +1484,10 @@
         const onTrip = drivers.filter((driver) => driver.status === 'on_trip').length;
         rosterSummaryEl.textContent = `${drivers.length} chauffeurs · ${onTrip} on trip · ${vehicles.length} vehicles`;
         rosterDriversById.clear();
-        drivers.forEach((driver) => rosterDriversById.set(driver.id, driver));
+        drivers.forEach((driver) => {
+          rosterDriversById.set(driver.id, driver);
+          DRIVER_NAMES.set(driver.id, driver.name);
+        });
         const signature = drivers.map((driver) => `${driver.id}:${driver.phone}`).join('|');
         if (signature !== lastRosterSignature) {
           lastRosterSignature = signature;
@@ -2518,11 +2543,9 @@
       const driverInput = document.createElement('input');
       driverInput.type = 'text';
       driverInput.maxLength = 50;
-      driverInput.placeholder = 'Driver ID';
+      driverInput.placeholder = 'Driver ID or name';
       driverInput.value = booking.driverId || '';
-      driverInput.autocapitalize = 'characters';
-      driverInput.setAttribute('list', 'drivers');
-      driverInput.setAttribute('aria-label', `Assign a driver to ride ${booking.id.slice(0, 8)}`);
+      driverInput.setAttribute('aria-label', `Assign a driver by ID or name to ride ${booking.id.slice(0, 8)}`);
       const driverNameEl = document.createElement('span');
       driverNameEl.className = 'driver-name';
       driverNameEl.setAttribute('aria-live', 'polite');
@@ -2547,13 +2570,20 @@
       driverInput.addEventListener('input', () => {
         clearTimeout(driverLookupTimer);
         driverNameEl.textContent = '';
-        const typedId = driverInput.value.trim();
-        if (!typedId) return;
+        const typedReference = driverInput.value.trim();
+        if (!typedReference) return;
+        const knownDriver = findKnownDriver(typedReference);
+        if (knownDriver) {
+          driverNameEl.textContent = `${knownDriver.name} — ${knownDriver.id}`;
+          suggestVehicleFor(knownDriver.id);
+          return;
+        }
+        if (/\s/.test(typedReference)) return;
         driverLookupTimer = window.setTimeout(async () => {
-          if (driverInput.value.trim() !== typedId) return;
+          if (driverInput.value.trim() !== typedReference) return;
           try {
-            const driver = await request(`/api/drivers/${encodeURIComponent(typedId)}`);
-            if (driverInput.value.trim() !== typedId) return;
+            const driver = await request(`/api/drivers/${encodeURIComponent(typedReference)}`);
+            if (driverInput.value.trim() !== typedReference) return;
             DRIVER_NAMES.set(driver.id, driver.name);
             driverNameEl.textContent = `${driver.name} — ${driver.id}`;
             suggestVehicleFor(driver.id);
@@ -2592,11 +2622,18 @@
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
         const vehicle = vehicleSelect.value.trim();
-        const driverId = driverInput.value.trim();
+        const driverReference = driverInput.value.trim();
 
-        if (!vehicle || !driverId) {
-          showToast('Choose a vehicle and enter a Driver ID before assigning.', 'error');
+        if (!vehicle || !driverReference) {
+          showToast('Choose a vehicle and enter a driver ID or name before assigning.', 'error');
           (vehicle ? driverInput : vehicleSelect).focus();
+          return;
+        }
+
+        const driver = await resolveDriverReference(driverReference);
+        if (!driver) {
+          showToast('No driver matches that ID or name.', 'error');
+          driverInput.focus();
           return;
         }
 
@@ -2604,7 +2641,7 @@
         vehicleSelect.disabled = true;
         driverInput.disabled = true;
         try {
-          await patchBooking(booking.id, { assignedVehicle: vehicle, driverId });
+          await patchBooking(booking.id, { assignedVehicle: vehicle, driverId: driver.id });
           showToast(`Vehicle and driver assigned to ride ${booking.id.slice(0, 8)}.`, 'success');
         } catch (error) {
           submit.disabled = false;

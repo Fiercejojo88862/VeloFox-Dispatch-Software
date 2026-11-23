@@ -223,13 +223,25 @@ test('dashboard assign form offers class-matched vehicles and shows the driver n
   assert.match(page, /const driverNameEl = document\.createElement\('span'\);/);
   assert.match(page, /driverNameEl\.className = 'driver-name';/);
   assert.match(page, /DRIVER_ACTIVE_STATUSES = new Set\(\['assigned', 'en_route', 'arrived', 'passenger_aboard'\]\)/);
-  assert.match(page, /\/api\/drivers\/\$\{encodeURIComponent\(typedId\)\}/);
+  assert.match(page, /\/api\/drivers\/\$\{encodeURIComponent\(typedReference\)\}/);
   assert.match(page, /\/api\/drivers\/\$\{encodeURIComponent\(driverId\)\}\/manifest/);
   assert.match(page, /suggestVehicleFor\(driver\.id\);/);
   assert.match(page, /vehicleSelect\.value = activeTrip\.assignedVehicle;/);
   assert.match(page, /FLEET_BY_CLASS\[vehicleKey\]\?\.includes\(activeTrip\.assignedVehicle\)/);
   assert.doesNotMatch(page, /id="fleet"/);
   assert.doesNotMatch(page, /const vehicleInput = document\.createElement/);
+});
+
+test('driver assignment accepts an ID or name without a default-name menu', () => {
+  const page = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.doesNotMatch(page, /<datalist id="drivers">/);
+  assert.doesNotMatch(page, /setAttribute\('list', 'drivers'\)/);
+  assert.match(page, /driverInput\.placeholder = 'Driver ID or name'/);
+  assert.match(page, /function findKnownDriver\(reference\)/);
+  assert.match(page, /async function resolveDriverReference\(reference\)/);
+  assert.match(page, /driver\.name\.toLowerCase\(\) === needle/);
+  assert.match(page, /driverId: driver\.id/);
+  assert.match(page, /No driver matches that ID or name\./);
 });
 
 test('driver portal shows a day-grouped calendar and dispatcher shows a compact month grid at the top', () => {
