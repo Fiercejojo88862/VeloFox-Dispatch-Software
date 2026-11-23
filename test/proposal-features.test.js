@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
-const { canTransitionStatus, validateBooking } = require('../server').testables;
+const { canTransitionStatus, normalizeDriverFields, validateBooking } = require('../server').testables;
 
 const ROOT = path.join(__dirname, '..');
 
@@ -120,4 +120,40 @@ test('ping fleet notifies drivers through their manifest', () => {
   assert.match(server, /dispatchPingAt/);
   const schema = fs.readFileSync(path.join(ROOT, 'schema.sql'), 'utf8');
   assert.match(schema, /CREATE TABLE IF NOT EXISTS dispatch_pings/);
+});
+
+test('driver administration normalizes and validates driver fields', () => {
+  const created = normalizeDriverFields({ id: 'vf-3005', name: '  Ada Driver  ', phone: ' 555 ', status: 'AVAILABLE' });
+  assert.deepEqual(created.errors, []);
+  assert.deepEqual(created.value, { id: 'VF-3005', name: 'Ada Driver', phone: '555', status: 'available' });
+
+  const updated = normalizeDriverFields({ status: 'off_duty' }, { id: 'VF-1001', name: 'Marcus Vance', phone: '', status: 'available' });
+  assert.deepEqual(updated.errors, []);
+  assert.deepEqual(updated.value, { id: 'VF-1001', name: 'Marcus Vance', phone: null, status: 'off_duty' });
+
+  const invalid = normalizeDriverFields({ id: 'bad id', name: '', phone: 12, status: 'retired' });
+  assert.equal(invalid.errors.length, 4);
+});
+
+test('administrators have a driver dashboard backed by the database', () => {
+  const page = fs.readFileSync(path.join(ROOT, 'public', 'drivers-admin.html'), 'utf8');
+  assert.match(page, /href="\/theme\.css"/);
+  assert.match(page, /src="\/js\/theme\.js"/);
+  assert.match(page, /id="create-form"/);
+  assert.match(page, /api\/admin\/drivers/);
+  assert.match(page, /method: 'PATCH'/);
+
+  const admin = fs.readFileSync(path.join(ROOT, 'public', 'admin.html'), 'utf8');
+  assert.match(admin, /href="\/drivers-admin\.html"/);
+
+  const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
+  assert.match(server, /app\.get\('\/drivers-admin\.html', requirePageAdmin\(\)/);
+  assert.match(server, /app\.get\('\/api\/admin\/drivers', requireApiAdmin\(\)/);
+  assert.match(server, /app\.post\('\/api\/admin\/drivers', requireApiAdmin\(\)/);
+  assert.match(server, /app\.patch\('\/api\/admin\/drivers\/:id', requireApiAdmin\(\)/);
+
+  const repo = fs.readFileSync(path.join(ROOT, 'lib', 'repository.js'), 'utf8');
+  assert.match(repo, /async function listDrivers/);
+  assert.match(repo, /async function createDriver/);
+  assert.match(repo, /async function updateDriver/);
 });

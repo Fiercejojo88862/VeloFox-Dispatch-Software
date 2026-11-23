@@ -63,12 +63,38 @@ const STATUS_TRANSITIONS = {
   // A cancelled job can be reopened into any live or finished status.
   cancelled: new Set(BOOKING_STATUSES.filter((status) => status !== 'cancelled')),
 };
+// The database is authoritative; this map is a short-lived read cache so the
+// synchronous booking validators can still use it. Admin edits refresh it.
 const DRIVER_REGISTRY = new Map([
-  ['VF-1001', { id: 'VF-1001', name: 'Marcus Vance' }],
-  ['VF-1002', { id: 'VF-1002', name: 'David Sterling' }],
-  ['VF-1003', { id: 'VF-1003', name: 'Elena Marquez' }],
-  ['VF-2004', { id: 'VF-2004', name: 'Naomi Laurent' }],
+  ['VF-1001', { id: 'VF-1001', name: 'Marcus Vance', phone: '', status: 'available' }],
+  ['VF-1002', { id: 'VF-1002', name: 'David Sterling', phone: '', status: 'available' }],
+  ['VF-1003', { id: 'VF-1003', name: 'Elena Marquez', phone: '', status: 'available' }],
+  ['VF-2004', { id: 'VF-2004', name: 'Naomi Laurent', phone: '', status: 'available' }],
 ]);
+const DRIVER_STATUSES = new Set(['available', 'assigned', 'off_duty']);
+const DRIVER_CACHE_TTL_MS = 10000;
+let driversLoadedAt = 0;
+let driverRefresh = null;
+
+async function refreshDriverRegistry(force = false) {
+  const now = Date.now();
+  if (!force && driversLoadedAt > 0 && now - driversLoadedAt < DRIVER_CACHE_TTL_MS) return;
+  if (driverRefresh) return driverRefresh;
+
+  driverRefresh = (async () => {
+    try {
+      const drivers = await repo.listDrivers();
+      DRIVER_REGISTRY.clear();
+      drivers.forEach((driver) => DRIVER_REGISTRY.set(driver.id, driver));
+      driversLoadedAt = Date.now();
+    } catch (error) {
+      console.warn('[drivers] using cached registry:', error.message);
+    } finally {
+      driverRefresh = null;
+    }
+  })();
+  return driverRefresh;
+}
 
 // Rate-limit counters stay per instance; all durable state lives in PostgreSQL.
 const authAttempts = new Map();
@@ -93,6 +119,7 @@ app.use(async (req, res, next) => {
   if (req.path === '/api/health') return next();
   try {
     await ensureDatabase();
+    await refreshDriverRegistry();
     next();
   } catch (error) {
     next(error);
@@ -103,6 +130,9 @@ app.get('/dashboard.html', requirePageRole('dispatcher', '/dispatcher-login.html
 });
 app.get('/admin.html', requirePageAdmin(), (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+app.get('/drivers-admin.html', requirePageAdmin(), (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'drivers-admin.html'));
 });
 app.get('/financial.html', requirePageRole('dispatcher', '/dispatcher-login.html'), (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'financial.html'));
@@ -1120,6 +1150,73 @@ app.delete('/api/admin/sessions/:id', requireApiAdmin(), async (req, res) => {
   res.status(204).end();
 });
 
+function normalizeDriverFields(body, existing = null) {
+  const errors = [];
+  const source = isPlainObject(body) ? body : {};
+
+  const id = source.id === undefined ? existing?.id : normalizeDriverId(source.id);
+  if (!isNonEmptyString(id, MAX_DRIVER_ID_LENGTH) || !/^[A-Z0-9][A-Z0-9-]*$/.test(id)) {
+    errors.push(`id must be 1-${MAX_DRIVER_ID_LENGTH} uppercase letters, digits or hyphens.`);
+  }
+
+  const name = source.name === undefined ? existing?.name : (typeof source.name === 'string' ? source.name.trim() : '');
+  if (!isNonEmptyString(name, 120)) errors.push('name is required and must not exceed 120 characters.');
+
+  const rawPhone = source.phone === undefined ? existing?.phone : source.phone;
+  if (rawPhone !== null && rawPhone !== undefined && typeof rawPhone !== 'string') {
+    errors.push('phone must be a string or null.');
+  } else if (typeof rawPhone === 'string' && rawPhone.trim().length > MAX_PHONE_LENGTH) {
+    errors.push(`phone must not exceed ${MAX_PHONE_LENGTH} characters.`);
+  }
+  const phone = typeof rawPhone === 'string' && rawPhone.trim() ? rawPhone.trim() : null;
+
+  const status = source.status === undefined ? (existing?.status || 'available')
+    : (typeof source.status === 'string' ? source.status.trim().toLowerCase() : '');
+  if (!DRIVER_STATUSES.has(status)) {
+    errors.push(`status must be one of: ${[...DRIVER_STATUSES].join(', ')}.`);
+  }
+
+  return { errors, value: { id, name, phone, status } };
+}
+
+app.get('/api/admin/drivers', requireApiAdmin(), async (req, res) => {
+  res.json({ drivers: await repo.listDrivers() });
+});
+
+app.post('/api/admin/drivers', requireApiAdmin(), async (req, res) => {
+  const { errors, value } = normalizeDriverFields(req.body);
+  if (errors.length > 0) return res.status(400).json({ error: 'Validation failed.', details: errors });
+
+  try {
+    const driver = await repo.createDriver(value);
+    await refreshDriverRegistry(true);
+    await audit(req, 'driver.create', driver.id, { name: driver.name });
+    res.status(201).json({ driver });
+  } catch (error) {
+    if (error.code === '23505') return res.status(409).json({ error: `Driver ID "${value.id}" already exists.` });
+    throw error;
+  }
+});
+
+app.patch('/api/admin/drivers/:id', requireApiAdmin(), async (req, res) => {
+  const currentId = normalizeDriverId(req.params.id);
+  const existing = await repo.getDriverRecord(currentId);
+  if (!existing) return res.status(404).json({ error: 'Driver not found.' });
+
+  const { errors, value } = normalizeDriverFields(req.body, existing);
+  if (errors.length > 0) return res.status(400).json({ error: 'Validation failed.', details: errors });
+
+  try {
+    const driver = await repo.updateDriver(currentId, value);
+    await refreshDriverRegistry(true);
+    await audit(req, 'driver.update', driver.id, { name: driver.name, status: driver.status });
+    res.json({ driver });
+  } catch (error) {
+    if (error.code === '23505') return res.status(409).json({ error: `Driver ID "${value.id}" already exists.` });
+    throw error;
+  }
+});
+
 /**
  * Rotates the dispatcher access code. The new code is returned exactly once and
  * only its SHA-256 hash is stored, so it cannot be recovered later.
@@ -1632,6 +1729,7 @@ app.use((err, req, res, next) => {
 if (require.main === module) {
   db.ensureSchema()
     .then(async () => {
+      await refreshDriverRegistry(true);
       const rotatedCode = await repo.getSetting(INVITE_CODE_HASH_KEY);
       if (!DISPATCHER_INVITE_CODE && !rotatedCode) {
         console.warn('Dispatcher registration is disabled: set DISPATCHER_INVITE_CODE in .env, or rotate a code from /admin.html.');
@@ -1655,6 +1753,7 @@ module.exports.testables = {
   buildAnalyticsSummary,
   canTransitionStatus,
   getDriver,
+  normalizeDriverFields,
   generateLoginCode,
   hashLoginCode,
   hashPassword,
