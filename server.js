@@ -162,7 +162,16 @@ app.get('/financial.html', requirePageRole('dispatcher', '/dispatcher-login.html
 app.get('/client.html', requirePageRole('client', '/client-login.html'), (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'client.html'));
 });
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'public'), {
+  setHeaders(res, filePath) {
+    // Reset links carry a secret token in the query string; keep them out of
+    // caches and out of outgoing Referer headers.
+    if (path.basename(filePath) === 'reset-password.html') {
+      res.setHeader('Cache-Control', 'no-store');
+      res.setHeader('Referrer-Policy', 'no-referrer');
+    }
+  },
+}));
 
 /* ------------------------------- helpers ------------------------------- */
 
@@ -1934,11 +1943,10 @@ app.post('/api/driver/login', async (req, res) => {
   if (!valid) {
     if (driver) await repo.recordDriverAuthFailure(driver.id);
     recordAuthFailure(attemptKey);
-    const remaining = Math.max(0, AUTH_MAX_ATTEMPTS - (authAttempts.get(attemptKey)?.count || 0));
-    if (remaining === 0) {
+    if (isAuthRateLimited(attemptKey)) {
       return res.status(429).json({ error: 'Too many access-code attempts. Try again in 15 minutes.' });
     }
-    return res.status(401).json({ error: 'The Driver ID or access code is incorrect.', remaining });
+    return res.status(401).json({ error: 'The Driver ID or access code is incorrect.' });
   }
 
   authAttempts.delete(attemptKey);
