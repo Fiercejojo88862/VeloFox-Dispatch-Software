@@ -125,11 +125,23 @@ test('ping fleet notifies drivers through their manifest', () => {
 test('driver administration normalizes and validates driver fields', () => {
   const created = normalizeDriverFields({ id: 'vf-3005', name: '  Ada Driver  ', phone: ' 555 ', status: 'AVAILABLE' });
   assert.deepEqual(created.errors, []);
-  assert.deepEqual(created.value, { id: 'VF-3005', name: 'Ada Driver', phone: '555', status: 'available' });
+  assert.deepEqual(created.value, { id: 'VF-3005', name: 'Ada Driver', phone: '555', email: null, status: 'available' });
 
-  const updated = normalizeDriverFields({ status: 'off_duty' }, { id: 'VF-1001', name: 'Marcus Vance', phone: '', status: 'available' });
+  const emailSet = normalizeDriverFields({ id: 'VF-3005', name: 'Ada Driver', phone: '555', email: '  ada@example.com ', status: 'available' });
+  assert.deepEqual(emailSet.errors, []);
+  assert.deepEqual(emailSet.value.email, 'ada@example.com');
+
+  const emailCleared = normalizeDriverFields({ id: 'VF-3005', name: 'Ada Driver', phone: '555', email: '', status: 'available' });
+  assert.deepEqual(emailCleared.errors, []);
+  assert.deepEqual(emailCleared.value.email, null);
+
+  const emailInvalid = normalizeDriverFields({ id: 'VF-3005', name: 'Ada Driver', phone: '555', email: 'not-an-email', status: 'available' });
+  assert.ok(emailInvalid.errors.length >= 1);
+
+  const updated = normalizeDriverFields({ status: 'off_duty' }, { id: 'VF-1001', name: 'Marcus Vance', phone: '', email: 'm@v.fox', status: 'available' });
+  assert.deepEqual(updated.value, { id: 'VF-1001', name: 'Marcus Vance', phone: null, email: 'm@v.fox', status: 'off_duty' });
   assert.deepEqual(updated.errors, []);
-  assert.deepEqual(updated.value, { id: 'VF-1001', name: 'Marcus Vance', phone: null, status: 'off_duty' });
+  assert.deepEqual(updated.value, { id: 'VF-1001', name: 'Marcus Vance', phone: null, email: 'm@v.fox', status: 'off_duty' });
 
   const invalid = normalizeDriverFields({ id: 'bad id', name: '', phone: 12, status: 'retired' });
   assert.equal(invalid.errors.length, 4);

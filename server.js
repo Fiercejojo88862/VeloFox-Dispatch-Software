@@ -366,6 +366,56 @@ async function sendDriverJobEmail(booking) {
   await sendEmail(email, 'New job dispatched — VeloFox', text);
 }
 
+/**
+ * Sends a one-line SMS to a driver via Twilio when they are assigned a job.
+ * Requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM in the
+ * environment; without them the send is skipped.
+ */
+async function sendDriverSMS(booking) {
+  if (!booking.driverId) return;
+  const driver = await repo.getDriverRecord(booking.driverId);
+  const to = driver && driver.phone;
+  if (!to) return;
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const from = process.env.TWILIO_FROM;
+  if (!accountSid || !authToken || !from) {
+    console.warn(`[sms] skipped (no Twilio credentials configured): ${booking.driverId}`);
+    return;
+  }
+  const when = booking.pickupDateTime
+    ? `Pickup · ${new Date(booking.pickupDateTime).toLocaleString()}`
+    : '';
+  const body = [
+    `VeloFox: New job assigned — Ride ${String(booking.id).slice(0, 8)}`,
+    when,
+    `${booking.pickupLocation} → ${booking.dropoffLocation}`,
+    'Sign in to the driver portal to review.',
+  ].filter(Boolean).join('\n');
+  const form = new URLSearchParams({ To: to, From: from, Body: body });
+  try {
+    const response = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`,
+        },
+        body: form.toString(),
+      }
+    );
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      console.error('[sms] Twilio rejected the message:', response.status, data);
+      return;
+    }
+    console.log(`[sms] dispatched to ${to} for booking ${String(booking.id).slice(0, 8)}`);
+  } catch (error) {
+    console.error('[sms] Twilio send failed:', error.message);
+  }
+}
+
 async function deliverLoginCode(email, code) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM;
@@ -1220,7 +1270,24 @@ function normalizeDriverFields(body, existing = null) {
     errors.push(`status must be one of: ${[...DRIVER_STATUSES].join(', ')}.`);
   }
 
-  return { errors, value: { id, name, phone, status } };
+  const rawEmail = source.email === undefined ? existing?.email : source.email;
+  let email = null;
+  if (rawEmail !== null && rawEmail !== undefined) {
+    if (typeof rawEmail !== 'string') {
+      errors.push('email must be a string or null.');
+    } else {
+      const trimmedEmail = rawEmail.trim().toLowerCase();
+      if (trimmedEmail === '') {
+        email = null;
+      } else if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+        email = trimmedEmail;
+      } else {
+        errors.push('email must be a valid email address or blank.');
+      }
+    }
+  }
+
+  return { errors, value: { id, name, phone, email, status } };
 }
 
 app.get('/api/admin/drivers', requireApiAdmin(), async (req, res) => {
@@ -1814,6 +1881,7 @@ app.patch('/api/bookings/:id', async (req, res) => {
 
   if (changes.driverId !== null) {
     await sendDriverJobEmail(updated);
+    await sendDriverSMS(updated);
   }
 
   if (changes.driverLocation) {

@@ -163,6 +163,10 @@
           <input id="new-phone" name="phone" type="tel" maxlength="30" autocomplete="off">
         </div>
         <div>
+          <label for="new-email">Email (job alerts)</label>
+          <input id="new-email" name="email" type="email" maxlength="254" autocomplete="off" placeholder="driver@email.com">
+        </div>
+        <div>
           <label for="new-status">Status</label>
           <select id="new-status" name="status">
             <option value="available">Available</option>
@@ -184,7 +188,7 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Status</th><th>Updated</th><th></th></tr></thead>
+          <thead><tr><th>ID</th><th>Name</th><th>Phone</th><th>Email</th><th>Status</th><th>Updated</th><th></th></tr></thead>
           <tbody id="drivers-body"></tbody>
         </table>
       </div>
@@ -226,6 +230,10 @@
       <div>
         <label for="edit-phone">Phone</label>
         <input id="edit-phone" name="phone" type="tel" maxlength="30" autocomplete="off">
+      </div>
+      <div>
+        <label for="edit-email">Email (job alerts)</label>
+        <input id="edit-email" name="email" type="email" maxlength="254" autocomplete="off" placeholder="driver@email.com">
       </div>
       <div>
         <label for="edit-status">Status</label>
@@ -328,6 +336,7 @@
         cell(row, driver.id);
         cell(row, driver.name);
         cell(row, driver.phone);
+        cell(row, driver.email);
         const statusCell = document.createElement('td');
         const pill = document.createElement('span');
         pill.className = 'pill';
@@ -379,6 +388,7 @@
       document.getElementById('edit-id').value = driver.id;
       document.getElementById('edit-name').value = driver.name;
       document.getElementById('edit-phone').value = driver.phone || '';
+      document.getElementById('edit-email').value = driver.email || '';
       document.getElementById('edit-status').value = driver.status;
       editOverlay.hidden = false;
       document.getElementById('edit-name').focus();
