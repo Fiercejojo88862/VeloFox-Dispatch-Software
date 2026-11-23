@@ -1360,6 +1360,13 @@ app.post('/api/client/feedback', requireApiRole('client'), async (req, res) => {
   res.status(201).json(entry);
 });
 
+app.post('/api/fleet/ping', requireApiRole('dispatcher'), async (req, res) => {
+  const driverIds = [...DRIVER_REGISTRY.keys()];
+  const pinged = await repo.recordDispatchPings(driverIds);
+  await audit(req, 'fleet.ping', 'all-drivers', { pinged });
+  res.status(201).json({ pinged, at: new Date().toISOString() });
+});
+
 app.get('/api/telemetry', requireApiRole('dispatcher'), async (req, res) => {
   const [latestByDriver, activeTripRows, totalPings] = await Promise.all([
     repo.latestTelemetryByDriver(),
@@ -1429,9 +1436,12 @@ app.get('/api/drivers/:driverId/manifest', async (req, res) => {
     return res.status(404).json({ error: `Driver ID "${driverId}" was not recognized.` });
   }
 
-  const manifest = await repo.listManifest(driverId);
+  const [manifest, dispatchPingAt] = await Promise.all([
+    repo.listManifest(driverId),
+    repo.latestDispatchPing(driverId),
+  ]);
 
-  res.json({ driver, driverId, trips: manifest, updatedAt: new Date().toISOString() });
+  res.json({ driver, driverId, trips: manifest, dispatchPingAt, updatedAt: new Date().toISOString() });
 });
 
 app.post('/api/bookings', async (req, res) => {

@@ -97,3 +97,27 @@ test('schema and driver portal accept the dropped-off status', () => {
   const driver = fs.readFileSync(path.join(ROOT, 'public', 'driver.html'), 'utf8');
   assert.match(driver, /\{ status: 'dropped_off', label: 'Dropped Off' \}/);
 });
+
+test('live telemetry has a session-scoped clear toggle', () => {
+  const dashboard = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(dashboard, /id="telemetry-clear"[^>]*>Clear locations<\/button>/);
+  assert.match(dashboard, /radar\.clear\(\)/);
+  assert.match(dashboard, /radar\.resume\(\)/);
+  const map = fs.readFileSync(path.join(ROOT, 'public', 'js', 'telemetry-map.js'), 'utf8');
+  assert.match(map, /function clear\(\)/);
+  assert.match(map, /function resume\(\)/);
+  assert.match(map, /return \{ start, stop, refresh, clear, resume, destroy \}/);
+});
+
+test('ping fleet notifies drivers through their manifest', () => {
+  const dashboard = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(dashboard, /request\('\/api\/fleet\/ping', \{ method: 'POST' \}\)/);
+  const driver = fs.readFileSync(path.join(ROOT, 'public', 'driver.html'), 'utf8');
+  assert.match(driver, /data\.dispatchPingAt/);
+  assert.match(driver, /Dispatch pinged you — check your manifest\./);
+  const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
+  assert.match(server, /app\.post\('\/api\/fleet\/ping'/);
+  assert.match(server, /dispatchPingAt/);
+  const schema = fs.readFileSync(path.join(ROOT, 'schema.sql'), 'utf8');
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS dispatch_pings/);
+});

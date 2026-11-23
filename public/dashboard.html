@@ -859,6 +859,7 @@
         </div>
                 <button id="telemetry-refresh" class="btn btn-sm" type="button" data-audio="confirm">Ping fleet</button>
         <button id="telemetry-seed" class="btn btn-sm" type="button" data-audio="confirm">Seed demo telemetry</button>
+        <button id="telemetry-clear" class="btn btn-sm" type="button" aria-pressed="false" data-audio="confirm">Clear locations</button>
       </div>
       <div class="telemetry-body">
         <div class="telemetry-stage">
@@ -1006,6 +1007,7 @@
     const filterChip = document.getElementById('filter-chip');
     const telemetrySummaryEl = document.getElementById('telemetry-summary');
     const telemetryRefreshBtn = document.getElementById('telemetry-refresh');
+    const telemetryClearBtn = document.getElementById('telemetry-clear');
     const telemetryMap = document.getElementById('telemetry-map');
 
     /** @type {Array<object>} */
@@ -1320,12 +1322,13 @@
     const radar = window.VeloFoxTelemetryMap
       ? window.VeloFoxTelemetryMap.create({
         container: telemetryMap,
-        onSummary: ({ drivers, reporting, activeTrips, totalPings, updatedAt }) => {
+        onSummary: ({ drivers, reporting, activeTrips, totalPings, updatedAt, cleared }) => {
           telemetrySummaryEl.textContent = [
-            `${reporting} of ${drivers} chauffeurs reporting`,
+            `${cleared ? 0 : reporting} of ${drivers} chauffeurs reporting`,
             `${activeTrips} active ${activeTrips === 1 ? 'trip' : 'trips'}`,
             `${totalPings} pings logged`,
             updatedAt ? `updated ${updatedAt.toLocaleTimeString()}` : null,
+            cleared ? 'locations hidden for this tab' : null,
           ].filter(Boolean).join(' · ');
         },
         onState: ({ error }) => {
@@ -1929,7 +1932,25 @@
 
     if (radar) {
       radar.start();
-      telemetryRefreshBtn.addEventListener('click', () => radar.refresh());
+      telemetryRefreshBtn.addEventListener('click', async () => {
+        telemetryRefreshBtn.disabled = true;
+        try {
+          await request('/api/fleet/ping', { method: 'POST' });
+          radar.refresh();
+          showToast('All drivers pinged by dispatch.', 'success');
+        } catch (error) {
+          showToast(error.message, 'error', error.details);
+        } finally {
+          telemetryRefreshBtn.disabled = false;
+        }
+      });
+      telemetryClearBtn?.addEventListener('click', () => {
+        const clearing = telemetryClearBtn.getAttribute('aria-pressed') !== 'true';
+        if (clearing) radar.clear();
+        else radar.resume();
+        telemetryClearBtn.setAttribute('aria-pressed', String(clearing));
+        telemetryClearBtn.textContent = clearing ? 'Resume locations' : 'Clear locations';
+      });
     } else {
       telemetrySummaryEl.textContent = 'Telemetry module unavailable.';
     }

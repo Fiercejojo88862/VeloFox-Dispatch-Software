@@ -25,6 +25,8 @@
     let timer = 0;
     let fetching = false;
     let hasFitFleet = false;
+    let cleared = false;
+    let lastSummary = null;
 
     function markerIcon(driverId) {
       const suffix = String(driverId || '').split('-').pop().slice(-2) || 'VF';
@@ -63,6 +65,7 @@
         const activeIds = new Set();
 
         reporting.forEach((driver) => {
+          if (cleared) return;
           const { latitude, longitude } = driver.location;
           if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
           activeIds.add(driver.driverId);
@@ -89,19 +92,33 @@
           hasFitFleet = true;
         }
 
-        onSummary?.({
+        lastSummary = {
           drivers: drivers.length,
           reporting: reporting.length,
           activeTrips: activeTrips.length,
           totalPings: Number(data.totalPings) || 0,
           updatedAt: data.generatedAt ? new Date(data.generatedAt) : new Date(),
-        });
+        };
+        onSummary?.({ ...lastSummary, cleared });
         onState?.({ error: null });
       } catch (error) {
         onState?.({ error: error.message });
       } finally {
         fetching = false;
       }
+    }
+
+    function clear() {
+      cleared = true;
+      markers.forEach((marker) => marker.remove());
+      markers.clear();
+      hasFitFleet = false;
+      if (lastSummary) onSummary?.({ ...lastSummary, cleared: true });
+    }
+
+    function resume() {
+      cleared = false;
+      void refresh();
     }
 
     function start() {
@@ -120,7 +137,7 @@
       map.remove();
     }
 
-    return { start, stop, refresh, destroy };
+    return { start, stop, refresh, clear, resume, destroy };
   }
 
   global.VeloFoxTelemetryMap = { create };

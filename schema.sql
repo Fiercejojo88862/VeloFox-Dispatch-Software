@@ -59,6 +59,23 @@ CREATE TABLE IF NOT EXISTS drivers (
 
 COMMENT ON TABLE drivers IS 'Chauffeur identities used to retrieve assigned trip manifests.';
 
+-- Dispatch "ping fleet" markers, polled by the driver portal as notifications.
+CREATE TABLE IF NOT EXISTS dispatch_pings (
+    id         bigserial PRIMARY KEY,
+    driver_id  varchar(50) NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+
+    CONSTRAINT dispatch_pings_driver_id_fkey
+        FOREIGN KEY (driver_id) REFERENCES drivers (id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS dispatch_pings_driver_created_idx
+    ON dispatch_pings (driver_id, created_at DESC, id DESC);
+
+COMMENT ON TABLE dispatch_pings IS 'One row per driver per dispatch ping; the driver portal shows the newest ping as a message.';
+
 INSERT INTO drivers (id, display_name)
 VALUES
     ('VF-1001', 'Marcus Vance'),

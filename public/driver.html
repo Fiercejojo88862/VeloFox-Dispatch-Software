@@ -543,6 +543,7 @@
     let lastTelemetrySentAt = 0;
     let telemetryInFlight = false;
     let toastTimer = null;
+    let lastDispatchPingAt = null;
 
     const dateFormatter = new Intl.DateTimeFormat(undefined, {
       weekday: 'short',
@@ -751,6 +752,12 @@
         sessionStorage.setItem('velofoxDriverName', activeDriverName);
         driverName.textContent = activeDriverName.split(/\s+/)[0];
         trips = Array.isArray(data.trips) ? data.trips : [];
+        const pingAt = data.dispatchPingAt || null;
+        if (lastDispatchPingAt !== null && pingAt && pingAt !== lastDispatchPingAt) {
+          showToast('Dispatch pinged you — check your manifest.');
+          window.VeloFoxAudio?.play('confirm');
+        }
+        lastDispatchPingAt = pingAt;
         setConnection('api', 'online', 'Connected');
         lastRefresh.textContent = `Updated ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
         renderManifest();
@@ -825,6 +832,7 @@
 
     async function login(driverId) {
       activeDriverId = driverId.trim().toUpperCase();
+      lastDispatchPingAt = null;
       loginButton.disabled = true;
       loginError.textContent = '';
       try {
@@ -853,6 +861,7 @@
       manifestTimer = null;
       geolocationWatchId = null;
       latestPosition = null;
+      lastDispatchPingAt = null;
       activeDriverId = '';
       activeDriverName = '';
       trips = [];
