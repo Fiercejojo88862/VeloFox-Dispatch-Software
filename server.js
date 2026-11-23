@@ -119,6 +119,17 @@ function ensureDatabase() {
 }
 
 app.disable('x-powered-by');
+app.use((req, res, next) => {
+  // Defense-in-depth headers. Vercel's legacy build/routes config does not
+  // reliably apply vercel.json headers, so set them on every Express response.
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'geolocation=(self), camera=(), microphone=(), payment=()');
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+  res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+  next();
+});
 app.use(express.json());
 app.use('/api', (req, res, next) => {
   // API responses include account, driver, and booking data; never cache them.
