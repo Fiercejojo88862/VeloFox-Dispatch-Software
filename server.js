@@ -1224,6 +1224,88 @@ app.post('/api/demo/history', requireApiRole('dispatcher'), async (req, res) => 
   res.status(201).json({ created: inserted.length, rides: inserted });
 });
 
+/**
+ * Seeds demo telemetry for the dispatcher dashboard's live map: creates three
+ * in-flight rentals with drivers assigned, then records GPS fixes near the
+ * pickups so the map shows moving Chauffeurs.
+ * Never available in production unless ALLOW_DEMO_SEED=1 is set explicitly.
+ */
+app.post('/api/demo/telemetry', requireApiRole('dispatcher'), async (req, res) => {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== '1') {
+    return res.status(403).json({ error: 'Demo telemetry seeding is disabled in production.' });
+  }
+
+  const legs = [
+    {
+      driverId: 'VF-1001',
+      vehicleType: 'suv',
+      pickupLocation: 'JFK Airport',
+      dropoffLocation: 'The Plaza, Midtown, Manhattan',
+      latitude: 40.6399,
+      longitude: -73.7816,
+      heading: 140,
+      speed: 38,
+    },
+    {
+      driverId: 'VF-1002',
+      vehicleType: 'sedan',
+      pickupLocation: 'Newark Liberty International (EWR)',
+      dropoffLocation: 'The Plaza, Midtown, Manhattan',
+      latitude: 40.7141,
+      longitude: -74.1072,
+      heading: 90,
+      speed: 25,
+    },
+    {
+      driverId: 'VF-1003',
+      vehicleType: 'sedan',
+      pickupLocation: 'The Plaza, Midtown, Manhattan',
+      dropoffLocation: 'Lincoln Center, Upper West Side',
+      latitude: 40.7549,
+      longitude: -73.9840,
+      heading: 180,
+      speed: 32,
+    },
+  ];
+
+  const pickupAt = new Date(Date.now() + 45 * 60 * 1000).toISOString();
+  const created = await repo.insertDemoBookings(legs.map((leg) => ({
+    pickupLocation: leg.pickupLocation,
+    dropoffLocation: leg.dropoffLocation,
+    pickupDateTime: pickupAt,
+    vehicleType: leg.vehicleType,
+    passengerCount: 2,
+    driverId: leg.driverId,
+    assignedVehicle: 'Demo Chauffeur Fleet',
+    status: 'en_route',
+    pricing: pricing.derive({
+      mode: 'point_to_point',
+      baseRateCents: pricing.VEHICLE_BASE_RATES_CENTS[leg.vehicleType],
+      gratuityCents: 0,
+      depositCents: 0,
+    }),
+    clientName: null,
+    clientEmail: null,
+    createdAt: new Date().toISOString(),
+  })));
+
+  const telemetry = [];
+  for (const [index, leg] of legs.entries()) {
+    telemetry.push(await repo.recordTelemetry({
+      driverId: leg.driverId,
+      bookingId: created[index].id,
+      latitude: leg.latitude,
+      longitude: leg.longitude,
+      accuracy: 5,
+      heading: leg.heading,
+      speed: leg.speed,
+      recordedAt: new Date().toISOString(),
+    }));
+  }
+
+  res.status(201).json({ created: created.length, telemetry });
+});
+
 app.get('/api/client/trips', requireApiRole('client'), async (req, res) => {
   const [rows, reviews] = await Promise.all([
     repo.listClientTrips(req.authUser.email),

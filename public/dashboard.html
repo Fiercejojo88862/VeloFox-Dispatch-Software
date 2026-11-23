@@ -822,7 +822,8 @@
           <h2 id="telemetry-heading">Live telemetry</h2>
           <span id="telemetry-summary" class="muted small">Connecting to the fleet GPS feed…</span>
         </div>
-        <button id="telemetry-refresh" class="btn btn-sm" type="button" data-audio="confirm">Ping fleet</button>
+                <button id="telemetry-refresh" class="btn btn-sm" type="button" data-audio="confirm">Ping fleet</button>
+        <button id="telemetry-seed" class="btn btn-sm" type="button" data-audio="confirm">Seed demo telemetry</button>
       </div>
       <div class="telemetry-body">
         <div class="telemetry-stage">
@@ -1842,6 +1843,24 @@
     } else {
       telemetrySummaryEl.textContent = 'Telemetry module unavailable.';
     }
+
+    const telemetrySeedBtn = document.getElementById('telemetry-seed');
+    telemetrySeedBtn?.addEventListener('click', async () => {
+      if (!telemetrySeedBtn || telemetrySeedBtn.disabled) return;
+      telemetrySeedBtn.disabled = true;
+      const previousLabel = telemetrySeedBtn.textContent;
+      telemetrySeedBtn.textContent = 'Seeding…';
+      try {
+        await request('/api/demo/telemetry', { method: 'POST' });
+        showToast('Seeded demo telemetry — watching the fleet…', 'success');
+        radar?.refresh();
+      } catch (error) {
+        showToast(error.message, 'error', error.details);
+      } finally {
+        telemetrySeedBtn.disabled = false;
+        telemetrySeedBtn.textContent = previousLabel;
+      }
+    });
     document.getElementById('logout').addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.replace('/dispatcher-login.html');
