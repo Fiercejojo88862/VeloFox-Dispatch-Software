@@ -106,6 +106,10 @@
     .pill[data-status="available"] { color: var(--ok); border-color: var(--ok); }
     .pill[data-status="assigned"] { color: var(--accent); border-color: var(--accent); }
     .pill[data-status="off_duty"] { color: var(--danger); border-color: var(--danger); }
+    .pill[data-status="deleted"] { color: var(--danger); border-color: var(--danger); opacity: 0.8; }
+    .pill[data-action="created"], .pill[data-action="reactivated"] { color: var(--ok); border-color: var(--ok); }
+    .pill[data-action="updated"] { color: var(--accent); border-color: var(--accent); }
+    .pill[data-action="deleted"] { color: var(--danger); border-color: var(--danger); }
     .empty { color: var(--muted); font-size: 13px; padding: 12px 0; }
 
     .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.72); display: grid; place-items: center; padding: 18px; z-index: 40; }
@@ -186,6 +190,23 @@
       </div>
       <p id="drivers-empty" class="empty" hidden>No drivers yet.</p>
     </section>
+
+    <section class="panel" aria-labelledby="submissions-heading">
+      <div class="panel-head">
+        <div>
+          <h2 id="submissions-heading">Driver submissions</h2>
+          <p>Every submission made from a driver portal, kept permanently — including profiles drivers later delete.</p>
+        </div>
+        <button id="submissions-reload" class="btn btn-sm" type="button">Reload</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Submitted</th><th>Driver ID</th><th>Name</th><th>Phone</th><th>Action</th><th>Source</th></tr></thead>
+          <tbody id="submissions-body"></tbody>
+        </table>
+      </div>
+      <p id="submissions-empty" class="empty" hidden>No driver submissions yet.</p>
+    </section>
   </main>
 
   <div id="driver-modal" class="modal-overlay" hidden>
@@ -228,11 +249,14 @@
     const statsBox = document.getElementById('stats');
     const driversBody = document.getElementById('drivers-body');
     const driversEmpty = document.getElementById('drivers-empty');
+    const submissionsBody = document.getElementById('submissions-body');
+    const submissionsEmpty = document.getElementById('submissions-empty');
     const editOverlay = document.getElementById('driver-modal');
     const editForm = document.getElementById('edit-form');
     const identity = document.getElementById('identity');
     let editingDriverId = null;
     let drivers = [];
+    let submissions = [];
 
     function notify(message, kind = 'ok') {
       banner.textContent = message;
@@ -265,15 +289,17 @@
     }
 
     function renderStats() {
-      const counts = { total: drivers.length, available: 0, assigned: 0, off_duty: 0 };
+      const counts = { total: drivers.length, available: 0, assigned: 0, off_duty: 0, deleted: 0 };
       drivers.forEach((driver) => {
-        if (counts[driver.status] !== undefined) counts[driver.status] += 1;
+        if (driver.deletedAt) counts.deleted += 1;
+        else if (counts[driver.status] !== undefined) counts[driver.status] += 1;
       });
       const cards = [
         ['total', 'Total drivers'],
         ['available', 'Available'],
         ['assigned', 'Assigned'],
         ['off_duty', 'Off duty'],
+        ['deleted', 'Deleted'],
       ];
       statsBox.replaceChildren(...cards.map(([key, label]) => {
         const card = document.createElement('div');
@@ -305,8 +331,8 @@
         const statusCell = document.createElement('td');
         const pill = document.createElement('span');
         pill.className = 'pill';
-        pill.dataset.status = driver.status;
-        pill.textContent = driver.status.replace('_', ' ');
+        pill.dataset.status = driver.deletedAt ? 'deleted' : driver.status;
+        pill.textContent = driver.deletedAt ? 'deleted' : driver.status.replace('_', ' ');
         statusCell.append(pill);
         row.append(statusCell);
         cell(row, formatDate(driver.updatedAt));
@@ -325,6 +351,29 @@
       renderStats();
     }
 
+    function renderSubmissions() {
+      submissionsBody.replaceChildren();
+      submissionsEmpty.hidden = submissions.length > 0;
+      submissions.forEach((submission) => {
+        const row = document.createElement('tr');
+        cell(row, formatDate(submission.submittedAt));
+        cell(row, submission.driverId);
+        cell(row, submission.name);
+        cell(row, submission.phone);
+
+        const actionCell = document.createElement('td');
+        const action = document.createElement('span');
+        action.className = 'pill';
+        action.dataset.action = submission.action;
+        action.textContent = submission.action;
+        actionCell.append(action);
+        row.append(actionCell);
+
+        cell(row, submission.source === 'admin' ? 'Admin console' : 'Driver portal');
+        submissionsBody.append(row);
+      });
+    }
+
     function openEditor(driver) {
       editingDriverId = driver.id;
       document.getElementById('edit-id').value = driver.id;
@@ -340,10 +389,20 @@
       editingDriverId = null;
     }
 
+    async function loadSubmissions() {
+      try {
+        const data = await api('/api/admin/driver-submissions');
+        submissions = Array.isArray(data.submissions) ? data.submissions : [];
+        renderSubmissions();
+      } catch (error) {
+        notify(error.message, 'error');
+      }
+    }
+
     async function load() {
       try {
-        const data = await api('/api/admin/drivers');
-        drivers = Array.isArray(data.drivers) ? data.drivers : [];
+        const [driverData] = await Promise.all([api('/api/admin/drivers'), loadSubmissions()]);
+        drivers = Array.isArray(driverData.drivers) ? driverData.drivers : [];
         renderDrivers();
       } catch (error) {
         notify(error.message, 'error');
@@ -395,6 +454,7 @@
     document.getElementById('edit-close').addEventListener('click', closeEditor);
     document.getElementById('edit-cancel').addEventListener('click', closeEditor);
     document.getElementById('reload').addEventListener('click', () => { clearNotice(); void load(); });
+    document.getElementById('submissions-reload').addEventListener('click', () => { clearNotice(); void loadSubmissions(); });
 
     document.getElementById('logout').addEventListener('click', async () => {
       try {

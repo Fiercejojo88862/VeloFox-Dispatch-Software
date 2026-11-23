@@ -85,7 +85,7 @@ async function refreshDriverRegistry(force = false) {
     try {
       const drivers = await repo.listDrivers();
       DRIVER_REGISTRY.clear();
-      drivers.forEach((driver) => DRIVER_REGISTRY.set(driver.id, driver));
+      drivers.filter((driver) => !driver.deletedAt).forEach((driver) => DRIVER_REGISTRY.set(driver.id, driver));
       driversLoadedAt = Date.now();
     } catch (error) {
       console.warn('[drivers] using cached registry:', error.message);
@@ -322,6 +322,50 @@ async function inviteCodeMatches(submitted) {
  * RESEND_API_KEY and MAIL_FROM are configured; otherwise the code is printed to
  * the server console (the local terminal, or the deployment logs on Vercel).
  */
+async function sendEmail(to, subject, text) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const from = process.env.MAIL_FROM;
+  if (!to || !apiKey || !from) {
+    console.warn(`[email] skipped (no recipient or SMTP configured): ${to} | ${subject}`);
+    return { sent: false, reason: 'not configured' };
+  }
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({ from, to, subject, text }),
+    });
+    const data = await response.json().catch(() => null);
+    if (!response.ok) {
+      console.error('[email] send failed:', response.status, data);
+      return { sent: false, reason: `status ${response.status}` };
+    }
+    return { sent: true };
+  } catch (error) {
+    console.error('[email] send failed:', error.message);
+    return { sent: false, reason: error.message };
+  }
+}
+
+async function sendDriverJobEmail(booking) {
+  if (!booking.driverId) return;
+  const email = await repo.getDriverEmail(booking.driverId);
+  if (!email) return;
+  const when = booking.pickupDateTime
+    ? `Pickup · ${new Date(booking.pickupDateTime).toLocaleString()}`
+    : '';
+  const text = [
+    "You've been assigned a new job:",
+    "",
+    `Ride ${String(booking.id).slice(0, 8)}`,
+    when,
+    `${booking.pickupLocation} → ${booking.dropoffLocation}`,
+    "",
+    "Sign in to your driver portal to review and start.",
+  ].filter(Boolean).join("\n");
+  await sendEmail(email, 'New job dispatched — VeloFox', text);
+}
+
 async function deliverLoginCode(email, code) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM;
@@ -1217,6 +1261,74 @@ app.patch('/api/admin/drivers/:id', requireApiAdmin(), async (req, res) => {
   }
 });
 
+app.get('/api/admin/driver-submissions', requireApiAdmin(), async (req, res) => {
+  res.json({ submissions: await repo.listDriverSubmissions() });
+});
+
+/* ------------------------ driver self-service ------------------------ */
+
+app.post('/api/driver/profile', async (req, res) => {
+  const { errors, value } = normalizeDriverFields({ ...(req.body || {}), status: 'available' });
+  if (errors.length > 0) return res.status(400).json({ error: 'Validation failed.', details: errors });
+
+  const existing = await repo.getDriverRecord(value.id);
+  if (existing && !existing.deletedAt) {
+    return res.status(409).json({ error: `Driver ID "${value.id}" is already registered. Sign in instead.` });
+  }
+
+  try {
+    const driver = existing
+      ? await repo.reactivateDriver(value.id, value)
+      : await repo.createDriver(value);
+    const action = existing ? 'reactivated' : 'created';
+    await repo.recordDriverSubmission({
+      driverId: driver.id, name: driver.name, phone: driver.phone, action,
+    });
+    await refreshDriverRegistry(true);
+    await audit(req, `driver.self_${action}`, driver.id, { name: driver.name });
+    res.status(201).json({ driver, action });
+  } catch (error) {
+    if (error.code === '23505') return res.status(409).json({ error: `Driver ID "${value.id}" is already registered.` });
+    throw error;
+  }
+});
+
+app.patch('/api/driver/profile/:id', async (req, res) => {
+  const driverId = normalizeDriverId(req.params.id);
+  const existing = await repo.getDriverRecord(driverId);
+  if (!existing || existing.deletedAt) return res.status(404).json({ error: 'Driver profile not found.' });
+
+  const { errors, value } = normalizeDriverFields({
+    id: existing.id,
+    name: req.body?.name,
+    phone: req.body?.phone,
+    status: existing.status,
+  }, existing);
+  if (errors.length > 0) return res.status(400).json({ error: 'Validation failed.', details: errors });
+
+  const driver = await repo.updateDriverProfile(driverId, value);
+  await repo.recordDriverSubmission({
+    driverId: driver.id, name: driver.name, phone: driver.phone, action: 'updated',
+  });
+  await refreshDriverRegistry(true);
+  await audit(req, 'driver.self_update', driver.id, { name: driver.name });
+  res.json({ driver });
+});
+
+app.delete('/api/driver/profile/:id', async (req, res) => {
+  const driverId = normalizeDriverId(req.params.id);
+  const existing = await repo.getDriverRecord(driverId);
+  if (!existing || existing.deletedAt) return res.status(404).json({ error: 'Driver profile not found.' });
+
+  const driver = await repo.softDeleteDriver(driverId);
+  await repo.recordDriverSubmission({
+    driverId: existing.id, name: existing.name, phone: existing.phone, action: 'deleted',
+  });
+  await refreshDriverRegistry(true);
+  await audit(req, 'driver.self_delete', driverId, { name: existing.name });
+  res.json({ driver });
+});
+
 /**
  * Rotates the dispatcher access code. The new code is returned exactly once and
  * only its SHA-256 hash is stored, so it cannot be recovered later.
@@ -1684,6 +1796,10 @@ app.patch('/api/bookings/:id', async (req, res) => {
   }
 
   const updated = await repo.updateBooking(booking.id, changes);
+
+  if (changes.driverId !== null) {
+    await sendDriverJobEmail(updated);
+  }
 
   if (changes.driverLocation) {
     await repo.recordTelemetry({
