@@ -129,6 +129,7 @@ test('new dispatchers receive a replayable tour and can save a custom dashboard 
   assert.match(html, /id="customize-dashboard"/);
   assert.match(html, /id="dashboard-tour"/);
   assert.match(html, /const TOUR_STEPS = \[/);
+  assert.match(html, /title: 'See live jobs each day on this calendar'/);
   assert.match(html, /localStorage\.getItem\(dashboardTourKey\) === 'complete'/);
   assert.match(html, /localStorage\.setItem\(dashboardTourKey, 'complete'\)/);
   assert.match(html, /data-dashboard-section="summary"/);
