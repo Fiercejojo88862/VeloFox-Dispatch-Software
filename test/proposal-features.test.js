@@ -157,3 +157,35 @@ test('administrators have a driver dashboard backed by the database', () => {
   assert.match(repo, /async function createDriver/);
   assert.match(repo, /async function updateDriver/);
 });
+
+test('drivers can register themselves and keep a permanent submission history', () => {
+  const portal = fs.readFileSync(path.join(ROOT, 'public', 'driver.html'), 'utf8');
+  assert.match(portal, /id="register-form"/);
+  assert.match(portal, /id="profile-form"/);
+  assert.match(portal, /Delete my profile/);
+  assert.match(portal, /\/api\/driver\/profile/);
+  assert.match(portal, /your submissions remain with dispatch/i);
+
+  const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
+  assert.match(server, /app\.post\('\/api\/driver\/profile'/);
+  assert.match(server, /app\.patch\('\/api\/driver\/profile\/:id'/);
+  assert.match(server, /app\.delete\('\/api\/driver\/profile\/:id'/);
+  assert.match(server, /app\.get\('\/api\/admin\/driver-submissions', requireApiAdmin\(\)/);
+
+  const repo = fs.readFileSync(path.join(ROOT, 'lib', 'repository.js'), 'utf8');
+  assert.match(repo, /async function recordDriverSubmission/);
+  assert.match(repo, /async function listDriverSubmissions/);
+  assert.match(repo, /async function softDeleteDriver/);
+
+  const schema = fs.readFileSync(path.join(ROOT, 'schema.sql'), 'utf8');
+  assert.match(schema, /deleted_at\s+timestamptz/);
+  assert.match(schema, /CREATE TABLE IF NOT EXISTS driver_submissions/);
+});
+
+test('admin dashboard shows driver submissions even after deletion', () => {
+  const page = fs.readFileSync(path.join(ROOT, 'public', 'drivers-admin.html'), 'utf8');
+  assert.match(page, /id="submissions-body"/);
+  assert.match(page, /api\/admin\/driver-submissions/);
+  assert.match(page, /including profiles drivers later delete/);
+  assert.match(page, /driver\.deletedAt \? 'deleted'/);
+});

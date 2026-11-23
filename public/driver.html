@@ -200,6 +200,23 @@
 
     .form-note { min-height: 22px; margin: 12px 0 0; color: var(--danger); font-size: 13px; }
 
+    .join-block { margin-top: 26px; padding-top: 6px; border-top: 1px solid var(--line); }
+    .join-divider { display: flex; align-items: center; gap: 10px; margin-top: 18px; color: var(--muted); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; }
+    .join-divider::before, .join-divider::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+    .join-copy { margin: 12px 0 18px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .optional-note { color: var(--muted); font-size: 11px; font-weight: 400; letter-spacing: 0; text-transform: none; }
+
+    .profile-input { min-height: 44px; padding: 0 12px; font-size: 14px; letter-spacing: normal; text-transform: none; }
+    .profile-form .form-note { min-height: 18px; margin: 8px 0 0; }
+    .profile-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+    .profile-actions .primary-button { width: auto; min-height: 44px; flex: 1 1 120px; margin-top: 0; font-size: 13px; }
+    .danger-button {
+      min-height: 44px; flex: 1 1 140px; padding: 0 14px; border: 1px solid var(--danger); border-radius: 12px;
+      color: var(--danger); background: transparent; font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+      text-transform: uppercase; cursor: pointer; transition: background 160ms;
+    }
+    .danger-button:hover { background: rgba(204, 138, 125, 0.12); }
+
     .portal { display: none; }
     .portal.is-active { display: block; }
     .login-wrap.is-hidden { display: none; }
@@ -556,6 +573,24 @@
           <button id="login-button" class="primary-button" type="submit">Open my manifest</button>
           <p id="login-error" class="form-note" role="alert" aria-live="polite"></p>
         </form>
+
+        <div class="join-block">
+          <div class="join-divider"><span>New to VeloFox?</span></div>
+          <p class="join-copy">Add yourself to the fleet. Dispatch keeps every submission on record, even if you remove your profile later.</p>
+          <form id="register-form" novalidate>
+            <label for="register-id">Driver ID</label>
+            <input id="register-id" class="input" name="id" type="text" maxlength="50"
+              placeholder="VF-3005" autocomplete="off" autocapitalize="characters" required>
+            <label for="register-name">Full name</label>
+            <input id="register-name" class="input profile-input" name="name" type="text" maxlength="120"
+              placeholder="Your full name" autocomplete="name" required>
+            <label for="register-phone">Phone <span class="optional-note">(optional)</span></label>
+            <input id="register-phone" class="input profile-input" name="phone" type="tel" maxlength="30"
+              placeholder="(555) 010-2030" autocomplete="tel">
+            <button id="register-button" class="primary-button" type="submit">Add myself</button>
+            <p id="register-error" class="form-note" role="alert" aria-live="polite"></p>
+          </form>
+        </div>
       </div>
     </section>
 
@@ -592,6 +627,23 @@
             <h2 class="card-title" id="settings-heading">Portal settings</h2>
           </div>
           <div id="portal-settings" class="settings-list"></div>
+        </div>
+        <div class="card" aria-labelledby="profile-heading">
+          <div class="card-head">
+            <span class="card-kicker">Your details</span>
+            <h2 class="card-title" id="profile-heading">My profile</h2>
+          </div>
+          <form id="profile-form" class="profile-form" novalidate>
+            <label for="profile-name">Full name</label>
+            <input id="profile-name" class="input profile-input" name="name" type="text" maxlength="120" autocomplete="name" required>
+            <label for="profile-phone">Phone</label>
+            <input id="profile-phone" class="input profile-input" name="phone" type="tel" maxlength="30" autocomplete="tel">
+            <p id="profile-note" class="form-note" role="alert" aria-live="polite"></p>
+            <div class="profile-actions">
+              <button id="profile-save" class="primary-button" type="submit">Save changes</button>
+              <button id="profile-delete" class="danger-button" type="button">Delete my profile</button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -656,9 +708,22 @@
     const gpsDot = document.getElementById('gps-dot');
     const gpsState = document.getElementById('gps-state');
     const toast = document.getElementById('toast');
+    const registerForm = document.getElementById('register-form');
+    const registerIdInput = document.getElementById('register-id');
+    const registerNameInput = document.getElementById('register-name');
+    const registerPhoneInput = document.getElementById('register-phone');
+    const registerButton = document.getElementById('register-button');
+    const registerError = document.getElementById('register-error');
+    const profileForm = document.getElementById('profile-form');
+    const profileNameInput = document.getElementById('profile-name');
+    const profilePhoneInput = document.getElementById('profile-phone');
+    const profileNote = document.getElementById('profile-note');
+    const profileSaveButton = document.getElementById('profile-save');
+    const profileDeleteButton = document.getElementById('profile-delete');
 
     let activeDriverId = '';
     let activeDriverName = '';
+    let activeDriverPhone = '';
     let trips = [];
     let completedToday = 0;
     let manifestTimer = null;
@@ -876,6 +941,9 @@
           : (sessionStorage.getItem('velofoxDriverName') || activeDriverId);
         sessionStorage.setItem('velofoxDriverName', activeDriverName);
         driverName.textContent = activeDriverName.split(/\s+/)[0];
+        activeDriverPhone = data && data.driver && data.driver.phone ? data.driver.phone : '';
+        if (document.activeElement !== profileNameInput) profileNameInput.value = activeDriverName;
+        if (document.activeElement !== profilePhoneInput) profilePhoneInput.value = activeDriverPhone;
         trips = Array.isArray(data.trips) ? data.trips : [];
         completedToday = typeof data.completedToday === 'number' ? data.completedToday : 0;
         const pingAt = data.dispatchPingAt || null;
@@ -1060,6 +1128,7 @@
 
       addSpec('Driver ID', activeDriverId || '—');
       addSpec('Name', activeDriverName || '—');
+      addSpec('Phone', activeDriverPhone || 'Not provided');
       const vehicleType = specTrip?.vehicleType;
       addSpec('Vehicle class', vehicleType ? (VEHICLE_CLASS_LABELS[vehicleType] || vehicleType) : 'No active vehicle');
       addSpec('Passenger capacity', vehicleType ? `${VEHICLE_CAPACITY[vehicleType] || '—'} passengers` : '—');
@@ -1125,6 +1194,11 @@
       lastDispatchPingAt = null;
       activeDriverId = '';
       activeDriverName = '';
+      activeDriverPhone = '';
+      profileNameInput.value = '';
+      profilePhoneInput.value = '';
+      profileNote.textContent = '';
+      registerError.textContent = '';
       trips = [];
       portalView.classList.remove('is-active');
       loginView.classList.remove('is-hidden');
@@ -1143,6 +1217,72 @@
         return;
       }
       void login(driverId);
+    });
+
+    registerForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      registerError.textContent = '';
+      registerButton.disabled = true;
+      try {
+        const data = await request('/api/driver/profile', {
+          method: 'POST',
+          body: JSON.stringify({
+            id: registerIdInput.value,
+            name: registerNameInput.value,
+            phone: registerPhoneInput.value,
+          }),
+        });
+        const createdId = data.driver.id;
+        registerForm.reset();
+        driverIdInput.value = createdId;
+        showToast(data.action === 'reactivated'
+          ? 'Welcome back — your profile is active again.'
+          : 'You are in the fleet. Opening your manifest…');
+        await login(createdId);
+      } catch (error) {
+        registerError.textContent = error.message;
+      } finally {
+        registerButton.disabled = false;
+      }
+    });
+
+    profileForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (!activeDriverId) return;
+      profileNote.textContent = '';
+      profileSaveButton.disabled = true;
+      try {
+        const data = await request(`/api/driver/profile/${encodeURIComponent(activeDriverId)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ name: profileNameInput.value, phone: profilePhoneInput.value }),
+        });
+        activeDriverName = data.driver.name;
+        activeDriverPhone = data.driver.phone || '';
+        sessionStorage.setItem('velofoxDriverName', activeDriverName);
+        driverName.textContent = activeDriverName.split(/\s+/)[0];
+        renderSpecs();
+        showToast('Profile saved — dispatch has your latest details.');
+      } catch (error) {
+        profileNote.textContent = error.message;
+      } finally {
+        profileSaveButton.disabled = false;
+      }
+    });
+
+    profileDeleteButton.addEventListener('click', async () => {
+      if (!activeDriverId) return;
+      if (!window.confirm('Delete your driver profile? Dispatch will keep your previous submissions.')) return;
+      profileDeleteButton.disabled = true;
+      try {
+        await request(`/api/driver/profile/${encodeURIComponent(activeDriverId)}`, { method: 'DELETE' });
+        showToast('Profile deleted — your submissions remain with dispatch.');
+        logout();
+      } catch (error) {
+        profileNote.textContent = error.message;
+        showToast(error.message, true);
+      } finally {
+        profileDeleteButton.disabled = false;
+      }
     });
 
     logoutButton.addEventListener('click', logout);

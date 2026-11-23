@@ -47,9 +47,11 @@ CREATE TABLE IF NOT EXISTS drivers (
     id            varchar(50) PRIMARY KEY,
     display_name  varchar(120) NOT NULL,
     phone         varchar(30),
+    email         varchar(254),
     status        text NOT NULL DEFAULT 'available',
     created_at    timestamptz NOT NULL DEFAULT now(),
     updated_at    timestamptz NOT NULL DEFAULT now(),
+    deleted_at    timestamptz,
 
     CONSTRAINT drivers_id_check CHECK (btrim(id) <> ''),
     CONSTRAINT drivers_display_name_check CHECK (btrim(display_name) <> ''),
@@ -58,6 +60,33 @@ CREATE TABLE IF NOT EXISTS drivers (
 );
 
 COMMENT ON TABLE drivers IS 'Chauffeur identities used to retrieve assigned trip manifests.';
+
+-- Existing databases gain the soft-delete column when this schema is re-applied.
+ALTER TABLE drivers ADD COLUMN IF NOT EXISTS deleted_at timestamptz;
+ALTER TABLE drivers ADD COLUMN IF NOT EXISTS email varchar(254);
+CREATE INDEX IF NOT EXISTS drivers_deleted_at_idx ON drivers (deleted_at);
+
+-- Driver portal submissions are kept as a permanent history. Deleting a driver
+-- profile only soft-deletes the driver row; these records are never removed.
+CREATE TABLE IF NOT EXISTS driver_submissions (
+    id           bigserial PRIMARY KEY,
+    driver_id    varchar(50) NOT NULL,
+    name         varchar(120) NOT NULL,
+    phone        varchar(30),
+    action       text NOT NULL,
+    source       text NOT NULL DEFAULT 'driver_portal',
+    submitted_at timestamptz NOT NULL DEFAULT now(),
+
+    CONSTRAINT driver_submissions_action_check
+        CHECK (action IN ('created', 'updated', 'deleted', 'reactivated')),
+    CONSTRAINT driver_submissions_source_check
+        CHECK (source IN ('driver_portal', 'admin'))
+);
+
+CREATE INDEX IF NOT EXISTS driver_submissions_submitted_idx
+    ON driver_submissions (submitted_at DESC, id DESC);
+
+COMMENT ON TABLE driver_submissions IS 'Permanent audit of driver portal self-service submissions, including deleted profiles.';
 
 -- Dispatch "ping fleet" markers, polled by the driver portal as notifications.
 CREATE TABLE IF NOT EXISTS dispatch_pings (
@@ -82,8 +111,7 @@ VALUES
     ('VF-1002', 'David Sterling'),
     ('VF-1003', 'Elena Marquez'),
     ('VF-2004', 'Naomi Laurent')
-ON CONFLICT (id) DO UPDATE
-SET display_name = EXCLUDED.display_name;
+ON CONFLICT (id) DO NOTHING;
 
 -- -----------------------------------------------------------------------------
 -- Client and dispatcher accounts
