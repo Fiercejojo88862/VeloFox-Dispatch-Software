@@ -620,6 +620,11 @@
             <h2 class="card-title" id="specs-heading">Driver specs</h2>
           </div>
           <div id="driver-specs" class="specs"></div>
+          <div class="driver-fields">
+            <div class="spec-row"><span class="spec-label">Driver ID (if known)</span><input id="driver-id-field" type="text" maxlength="20" placeholder="e.g., VF-1001" style="border:1px solid var(--line);background:var(--black);color:#d7d3ca;padding:7px 10px;border-radius:8px;width:160px;font-size:13px"></div>
+            <div class="spec-row"><span class="spec-label">Email</span><div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><input id="driver-email-field" type="email" placeholder="you@email.com" style="border:1px solid var(--line);background:var(--black);color:#d7d3ca;padding:7px 10px;border-radius:8px;width:220px;font-size:13px"><button id="driver-email-save" type="button" style="padding:7px 10px;font-size:10px">Save email</button></div></div>
+            <div class="spec-row"><span id="driver-email-status" style="color:var(--gold)"></span></div>
+          </div>
         </div>
         <div class="card" aria-labelledby="settings-heading">
           <div class="card-head">
@@ -1140,6 +1145,21 @@
 
     renderSettings();
     applySettings();
+
+    const driverIdField = document.getElementById('driver-id-field');
+    const driverEmailField = document.getElementById('driver-email-field');
+    const driverEmailSave = document.getElementById('driver-email-save');
+    const driverEmailStatus = document.getElementById('driver-email-status');
+    driverIdField?.addEventListener('change', () => { driverIdField.value = driverIdField.value.trim().toUpperCase(); });
+    driverEmailSave?.addEventListener('click', async () => {
+      const email = driverEmailField?.value.trim() || '';
+      try {
+        await request(`/api/drivers/${encodeURIComponent(activeDriverId)}/email`, { method: 'POST', body: JSON.stringify({ email }) });
+        driverEmailStatus.textContent = email ? `Email saved: ${email}` : 'Email cleared.';
+      } catch (error) {
+        driverEmailStatus.textContent = error.message;
+      }
+    });
 
     let jobNoticeTimer = null;
 

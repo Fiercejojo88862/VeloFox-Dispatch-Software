@@ -836,13 +836,7 @@
 
             <div class="field">
               <label for="preferredDriverId" data-i18n="booking.chauffeur">Preferred chauffeur</label>
-              <select id="preferredDriverId" name="preferredDriverId">
-                <option value="" data-i18n="booking.option.none">No preference</option>
-                <option value="VF-1001">Marcus Vance</option>
-                <option value="VF-1002">David Sterling</option>
-                <option value="VF-1003">Elena Marquez</option>
-                <option value="VF-2004">Naomi Laurent</option>
-              </select>
+              <input id="preferredDriverId" name="preferredDriverId" type="text" maxlength="50" placeholder="e.g., VF-1001" autocomplete="off" aria-label="Preferred chauffeur">
               <p class="hint" data-i18n="booking.hint.chauffeur">Dispatch will try to honor the request when available.</p>
             </div>
 

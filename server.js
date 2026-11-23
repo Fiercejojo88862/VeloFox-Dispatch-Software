@@ -1618,6 +1618,21 @@ app.get('/api/telemetry', requireApiRole('dispatcher'), async (req, res) => {
   });
 });
 
+app.post('/api/drivers/:driverId/email', requireApiRole('dispatcher'), async (req, res) => {
+  const driverId = normalizeDriverId(req.params.driverId);
+  if (!isNonEmptyString(driverId, MAX_DRIVER_ID_LENGTH)) {
+    return res.status(400).json({ error: 'A valid Driver ID is required.' });
+  }
+  const driver = getDriver(driverId);
+  if (!driver) {
+    return res.status(404).json({ error: `Driver ID "${driverId}" was not recognized.` });
+  }
+  const email = req.body && typeof req.body.email === 'string' ? req.body.email.trim() : '';
+  const result = await repo.setDriverEmail(driverId, email);
+  if (result.error) return res.status(400).json({ error: result.error });
+  return res.json({ driver: { ...driver, email: result.email } });
+});
+
 app.get('/api/drivers/:driverId', (req, res) => {
   const driverId = normalizeDriverId(req.params.driverId);
 
