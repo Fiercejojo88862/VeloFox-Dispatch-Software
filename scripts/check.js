@@ -32,6 +32,9 @@ const REQUIRED_FILES = [
   'public/assets/fleet/cadillac-escalade.webp',
   'public/assets/fleet/cadillac-escalade-stretch.webp',
   'public/assets/fleet/mercedes-sprinter.webp',
+  'public/assets/screenshots/dispatcher-dashboard.webp',
+  'public/assets/screenshots/chauffeur-portal.webp',
+  'public/assets/screenshots/client-portal.webp',
 ];
 
 function collectScripts() {

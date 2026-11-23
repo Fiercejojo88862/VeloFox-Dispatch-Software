@@ -522,6 +522,97 @@
       .testimonial-grid { grid-template-columns: 1fr; }
     }
 
+    /* ---------- software preview ---------- */
+
+    .software-preview {
+      margin-bottom: 44px;
+      padding-top: 40px;
+      border-top: 1px solid var(--line);
+    }
+
+    .software-preview__intro { margin: 0; max-width: 62ch; font-size: 14.5px; color: var(--muted); }
+
+    .software-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 18px;
+    }
+
+    .software-shot {
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .software-shot:hover { border-color: var(--line-strong); transform: translateY(-2px); }
+
+    .software-shot__frame {
+      position: relative;
+      display: block;
+      overflow: hidden;
+      border-bottom: 1px solid var(--line);
+      background: #0b0b0b;
+    }
+
+    .software-shot__frame img {
+      display: block;
+      width: 100%;
+      aspect-ratio: 16 / 10;
+      object-fit: cover;
+      object-position: top center;
+      transition: transform 0.45s var(--ease-luxe);
+    }
+
+    .software-shot__frame:hover img { transform: scale(1.03); }
+
+    .software-shot__view {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      padding: 7px 11px;
+      border: 1px solid rgba(197, 160, 89, 0.45);
+      border-radius: 2px;
+      background: rgba(6, 6, 6, 0.88);
+      color: var(--accent-bright);
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .software-shot__frame:hover .software-shot__view,
+    .software-shot__frame:focus-visible .software-shot__view { opacity: 1; transform: none; }
+
+    .software-shot figcaption { display: grid; gap: 8px; padding: 20px 22px 22px; }
+
+    .software-shot__num {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      color: var(--accent);
+    }
+
+    .software-shot h3 { margin: 0; font-size: 15px; font-weight: 500; }
+
+    .software-shot p { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--muted); }
+
+    @media (max-width: 1080px) {
+      .software-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .software-preview { margin-bottom: 26px; padding-top: 28px; }
+      .software-grid { grid-template-columns: minmax(0, 1fr); }
+    }
+
   </style>
   <link rel="stylesheet" href="/premium.css">
 </head>
@@ -662,6 +753,52 @@
           <figcaption>
             <span class="testimonial__name">Elena Ruiz</span>
             <span class="testimonial__meta">Corporate shuttle · Manhattan</span>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section class="software-preview" aria-labelledby="software-heading">
+      <div class="section-head reveal">
+        <span class="eyebrow">Inside the platform</span>
+        <h2 id="software-heading">Built for the people moving every ride</h2>
+        <p class="software-preview__intro">A look at the tools behind the service — from live dispatch and fleet telemetry to the chauffeur manifest and the client trip portal.</p>
+      </div>
+
+      <div class="software-grid">
+        <figure class="software-shot reveal" style="--i: 0">
+          <a class="software-shot__frame" href="/dashboard.html" aria-label="Open the dispatcher dashboard">
+            <img src="/assets/screenshots/dispatcher-dashboard.webp" alt="VeloFox dispatcher dashboard with live booking totals and a fleet telemetry map" width="1200" height="750" loading="lazy" decoding="async">
+            <span class="software-shot__view">Open dashboard →</span>
+          </a>
+          <figcaption>
+            <span class="software-shot__num">01 · Dispatch</span>
+            <h3>Command dashboard</h3>
+            <p>Live booking status, fleet GPS, and assignment tools in one command view.</p>
+          </figcaption>
+        </figure>
+
+        <figure class="software-shot reveal" style="--i: 1">
+          <a class="software-shot__frame" href="/driver.html" aria-label="Open the chauffeur portal">
+            <img src="/assets/screenshots/chauffeur-portal.webp" alt="VeloFox chauffeur portal showing an active trip manifest with pickup and drop-off details" width="1200" height="750" loading="lazy" decoding="async">
+            <span class="software-shot__view">Open portal →</span>
+          </a>
+          <figcaption>
+            <span class="software-shot__num">02 · Chauffeur</span>
+            <h3>Driver manifest</h3>
+            <p>Assigned trips, pickup details, and status updates synced straight to dispatch.</p>
+          </figcaption>
+        </figure>
+
+        <figure class="software-shot reveal" style="--i: 2">
+          <a class="software-shot__frame" href="/client.html" aria-label="Open the client portal">
+            <img src="/assets/screenshots/client-portal.webp" alt="VeloFox client portal listing recent trips with vehicles, drivers, and route details" width="1200" height="750" loading="lazy" decoding="async">
+            <span class="software-shot__view">Open portal →</span>
+          </a>
+          <figcaption>
+            <span class="software-shot__num">03 · Client</span>
+            <h3>Trip portal</h3>
+            <p>Self-service ride history, receipts, and feedback — no phone call needed.</p>
           </figcaption>
         </figure>
       </div>
