@@ -1911,7 +1911,7 @@
             const driver = await request(`/api/drivers/${encodeURIComponent(typedId)}`);
             if (driverInput.value.trim() !== typedId) return;
             DRIVER_NAMES.set(driver.id, driver.name);
-            driverNameEl.textContent = driver.name;
+            driverNameEl.textContent = `${driver.name} — ${driver.id}`;
             suggestVehicleFor(driver.id);
           } catch {
             driverNameEl.textContent = '';

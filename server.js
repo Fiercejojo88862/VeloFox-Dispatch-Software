@@ -378,52 +378,52 @@ async function sendDriverJobEmail(booking) {
 }
 
 /**
- * Sends a one-line SMS to a driver via Twilio when they are assigned a job.
- * Requires TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN and TWILIO_FROM in the
- * environment; without them the send is skipped.
+ * Sends a one-line SMS to a driver via Unlimited Messaging when they are
+ * assigned a job. The Free plan is permanent, needs no credit card, and sends
+ * from your own Android phone on its carrier plan — a good fit for small
+ * volumes; adding a UM_API_KEY also lifts the small "Sent with
+ * UnlimitedMessaging.app" footer on the Free plan. See unlimitedmessaging.app.
  */
 async function sendDriverSMS(booking) {
   if (!booking.driverId) return;
   const driver = await repo.getDriverRecord(booking.driverId);
   const to = driver && driver.phone;
   if (!to) return;
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const from = process.env.TWILIO_FROM;
-  if (!accountSid || !authToken || !from) {
-    console.warn(`[sms] skipped (no Twilio credentials configured): ${booking.driverId}`);
+  const apiKey = process.env.UM_API_KEY;
+  if (!apiKey) {
+    console.warn(`[sms] skipped (no UM_API_KEY configured): ${booking.driverId}`);
     return;
   }
-  const when = booking.pickupDateTime
-    ? `Pickup · ${new Date(booking.pickupDateTime).toLocaleString()}`
-    : '';
-  const body = [
+  const digits = String(to).replace(/\D/g, '');
+  const recipient = digits.length === 10 ? `+1${digits}`
+    : digits.length === 11 && digits.startsWith('1') ? `+${digits}`
+    : `+${digits}`;
+  if (!recipient) return;
+  const message = [
     `VeloFox: New job assigned — Ride ${String(booking.id).slice(0, 8)}`,
-    when,
+    booking.pickupDateTime
+      ? `Pickup · ${new Date(booking.pickupDateTime).toLocaleString()}`
+      : '',
     `${booking.pickupLocation} → ${booking.dropoffLocation}`,
     'Sign in to the driver portal to review.',
   ].filter(Boolean).join('\n');
-  const form = new URLSearchParams({ To: to, From: from, Body: body });
   try {
-    const response = await fetch(
-      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}`,
-        },
-        body: form.toString(),
-      }
-    );
+    const response = await fetch('https://api.unlimitedmessaging.app/message', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({ recipient, text: message }),
+    });
     const data = await response.json().catch(() => null);
     if (!response.ok) {
-      console.error('[sms] Twilio rejected the message:', response.status, data);
+      console.error('[sms] Unlimited Messaging rejected the message:', response.status, data);
       return;
     }
-    console.log(`[sms] dispatched to ${to} for booking ${String(booking.id).slice(0, 8)}`);
+    console.log(`[sms] dispatched to ${recipient} for booking ${String(booking.id).slice(0, 8)}`);
   } catch (error) {
-    console.error('[sms] Twilio send failed:', error.message);
+    console.error('[sms] Unlimited Messaging send failed:', error.message);
   }
 }
 
