@@ -128,6 +128,37 @@
     .comm-link:hover { color: var(--accent); border-bottom-color: var(--accent); }
     .notify-btn { padding: 4px 8px; font-size: 9px; }
 
+    /* ---------- exception center ---------- */
+    .alerts-wrap { position: relative; }
+    .alerts-bell { position: relative; }
+    .alerts-count {
+      position: absolute; top: -7px; right: -7px; min-width: 16px; height: 16px;
+      padding: 0 3px; border-radius: 999px; background: var(--cancelled); color: var(--text);
+      font-size: 9px; line-height: 16px; text-align: center;
+    }
+    .alerts-count[hidden] { display: none; }
+    .alerts-panel {
+      position: absolute; top: calc(100% + 10px); right: 0; z-index: 50;
+      width: min(390px, calc(100vw - 32px)); max-height: 60vh; overflow: auto;
+      background: var(--panel); border: 1px solid var(--line-strong);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .alerts-panel[hidden] { display: none; }
+    .alerts-head {
+      display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+      padding: 12px 14px; border-bottom: 1px solid var(--line);
+    }
+    .alert-item {
+      display: grid; gap: 3px; padding: 11px 14px; border-bottom: 1px solid var(--line);
+      border-left: 3px solid var(--pending); cursor: pointer;
+    }
+    .alert-item:last-child { border-bottom: 0; }
+    .alert-item[data-severity="high"] { border-left-color: var(--cancelled); }
+    .alert-item:hover { background: var(--panel-hover); }
+    .alert-title { font-size: 11px; font-weight: 600; }
+    .alert-detail { font-size: 10px; color: var(--muted); }
+    .alerts-empty { padding: 22px 14px; text-align: center; color: var(--muted); font-size: 11px; }
+
     :root {
       color-scheme: dark;
       --bg: #0b0b0b;
@@ -1050,6 +1081,19 @@
       <a class="nav-link" href="/">Home</a>
       <a class="nav-link" href="/financial.html">Financial</a>
       <button id="new-booking-btn" class="btn btn-primary btn-sm" type="button">+ New Booking</button>
+      <div class="alerts-wrap">
+        <button id="alerts-bell" class="btn btn-sm alerts-bell" type="button"
+          aria-label="Operational alerts" aria-expanded="false" aria-controls="alerts-panel">🔔
+          <span id="alerts-count" class="alerts-count" hidden>0</span>
+        </button>
+        <div id="alerts-panel" class="alerts-panel" hidden>
+          <div class="alerts-head">
+            <strong>Exception center</strong>
+            <span id="alerts-summary" class="muted small"></span>
+          </div>
+          <div id="alerts-list" aria-live="polite"></div>
+        </div>
+      </div>
       <span id="last-updated" class="muted small">Loading…</span>
       <button id="tour-replay" class="btn btn-sm" type="button" disabled>Tour</button>
       <button id="customize-dashboard" class="btn btn-sm" type="button" aria-pressed="false" disabled>Customize</button>
@@ -1341,6 +1385,11 @@
     const bookingModal = document.getElementById('booking-modal');
     const newBookingForm = document.getElementById('new-booking-form');
     const newBookingError = document.getElementById('new-booking-error');
+    const alertsBell = document.getElementById('alerts-bell');
+    const alertsPanel = document.getElementById('alerts-panel');
+    const alertsList = document.getElementById('alerts-list');
+    const alertsCount = document.getElementById('alerts-count');
+    const alertsSummary = document.getElementById('alerts-summary');
 
     /** @type {Array<object>} */
     let bookings = [];
@@ -1496,6 +1545,93 @@
       } finally {
         button.disabled = false;
       }
+    }
+
+    function buildAlerts() {
+      const now = Date.now();
+      const twoHours = 2 * 60 * 60 * 1000;
+      const nearPickup = (booking) => {
+        const pickup = Date.parse(booking.pickupDateTime);
+        return pickup >= now - 15 * 60 * 1000 && pickup <= now + twoHours;
+      };
+      const alerts = [];
+      bookings.forEach((booking) => {
+        const ride = String(booking.id).slice(0, 8);
+        const when = formatDateTime(booking.pickupDateTime);
+        const pickup = Date.parse(booking.pickupDateTime);
+        if (!booking.driverId && !booking.assignedVehicle
+          && ['pending', 'confirmed'].includes(booking.status) && nearPickup(booking)) {
+          alerts.push({
+            severity: 'high',
+            title: `Unassigned ride · ${ride}`,
+            detail: `Pickup ${when} · ${booking.clientName || 'client'}`,
+            booking,
+          });
+        }
+        if (['assigned', 'en_route'].includes(booking.status)
+          && pickup < now && pickup > now - 3 * 60 * 60 * 1000) {
+          alerts.push({
+            severity: 'high',
+            title: `Chauffeur behind schedule · ${ride}`,
+            detail: `Pickup was ${when} · ${booking.driverId || 'no driver'}`,
+            booking,
+          });
+        }
+        if (booking.status === 'cancelled' && nearPickup(booking)) {
+          alerts.push({
+            severity: 'medium',
+            title: `Cancelled ride · ${ride}`,
+            detail: `Was ${when} · ${booking.clientName || 'client'}`,
+            booking,
+          });
+        } else if (nearPickup(booking) && booking.createdAt && booking.updatedAt
+          && Date.parse(booking.updatedAt) > Date.parse(booking.createdAt) + 60_000) {
+          alerts.push({
+            severity: 'medium',
+            title: `Last-minute change · ${ride}`,
+            detail: `Pickup ${when} · review client notes`,
+            booking,
+          });
+        }
+      });
+      return alerts.slice(0, 12);
+    }
+
+    function renderAlerts() {
+      const alerts = buildAlerts();
+      alertsCount.textContent = String(alerts.length);
+      alertsCount.hidden = alerts.length === 0;
+      alertsSummary.textContent = alerts.length ? `${alerts.length} need attention` : 'All clear';
+      if (!alerts.length) {
+        const empty = document.createElement('div');
+        empty.className = 'alerts-empty';
+        empty.textContent = 'No urgent exceptions right now.';
+        alertsList.replaceChildren(empty);
+        return;
+      }
+      alertsList.replaceChildren(...alerts.map((alert) => {
+        const item = document.createElement('div');
+        item.className = 'alert-item';
+        item.dataset.severity = alert.severity;
+        const title = document.createElement('div');
+        title.className = 'alert-title';
+        title.textContent = alert.title;
+        const detail = document.createElement('div');
+        detail.className = 'alert-detail';
+        detail.textContent = alert.detail;
+        item.append(title, detail);
+        item.addEventListener('click', () => {
+          const row = tbody.querySelector(`tr[data-booking-id="${alert.booking.id}"]`);
+          if (row) {
+            row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            row.classList.add('calendar-highlight');
+            window.setTimeout(() => row.classList.remove('calendar-highlight'), 1800);
+          }
+          alertsPanel.hidden = true;
+          alertsBell.setAttribute('aria-expanded', 'false');
+        });
+        return item;
+      }));
     }
 
     function formatVehicleType(value) {
@@ -1661,6 +1797,7 @@
         hasLoadedOnce = true;
         render();
         renderCalendar();
+        renderAlerts();
         void loadRoster();
         lastUpdatedEl.textContent = `Updated ${new Date().toLocaleTimeString()}`;
       } catch (error) {
@@ -2924,6 +3061,20 @@
         submitBtn.disabled = false;
       }
     });
+
+    alertsBell?.addEventListener('click', () => {
+      alertsPanel.hidden = !alertsPanel.hidden;
+      alertsBell.setAttribute('aria-expanded', String(!alertsPanel.hidden));
+    });
+    document.addEventListener('click', (event) => {
+      if (alertsPanel && !alertsPanel.hidden && !event.target.closest('.alerts-wrap')) {
+        alertsPanel.hidden = true;
+        alertsBell.setAttribute('aria-expanded', 'false');
+      }
+    });
+    window.setInterval(() => {
+      if (!document.hidden) renderAlerts();
+    }, 60_000);
 
     renderStats();
     void bootstrapDispatcherDashboard();

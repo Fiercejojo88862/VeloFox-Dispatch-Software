@@ -370,3 +370,16 @@ test('dispatcher has a new-booking modal and one-click client and chauffeur comm
   assert.match(server, /async function sendSMS\(to, text\)/);
   assert.match(server, /Your chauffeur is en route/);
 });
+
+test('dispatcher exception center surfaces unassigned, late and cancelled rides', () => {
+  const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
+  assert.match(dash, /id="alerts-bell" class="btn btn-sm alerts-bell"/);
+  assert.match(dash, /id="alerts-panel" class="alerts-panel" hidden/);
+  assert.match(dash, /id="alerts-count" class="alerts-count" hidden/);
+  assert.match(dash, /function buildAlerts\(\)/);
+  assert.match(dash, /Unassigned ride · \$\{ride\}/);
+  assert.match(dash, /Chauffeur behind schedule · \$\{ride\}/);
+  assert.match(dash, /Cancelled ride · \$\{ride\}/);
+  assert.match(dash, /Last-minute change · \$\{ride\}/);
+  assert.match(dash, /renderAlerts\(\);/);
+});
