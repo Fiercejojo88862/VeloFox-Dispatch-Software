@@ -1340,6 +1340,26 @@
     </div>
   </div>
 
+  <div id="text-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-labelledby="text-modal-title">
+      <div class="modal-head">
+        <h2 id="text-modal-title">Send text message</h2>
+        <button id="text-modal-close" class="btn btn-ghost btn-sm" type="button" aria-label="Close">✕</button>
+      </div>
+      <p class="muted small" id="text-modal-recipient"></p>
+      <div class="modal-grid">
+        <label class="wide">Message
+          <textarea id="text-modal-message" maxlength="480" rows="4" placeholder="Type your message to the client or driver..."></textarea>
+        </label>
+      </div>
+      <p id="text-modal-error" class="muted small" role="alert"></p>
+      <div class="modal-actions">
+        <button id="text-modal-cancel" class="btn" type="button">Cancel</button>
+        <button id="text-modal-send" class="btn btn-primary" type="button">Send text</button>
+      </div>
+    </div>
+  </div>
+
   <div id="reason-popover" class="reason-popover" hidden>
     <div class="reason-popover-head">Cancellation reasons</div>
     <div id="reason-options"></div>
@@ -1484,6 +1504,13 @@
     const reasonOptions = document.getElementById('reason-options');
     const cancelModal = document.getElementById('cancel-modal');
     const cancelReasonGrid = document.getElementById('cancel-reason-grid');
+    const textModal = document.getElementById('text-modal');
+    const textModalRecipient = document.getElementById('text-modal-recipient');
+    const textModalMessage = document.getElementById('text-modal-message');
+    const textModalError = document.getElementById('text-modal-error');
+    const textModalClose = document.getElementById('text-modal-close');
+    const textModalCancel = document.getElementById('text-modal-cancel');
+    const textModalSend = document.getElementById('text-modal-send');
     const alertsBell = document.getElementById('alerts-bell');
     const alertsPanel = document.getElementById('alerts-panel');
     const alertsList = document.getElementById('alerts-list');
@@ -1738,6 +1765,67 @@
         button.disabled = false;
       }
     }
+
+    let activeTextBooking = null;
+    let activeTextTarget = 'client';
+
+    function closeTextModal() {
+      activeTextBooking = null;
+      textModal.hidden = true;
+      textModalError.textContent = '';
+      textModalMessage.value = '';
+      textModalSend.disabled = false;
+    }
+
+    function openTextModal(booking, target = 'client') {
+      activeTextBooking = booking;
+      activeTextTarget = target;
+      const name = target === 'driver' ? (booking.driverId || 'driver') : (booking.clientName || 'client');
+      const phone = target === 'driver' ? '' : (booking.clientPhone || '');
+      textModalRecipient.textContent = `To ${name}${phone ? ` (${phone})` : ''} · Ride ${String(booking.id).slice(0, 8)}`;
+      textModalMessage.value = target === 'driver'
+        ? `VeloFox: Dispatch update for ride ${String(booking.id).slice(0, 8)}.`
+        : `VeloFox: Update for your ride ${String(booking.id).slice(0, 8)}.`;
+      textModalError.textContent = '';
+      textModal.hidden = false;
+      textModalMessage.focus();
+      textModalMessage.select();
+    }
+
+    textModalClose?.addEventListener('click', closeTextModal);
+    textModalCancel?.addEventListener('click', closeTextModal);
+    textModal?.addEventListener('click', (event) => {
+      if (event.target === textModal) closeTextModal();
+    });
+    textModalSend?.addEventListener('click', async () => {
+      if (!activeTextBooking) return;
+      const message = textModalMessage.value.trim();
+      if (!message) {
+        textModalError.textContent = 'Type a message before sending.';
+        textModalMessage.focus();
+        return;
+      }
+      textModalSend.disabled = true;
+      textModalError.textContent = '';
+      try {
+        const result = await request(`${API_URL}/${encodeURIComponent(activeTextBooking.id)}/notify`, {
+          method: 'POST',
+          body: JSON.stringify({ kind: 'custom', target: activeTextTarget, message }),
+        });
+        if (result.sent) {
+          showToast(`Text sent to ${result.recipient || 'recipient'}.`, 'success');
+          closeTextModal();
+        } else {
+          textModalError.textContent = `Text not sent (${result.reason || 'unavailable'}). Check UM_API_KEY on the server or use the phone SMS link.`;
+          showToast(`Text not sent (${result.reason || 'unavailable'}).`, 'error');
+        }
+      } catch (error) {
+        textModalError.textContent = error.message;
+        showToast(error.message, 'error', error.details);
+      } finally {
+        textModalSend.disabled = false;
+      }
+    });
 
     function buildAlerts() {
       const now = Date.now();
@@ -3187,7 +3275,13 @@
         enRoute.textContent = 'En route text';
         enRoute.title = `Text ${booking.clientName || 'the client'} that the chauffeur is en route`;
         enRoute.addEventListener('click', () => sendEnRouteText(booking, 'en_route', enRoute));
-        comms.append(enRoute);
+        const customText = document.createElement('button');
+        customText.type = 'button';
+        customText.className = 'btn btn-ghost btn-sm notify-btn';
+        customText.textContent = 'Message';
+        customText.title = `Send a custom text message to ${booking.clientName || 'the client'}`;
+        customText.addEventListener('click', () => openTextModal(booking, 'client'));
+        comms.append(enRoute, customText);
         createdEl.append(comms);
       }
 

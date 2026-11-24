@@ -1901,15 +1901,42 @@ app.get('/api/fleet/roster', requireApiRole('dispatcher'), async (req, res) => {
 app.post('/api/bookings/:id/notify', requireApiRole('dispatcher'), async (req, res) => {
   const booking = await repo.getBooking(req.params.id);
   if (!booking) return res.status(404).json({ error: 'Ride not found.' });
-  const kind = req.body && req.body.kind === 'pob' ? 'pob' : 'en_route';
-  if (!booking.clientPhone) return res.status(400).json({ error: 'This ride has no client phone number.' });
+  const body = isPlainObject(req.body) ? req.body : {};
+  const kind = body.kind === 'pob' ? 'pob' : body.kind === 'custom' ? 'custom' : 'en_route';
+  const target = body.target === 'driver' ? 'driver' : 'client';
   const ride = String(booking.id).slice(0, 8);
-  const message = kind === 'pob'
-    ? `VeloFox: Your chauffeur has picked you up (ride ${ride}). Have a great trip!`
-    : `VeloFox: Your chauffeur is en route to ${booking.pickupLocation} (ride ${ride}).`;
-  const result = await sendSMS(booking.clientPhone, message);
-  await audit(req, 'booking.notify', booking.id, { kind, sent: result.sent });
-  res.json({ kind, sent: result.sent, reason: result.reason || null });
+  let recipient = '';
+  let recipientLabel = '';
+
+  if (target === 'driver') {
+    if (!booking.driverId) return res.status(400).json({ error: 'This ride has no assigned driver.' });
+    const driver = await repo.getDriverRecord(booking.driverId);
+    recipient = driver?.phone ? String(driver.phone) : '';
+    recipientLabel = driver?.name || booking.driverId;
+  } else {
+    recipient = booking.clientPhone ? String(booking.clientPhone) : '';
+    recipientLabel = booking.clientName || 'the client';
+  }
+  if (!recipient) {
+    return res.status(400).json({ error: `This ${target} has no phone number on file.` });
+  }
+
+  let message = '';
+  if (kind === 'custom') {
+    message = typeof body.message === 'string' ? body.message.trim() : '';
+    if (!message) return res.status(400).json({ error: 'A message is required.' });
+    if (message.length > 480) return res.status(400).json({ error: 'Message must be 480 characters or fewer.' });
+  } else if (kind === 'pob') {
+    message = `VeloFox: Your chauffeur has picked you up (ride ${ride}). Have a great trip!`;
+  } else {
+    message = target === 'driver'
+      ? `VeloFox: Dispatch update for ride ${ride}. Please check the driver portal.`
+      : `VeloFox: Your chauffeur is en route to ${booking.pickupLocation} (ride ${ride}).`;
+  }
+
+  const result = await sendSMS(recipient, message);
+  await audit(req, 'booking.notify', booking.id, { kind, target, sent: result.sent });
+  res.json({ kind, target, sent: result.sent, reason: result.reason || null, recipient: recipientLabel });
 });
 
 app.post('/api/drivers/:driverId/email', requireApiRole('dispatcher'), async (req, res) => {
