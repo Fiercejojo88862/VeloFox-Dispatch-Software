@@ -8,6 +8,7 @@ const dispatch = require('./lib/dispatch');
 const db = require('./lib/db');
 const repo = require('./lib/repository');
 const textFilter = require('./lib/text-filter');
+const rideVerification = require('./lib/ride-verification');
 
 const app = express();
 
@@ -456,6 +457,8 @@ async function sendDriverJobEmail(booking) {
 
 const CLIENT_EMAIL_COPY = {
   booking_received: ['Ride request received', 'Thanks for booking with VeloFox. Dispatch is confirming your chauffeur.'],
+  verified: ['Ride request confirmed', 'Dispatch has verified your ride request. Your chauffeur assignment follows.'],
+  verification_rejected: ['Ride request declined', 'Your ride request could not be verified and has been declined. Contact dispatch if you believe this is a mistake.'],
   assigned: ['Your chauffeur is assigned', 'A VeloFox chauffeur has been assigned to your ride.'],
   en_route: ['Your chauffeur is en route', 'Your VeloFox chauffeur is on the way to your pickup.'],
   completed: ['Your ride is complete', 'Thanks for riding with VeloFox. We hope to see you again.'],
@@ -2114,6 +2117,19 @@ app.post('/api/bookings', async (req, res) => {
 
   const authenticatedUser = await getAuthenticatedUser(req);
   const clientUser = authenticatedUser?.role === 'client' ? authenticatedUser : null;
+
+  let existingBookings = [];
+  try {
+    existingBookings = await repo.listBookings();
+  } catch (error) {
+    console.error('[VeloFox verification] could not load existing rides:', error.message);
+  }
+  const riskFlags = rideVerification.assessRideRisk({
+    ...value,
+    clientEmail: clientUser?.email || value.clientEmail,
+    clientName: clientUser?.name || value.clientName,
+  }, existingBookings, { authenticated: Boolean(clientUser) });
+
   const booking = await repo.createBooking({
     ...value,
     status: 'pending',
@@ -2121,10 +2137,52 @@ app.post('/api/bookings', async (req, res) => {
     assignedVehicle: null,
     clientEmail: clientUser?.email || value.clientEmail,
     clientName: clientUser?.name || value.clientName,
+    verificationStatus: 'unreviewed',
+    riskFlags,
   });
 
   await sendClientRideEmail(booking, 'booking_received');
   res.status(201).json(booking);
+});
+
+// Dispatcher review gate: no pending ride is dispatched until it has been
+// explicitly accepted. Rejecting closes the ride as a suspected fake request.
+app.post('/api/bookings/:id/verification', requireApiRole('dispatcher'), async (req, res) => {
+  const { errors, value } = rideVerification.validateVerificationDecision(req.body);
+  if (errors.length > 0) {
+    return res.status(400).json({ error: 'Validation failed.', details: errors });
+  }
+
+  const booking = await repo.getBooking(req.params.id);
+  if (!booking) return res.status(404).json({ error: 'Booking not found.' });
+  if (booking.verificationStatus !== 'unreviewed') {
+    return res.status(409).json({ error: 'This ride has already been reviewed.' });
+  }
+  if (booking.status !== 'pending') {
+    return res.status(409).json({ error: 'Only pending rides can be reviewed.' });
+  }
+
+  const accepted = value.decision === 'accept';
+  const changes = {
+    verificationStatus: accepted ? 'verified' : 'rejected',
+    verifiedBy: req.authUser.email || null,
+    verifiedAt: new Date().toISOString(),
+    verificationNote: accepted
+      ? value.note
+      : [rideVerification.REJECTION_REASONS[value.reason], value.note].filter(Boolean).join(' — '),
+    status: accepted ? 'confirmed' : 'cancelled',
+  };
+  if (!accepted) changes.cancellationReason = 'suspected_fake';
+
+  const updated = await repo.updateBooking(booking.id, changes);
+  await audit(req, accepted ? 'booking.verified' : 'booking.rejected', booking.id, {
+    decision: value.decision,
+    reason: value.reason,
+    note: value.note,
+    riskFlags: booking.riskFlags,
+  });
+  await sendClientRideEmail(updated, accepted ? 'verified' : 'verification_rejected');
+  res.json(updated);
 });
 
 app.patch('/api/bookings/:id', async (req, res) => {
@@ -2201,8 +2259,8 @@ app.patch('/api/bookings/:id', async (req, res) => {
 
   if (Object.hasOwn(req.body, 'cancellationReason')) {
     const reason = req.body.cancellationReason;
-    if (reason !== null && !['test_demo', 'client_cancelled', 'no_show'].includes(reason)) {
-      errors.push('cancellationReason must be one of: test_demo, client_cancelled, no_show, or null.');
+    if (reason !== null && !['test_demo', 'client_cancelled', 'no_show', 'suspected_fake'].includes(reason)) {
+      errors.push('cancellationReason must be one of: test_demo, client_cancelled, no_show, suspected_fake, or null.');
     } else {
       changes.cancellationReason = reason;
     }
@@ -2272,6 +2330,17 @@ app.patch('/api/bookings/:id', async (req, res) => {
     && (booking.status === 'pending' || booking.status === 'confirmed')
   ) {
     changes.status = 'assigned';
+  }
+
+  // A ride cannot enter the dispatch lifecycle before a dispatcher has
+  // reviewed it. Cancelling an unreviewed ride is still allowed.
+  if (booking.verificationStatus === 'unreviewed'
+    && booking.status === 'pending'
+    && changes.status
+    && changes.status !== 'cancelled') {
+    return res.status(409).json({
+      error: 'Review this ride before dispatching it. Use Accept or Reject in the Review tab.',
+    });
   }
 
   if (booking.status === 'cancelled' && changes.status && changes.status !== 'cancelled'

@@ -215,6 +215,11 @@ CREATE TABLE IF NOT EXISTS bookings (
     beverage_request varchar(200),
     special_requests varchar(1000),
     cancellation_reason text,
+    verification_status text NOT NULL DEFAULT 'unreviewed',
+    verified_by varchar(254),
+    verified_at timestamptz,
+    verification_note text,
+    risk_flags jsonb NOT NULL DEFAULT '[]'::jsonb,
     preferred_driver_id varchar(50),
     client_email     varchar(254),
     client_name      varchar(120),
@@ -244,8 +249,10 @@ CREATE TABLE IF NOT EXISTS bookings (
         )),
     CONSTRAINT bookings_cancellation_reason_check
         CHECK (cancellation_reason IS NULL OR cancellation_reason IN (
-            'test_demo', 'client_cancelled', 'no_show'
+            'test_demo', 'client_cancelled', 'no_show', 'suspected_fake'
         )),
+    CONSTRAINT bookings_verification_status_check
+        CHECK (verification_status IN ('unreviewed', 'verified', 'rejected')),
     CONSTRAINT bookings_billing_mode_check
         CHECK (billing_mode IN ('point_to_point', 'hourly')),
     CONSTRAINT bookings_charter_hours_check
@@ -295,6 +302,24 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS deposit_cents integer NOT NULL DEF
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS fare_cents integer NOT NULL DEFAULT 0;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS total_cents integer NOT NULL DEFAULT 0;
 
+-- Ride verification: every request waits for a dispatcher decision before it
+-- can be dispatched. Risk signals are advisory and stored with the request.
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS verification_status text NOT NULL DEFAULT 'unreviewed';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS verified_by varchar(254);
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS verified_at timestamptz;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS verification_note text;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS risk_flags jsonb NOT NULL DEFAULT '[]'::jsonb;
+
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_verification_status_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_verification_status_check
+    CHECK (verification_status IN ('unreviewed', 'verified', 'rejected'));
+
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_cancellation_reason_check;
+ALTER TABLE bookings ADD CONSTRAINT bookings_cancellation_reason_check
+    CHECK (cancellation_reason IS NULL OR cancellation_reason IN (
+        'test_demo', 'client_cancelled', 'no_show', 'suspected_fake'
+    ));
+
 ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_passenger_count_check;
 ALTER TABLE bookings ADD CONSTRAINT bookings_passenger_count_check
     CHECK (passenger_count BETWEEN 1 AND 16);
@@ -337,6 +362,11 @@ COMMENT ON TABLE bookings IS 'Client ride reservations managed from the dispatch
 COMMENT ON COLUMN bookings.pickup_datetime IS 'Scheduled pickup time; stored with time zone.';
 COMMENT ON COLUMN bookings.vehicle_type IS 'Requested class; vehicles.category must match once assigned.';
 COMMENT ON COLUMN bookings.status IS 'pending | confirmed | assigned | en_route | arrived | passenger_aboard | dropped_off | completed | cancelled.';
+COMMENT ON COLUMN bookings.verification_status IS 'unreviewed until a dispatcher accepts or rejects a suspected fake ride.';
+COMMENT ON COLUMN bookings.verified_by IS 'Dispatcher email that made the verification decision.';
+COMMENT ON COLUMN bookings.verified_at IS 'Time the dispatcher accepted or rejected the ride.';
+COMMENT ON COLUMN bookings.verification_note IS 'Dispatcher note explaining a rejection.';
+COMMENT ON COLUMN bookings.risk_flags IS 'JSON array of advisory fraud signals generated at booking intake.';
 COMMENT ON COLUMN bookings.vehicle_id IS 'Fleet vehicle assigned to the ride, or NULL while unassigned.';
 COMMENT ON COLUMN bookings.driver_id IS 'Driver ID assigned to the ride and used by the mobile manifest.';
 COMMENT ON COLUMN bookings.assigned_vehicle IS 'Human-readable fleet label displayed to the driver.';
@@ -356,6 +386,7 @@ CREATE INDEX IF NOT EXISTS bookings_completed_pickup_idx
     ON bookings (pickup_datetime) WHERE status = 'completed';
 
 CREATE INDEX IF NOT EXISTS bookings_status_idx ON bookings (status);
+CREATE INDEX IF NOT EXISTS bookings_verification_status_idx ON bookings (verification_status);
 CREATE INDEX IF NOT EXISTS bookings_pickup_datetime_idx ON bookings (pickup_datetime);
 CREATE INDEX IF NOT EXISTS bookings_vehicle_id_idx ON bookings (vehicle_id);
 CREATE INDEX IF NOT EXISTS bookings_driver_id_idx ON bookings (driver_id);

@@ -429,7 +429,7 @@ test('cancelled KPI shows reason breakdown and filters by reason', () => {
   assert.match(schema, /'test_demo', 'client_cancelled', 'no_show'/);
 
   const dbFile = fs.readFileSync(path.join(ROOT, 'lib', 'db.js'), 'utf8');
-  assert.match(dbFile, /schema-v8-driver-access/);
+  assert.match(dbFile, /schema-v9-ride-verification/);
 
   const repo = fs.readFileSync(path.join(ROOT, 'lib', 'repository.js'), 'utf8');
   assert.match(repo, /cancellationReason: row\.cancellation_reason/);
@@ -437,7 +437,7 @@ test('cancelled KPI shows reason breakdown and filters by reason', () => {
 
   const server = fs.readFileSync(path.join(ROOT, 'server.js'), 'utf8');
   assert.match(server, /'pricing', 'cancellationReason'/);
-  assert.match(server, /test_demo, client_cancelled, no_show, or null/);
+  assert.match(server, /test_demo, client_cancelled, no_show, suspected_fake, or null/);
 
   const dash = fs.readFileSync(path.join(ROOT, 'public', 'dashboard.html'), 'utf8');
   assert.match(dash, /const CANCEL_REASONS = \{/);

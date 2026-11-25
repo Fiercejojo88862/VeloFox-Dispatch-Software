@@ -441,6 +441,48 @@
     .btn-ghost:hover { background: var(--panel-hover); color: var(--text); border-color: transparent; }
     .btn-sm { padding: 8px 12px; font-size: 10px; border-radius: 2px; }
 
+    /* ---------- ride verification review ---------- */
+
+    .tab-count {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 18px; height: 18px; margin-left: 7px; padding: 0 5px;
+      border-radius: 999px; background: var(--pending); color: var(--accent-ink);
+      font-size: 9px; letter-spacing: 0;
+    }
+    .tab-count[hidden] { display: none; }
+    .review-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+    .review-accept {
+      border-color: var(--confirmed); color: var(--confirmed);
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .review-reject {
+      border-color: var(--cancelled); color: var(--cancelled);
+      font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .verification-stack { display: grid; gap: 5px; justify-items: start; }
+    .verify-badge {
+      --verify: var(--muted);
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 2px 6px; border-radius: 2px; font-size: 9px;
+      font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--verify); background: color-mix(in srgb, var(--verify) 8%, transparent);
+      box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--verify) 38%, transparent);
+    }
+    .verify-badge[data-verification="verified"] { --verify: var(--confirmed); }
+    .verify-badge[data-verification="rejected"] { --verify: var(--cancelled); }
+    .verify-badge[data-verification="unreviewed"] { --verify: var(--pending); }
+    .verify-meta { font-size: 9px; color: var(--muted); }
+    .risk-flags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+    .risk-flag {
+      padding: 2px 5px; border-radius: 2px; font-size: 9px;
+      border: 1px solid color-mix(in srgb, var(--pending) 45%, transparent);
+      color: var(--pending);
+    }
+    .risk-flag[data-severity="high"] {
+      border-color: color-mix(in srgb, var(--cancelled) 55%, transparent);
+      color: var(--cancelled);
+    }
+
     /* ---------- summary ---------- */
 
     .stats {
@@ -1268,6 +1310,7 @@
       </div>
       <div id="bookings-tabs" class="tab-strip" role="tablist" aria-label="Booking views">
         <button class="tab is-active" type="button" data-tab="active" role="tab" aria-selected="true">Bookings</button>
+        <button class="tab" type="button" data-tab="review" role="tab" aria-selected="false">Review <span id="review-count" class="tab-count" hidden>0</span></button>
         <button class="tab" type="button" data-tab="completed" role="tab" aria-selected="false">Completed</button>
         <button class="tab" type="button" data-tab="all" role="tab" aria-selected="false">All rides</button>
       </div>
@@ -1360,6 +1403,38 @@
     </div>
   </div>
 
+  <div id="review-reject-modal" class="modal-overlay" hidden>
+    <div class="modal" role="dialog" aria-labelledby="review-reject-title">
+      <div class="modal-head">
+        <h2 id="review-reject-title">Reject suspected fake ride</h2>
+        <button id="review-reject-close" class="btn btn-ghost btn-sm" type="button" aria-label="Close">✕</button>
+      </div>
+      <p class="muted small" id="review-reject-ride"></p>
+      <div class="modal-grid">
+        <label class="wide">Reason
+          <select id="review-reject-reason">
+            <option value="fake_request">Suspected fake request</option>
+            <option value="duplicate_request">Duplicate request</option>
+            <option value="incorrect_details">Incorrect client or route details</option>
+            <option value="test_request">Test request</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label class="wide">Dispatcher note (optional)
+          <textarea id="review-reject-note" maxlength="500" rows="2" placeholder="What made this request look fake?"></textarea>
+        </label>
+      </div>
+      <p id="review-reject-error" class="muted small" role="alert"></p>
+      <div class="modal-actions">
+        <button class="btn" type="button" data-review-close>Keep ride</button>
+        <button id="review-reject-confirm" class="btn btn-sm review-reject" type="button">Reject ride</button>
+      </div>
+    </div>
+  </div>
+      </div>
+    </div>
+  </div>
+
   <div id="reason-popover" class="reason-popover" hidden>
     <div class="reason-popover-head">Cancellation reasons</div>
     <div id="reason-options"></div>
@@ -1413,6 +1488,16 @@
       dropped_off: 'Dropped Off',
       completed: 'Completed',
       cancelled: 'Cancelled',
+    };
+    const VERIFICATION_LABELS = {
+      unreviewed: 'Needs review', verified: 'Verified', rejected: 'Rejected',
+    };
+    const REJECT_REASON_LABELS = {
+      fake_request: 'Suspected fake request',
+      duplicate_request: 'Duplicate request',
+      incorrect_details: 'Incorrect details',
+      test_request: 'Test request',
+      other: 'Other',
     };
     const VEHICLE_LABELS = {
       sedan: 'Sedan',
@@ -1511,6 +1596,13 @@
     const textModalClose = document.getElementById('text-modal-close');
     const textModalCancel = document.getElementById('text-modal-cancel');
     const textModalSend = document.getElementById('text-modal-send');
+    const reviewCountEl = document.getElementById('review-count');
+    const reviewRejectModal = document.getElementById('review-reject-modal');
+    const reviewRejectRide = document.getElementById('review-reject-ride');
+    const reviewRejectReason = document.getElementById('review-reject-reason');
+    const reviewRejectNote = document.getElementById('review-reject-note');
+    const reviewRejectError = document.getElementById('review-reject-error');
+    const reviewRejectConfirm = document.getElementById('review-reject-confirm');
     const alertsBell = document.getElementById('alerts-bell');
     const alertsPanel = document.getElementById('alerts-panel');
     const alertsList = document.getElementById('alerts-list');
@@ -1525,6 +1617,7 @@
     let activeReasonFilter = null;
     let bookingSearch = '';
     let bookingsTab = 'active';
+    let pendingReviewId = null;
     let dashboardLayoutKey = null;
     let dashboardTourKey = null;
     let draggedDashboardSection = null;
@@ -1627,6 +1720,11 @@
           return;
         }
         if (!payload || !payload.driverId) return;
+        const targetBooking = bookings.find((booking) => booking.id === bookingId);
+        if (isPendingReview(targetBooking)) {
+          showToast('Accept or reject this ride in the Review tab before assigning a chauffeur.', 'error');
+          return;
+        }
         const patch = { driverId: payload.driverId };
         if (payload.vehicle) patch.assignedVehicle = payload.vehicle;
         try {
@@ -1736,6 +1834,110 @@
       });
     }
 
+    function isPendingReview(booking) {
+      return Boolean(booking)
+        && booking.status === 'pending'
+        && (booking.verificationStatus || 'unreviewed') === 'unreviewed';
+    }
+
+    function makeVerificationBadge(booking) {
+      const stack = document.createElement('div');
+      stack.className = 'verification-stack';
+
+      const status = booking.verificationStatus || 'unreviewed';
+      const badge = document.createElement('span');
+      badge.className = 'verify-badge';
+      badge.dataset.verification = status;
+      badge.textContent = VERIFICATION_LABELS[status] || status;
+      stack.append(badge);
+
+      if (status !== 'unreviewed') {
+        const meta = document.createElement('span');
+        meta.className = 'verify-meta';
+        const reason = status === 'rejected'
+          ? REJECT_REASON_LABELS[booking.cancellationReason] || ''
+          : '';
+        const detail = [reason === 'suspected_fake' ? '' : reason, booking.verificationNote].filter(Boolean).join(' · ');
+        meta.textContent = [
+          booking.verifiedBy ? `by ${booking.verifiedBy}` : '',
+          booking.verifiedAt ? formatDateTime(booking.verifiedAt) : '',
+          detail,
+        ].filter(Boolean).join(' · ');
+        stack.append(meta);
+      }
+
+      const flags = Array.isArray(booking.riskFlags) ? booking.riskFlags : [];
+      if (flags.length > 0) {
+        const list = document.createElement('div');
+        list.className = 'risk-flags';
+        flags.slice(0, 3).forEach((flag) => {
+          const chip = document.createElement('span');
+          chip.className = 'risk-flag';
+          chip.dataset.severity = flag.severity || 'low';
+          chip.textContent = flag.label || flag.code || 'Risk signal';
+          chip.title = flag.detail || '';
+          list.append(chip);
+        });
+        if (flags.length > 3) {
+          const more = document.createElement('span');
+          more.className = 'risk-flag';
+          more.textContent = `+${flags.length - 3}`;
+          list.append(more);
+        }
+        stack.append(list);
+      }
+
+      return stack;
+    }
+
+    function makeStatusCell(booking) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'verification-stack';
+      wrapper.append(makeBadge(booking.status), makeVerificationBadge(booking));
+      return wrapper;
+    }
+
+    function closeRejectModal() {
+      reviewRejectModal.hidden = true;
+      pendingReviewId = null;
+    }
+
+    function openRejectModal(booking) {
+      pendingReviewId = booking.id;
+      reviewRejectRide.textContent =
+        `Ride ${booking.id.slice(0, 8)} · ${booking.clientName || booking.pickupLocation || 'client'} · ${formatDateTime(booking.pickupDateTime)}`;
+      reviewRejectReason.value = 'fake_request';
+      reviewRejectNote.value = '';
+      reviewRejectError.textContent = '';
+      reviewRejectModal.hidden = false;
+      reviewRejectReason.focus();
+    }
+
+    async function reviewBooking(id, decision, payload = {}) {
+      try {
+        const updated = await request(`${API_URL}/${encodeURIComponent(id)}/verification`, {
+          method: 'POST',
+          body: JSON.stringify({ decision, ...payload }),
+        });
+        const index = bookings.findIndex((booking) => booking.id === id);
+        if (index >= 0 && updated) bookings[index] = updated;
+        closeRejectModal();
+        render();
+        renderAlerts();
+        showToast(
+          decision === 'accept' ? 'Ride accepted and confirmed.' : 'Ride rejected as a suspected fake request.',
+          decision === 'accept' ? 'success' : 'info'
+        );
+        window.VeloFoxAudio?.play(decision === 'accept' ? 'confirm' : 'error');
+        return updated;
+      } catch (error) {
+        window.VeloFoxAudio?.play('error');
+        reviewRejectError.textContent = error.message;
+        showToast(error.message, 'error', error.details);
+        return null;
+      }
+    }
+
     function makeCommLink(phone, label, kind, message = '') {
       const link = document.createElement('a');
       link.className = 'comm-link';
@@ -1839,6 +2041,18 @@
         const ride = String(booking.id).slice(0, 8);
         const when = formatDateTime(booking.pickupDateTime);
         const pickup = Date.parse(booking.pickupDateTime);
+        if (isPendingReview(booking)) {
+          const flags = Array.isArray(booking.riskFlags) ? booking.riskFlags : [];
+          const highRisk = flags.some((flag) => flag.severity === 'high');
+          alerts.push({
+            severity: highRisk ? 'high' : 'medium',
+            title: `Ride needs verification · ${ride}`,
+            detail: flags.length
+              ? `${flags.map((flag) => flag.label).join(', ')} · ${when}`
+              : `Unverified request · ${when}`,
+            booking,
+          });
+        }
         if (!booking.driverId && !booking.assignedVehicle
           && ['pending', 'confirmed'].includes(booking.status) && nearPickup(booking)) {
           alerts.push({
@@ -1901,7 +2115,11 @@
         detail.textContent = alert.detail;
         item.append(title, detail);
         item.addEventListener('click', () => {
-          const row = tbody.querySelector(`tr[data-booking-id="${alert.booking.id}"]`);
+          let row = tbody.querySelector(`tr[data-booking-id="${alert.booking.id}"]`);
+          if (!row && isPendingReview(alert.booking)) {
+            setBookingsTab('review');
+            row = tbody.querySelector(`tr[data-booking-id="${alert.booking.id}"]`);
+          }
           if (row) {
             row.scrollIntoView({ block: 'center', behavior: 'smooth' });
             row.classList.add('calendar-highlight');
@@ -3357,18 +3575,45 @@
       const actions = document.createElement('div');
       actions.className = 'actions';
 
-      const statusLabel = document.createElement('span');
-      statusLabel.className = 'actions-label';
-      statusLabel.textContent = 'Set status';
+      if (isPendingReview(booking)) {
+        const reviewActions = document.createElement('div');
+        reviewActions.className = 'review-actions';
 
-      actions.append(statusLabel, makeStatusSelect(booking), makeAssignForm(booking), makeRateEditor(booking));
+        const acceptBtn = document.createElement('button');
+        acceptBtn.type = 'button';
+        acceptBtn.className = 'btn btn-sm review-accept';
+        acceptBtn.textContent = 'Accept';
+        acceptBtn.setAttribute('aria-label', `Accept ride ${booking.id.slice(0, 8)} as legitimate`);
+        acceptBtn.addEventListener('click', () => reviewBooking(booking.id, 'accept'));
+
+        const rejectBtn = document.createElement('button');
+        rejectBtn.type = 'button';
+        rejectBtn.className = 'btn btn-sm review-reject';
+        rejectBtn.textContent = 'Reject';
+        rejectBtn.setAttribute('aria-label', `Reject ride ${booking.id.slice(0, 8)} as a fake request`);
+        rejectBtn.addEventListener('click', () => openRejectModal(booking));
+
+        reviewActions.append(acceptBtn, rejectBtn);
+        actions.append(reviewActions);
+
+        const reviewHint = document.createElement('span');
+        reviewHint.className = 'actions-label';
+        reviewHint.textContent = 'Verify before dispatch';
+        actions.append(reviewHint);
+      } else {
+        const statusLabel = document.createElement('span');
+        statusLabel.className = 'actions-label';
+        statusLabel.textContent = 'Set status';
+
+        actions.append(statusLabel, makeStatusSelect(booking), makeAssignForm(booking), makeRateEditor(booking));
+      }
 
       row.append(
         rideCell,
         makeCell('Route', route),
         makeCell('Pickup', when),
         makeCell('Vehicle', vehicleType, passengers),
-        makeCell('Status', makeBadge(booking.status)),
+        makeCell('Status', makeStatusCell(booking)),
         makeCell('Fare', makeFareCell(booking)),
         makeCell('Assigned', assigned),
         makeCell('Actions', actions)
@@ -3419,11 +3664,17 @@
     function render() {
       renderStats();
 
+      const reviewCount = bookings.filter(isPendingReview).length;
+      reviewCountEl.textContent = String(reviewCount);
+      reviewCountEl.hidden = reviewCount === 0;
+
       const tabVisible = bookingsTab === 'all'
         ? bookings
         : bookingsTab === 'completed'
           ? bookings.filter((booking) => TERMINAL_STATUSES.has(booking.status))
-          : bookings.filter((booking) => !TERMINAL_STATUSES.has(booking.status));
+          : bookingsTab === 'review'
+            ? bookings.filter(isPendingReview)
+            : bookings.filter((booking) => !TERMINAL_STATUSES.has(booking.status));
       let visible = tabVisible;
       if (activeFilter === 'unassigned') visible = visible.filter((booking) => !booking.driverId);
       else if (activeFilter) visible = visible.filter((booking) => booking.status === activeFilter);
@@ -3460,10 +3711,14 @@
           );
         } else if (tabVisible.length === 0) {
           renderState(
-            bookingsTab === 'completed' ? 'No completed jobs' : 'No active bookings yet',
-            bookingsTab === 'completed'
-              ? 'Completed and cancelled rides appear here when jobs finish.'
-              : 'Active, in-progress and pending rides appear here automatically.'
+            bookingsTab === 'review'
+              ? 'All rides reviewed'
+              : bookingsTab === 'completed' ? 'No completed jobs' : 'No active bookings yet',
+            bookingsTab === 'review'
+              ? 'New requests appear here until you accept or reject them.'
+              : bookingsTab === 'completed'
+                ? 'Completed and cancelled rides appear here when jobs finish.'
+                : 'Active, in-progress and pending rides appear here automatically.'
           );
         } else {
           renderState(
@@ -3513,6 +3768,7 @@
       const headers = [
         'Ride', 'Client', 'Email', 'Pickup', 'Dropoff', 'Pickup time',
         'Vehicle type', 'Status', 'Driver', 'Assigned vehicle', 'Passengers',
+        'Verification', 'Verified by', 'Risk signals',
       ];
       const escapeCell = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
       const rows = bookings.map((booking) => [
@@ -3527,6 +3783,9 @@
         booking.driverId,
         booking.assignedVehicle,
         booking.passengerCount,
+        booking.verificationStatus || 'unreviewed',
+        booking.verifiedBy || '',
+        (Array.isArray(booking.riskFlags) ? booking.riskFlags : []).map((flag) => flag.code || flag.label).join('; '),
       ].map(escapeCell).join(','));
       const csv = [headers.map(escapeCell).join(','), ...rows].join('\r\n');
       const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
@@ -3565,6 +3824,22 @@
 
     bookingTabButtons.forEach((button) => {
       button.addEventListener('click', () => setBookingsTab(button.dataset.tab));
+    });
+
+    document.getElementById('review-reject-close')?.addEventListener('click', closeRejectModal);
+    reviewRejectModal.querySelector('[data-review-close]')?.addEventListener('click', closeRejectModal);
+    reviewRejectModal.addEventListener('click', (event) => {
+      if (event.target === reviewRejectModal) closeRejectModal();
+    });
+    reviewRejectConfirm?.addEventListener('click', () => {
+      if (!pendingReviewId) return;
+      void reviewBooking(pendingReviewId, 'reject', {
+        reason: reviewRejectReason.value,
+        note: reviewRejectNote.value.trim(),
+      });
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !reviewRejectModal.hidden) closeRejectModal();
     });
 
     statsEl.addEventListener('click', (event) => {
